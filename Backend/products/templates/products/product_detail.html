@@ -1,0 +1,450 @@
+<head>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@2"></script>
+    
+    <!-- Add Vendor Colors -->
+    <style>
+        :root {
+            --primary: {{ vendor.settings.primary_color }};
+            --secondary: {{ vendor.settings.secondary_color }};
+            --accent: {{ vendor.settings.accent_color }};
+        }
+        body { 
+            font-family: '{{ vendor.settings.body_font }}', sans-serif; 
+        }
+        h1, h2, h3, h4, h5, h6 { 
+            font-family: '{{ vendor.settings.heading_font }}', sans-serif; 
+        }
+    </style>
+</head>
+{% block content %}
+<div class="bg-white">
+    <!-- Product Header -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="pt-8">
+            <nav class="flex" aria-label="Breadcrumb">
+                <ol class="flex items-center space-x-4">
+                    <li>
+                        <div class="flex items-center">
+                            <a href="{% url 'products:vendor_home' subdomain=vendor.subdomain.subdomain %}" 
+                               class="text-gray-400 hover:text-[var(--primary)] transition-colors text-sm">
+                                Home
+                            </a>
+                        </div>
+                    </li>
+                    <li>
+                        <div class="flex items-center">
+                            <svg class="flex-shrink-0 h-5 w-5 text-gray-300" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M5.555 17.776l8-16 .894.448-8 16-.894-.448z"/>
+                            </svg>
+                            <span class="ml-4 text-sm font-medium text-gray-500">{{ product.name }}</span>
+                        </div>
+                    </li>
+                </ol>
+            </nav>
+        </div>
+
+        <!-- Product Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 xl:gap-16 py-12">
+            <!-- Image Gallery -->
+            <div class="space-y-6">
+                <!-- Main Image -->
+                <div class="relative group rounded-3xl overflow-hidden bg-gray-50 shadow-xl aspect-square">
+                    <div id="mainImageContainer" class="relative h-full w-full">
+                        <img id="mainImage" src="{{ product.product_images.first.image.url }}" 
+                             class="w-full h-full object-contain transition-opacity duration-300">
+                        <div class="absolute inset-0 bg-gradient-to-b from-transparent to-black/10"></div>
+                    </div>
+                    
+                    {% if product.cut_price %}
+                    <div class="absolute top-4 left-4 bg-red-500 text-white px-4 py-2 rounded-full text-sm font-medium shadow-lg">
+                        SAVE {{ product.discount_percentage }}%
+                    </div>
+                    {% endif %}
+                    
+                    <button class="absolute top-4 right-4 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full shadow-lg 
+                                flex items-center justify-center hover:bg-[var(--primary)] hover:text-white 
+                                transition-all duration-300">
+                        <i class="far fa-heart text-lg"></i>
+                    </button>
+                </div>
+
+                <!-- Thumbnail Carousel -->
+                <div class="relative">
+                    <div class="flex space-x-4 overflow-x-auto pb-4 snap-x">
+                        {% for img in product.product_images.all %}
+                        <button class="thumbnail-btn flex-shrink-0 w-24 h-24 rounded-xl overflow-hidden border-2 transition-all
+                                    snap-center hover:scale-105 {% if forloop.first %}border-[var(--primary)]{% else %}border-gray-200{% endif %}"
+                                onclick="changeImage('{{ img.image.url }}', this)">
+                            <img src="{{ img.image.url }}" class="w-full h-full object-cover">
+                        </button>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Product Details -->
+            <div class="space-y-9 bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                <!-- Product Header -->
+                <div class="space-y-4">
+                    <h1 class="text-4xl font-bold text-gray-900 tracking-tight">{{ product.name }}</h1>
+                    <div class="flex items-center space-x-4">
+                        <div class="flex items-center">
+                            <div class="flex text-yellow-400 text-sm">
+                                {% for i in "12345" %}
+                                <i class="fas fa-star"></i>
+                                {% endfor %}
+                            </div>
+                            <span class="ml-2 text-sm text-gray-500">(121 reviews)</span>
+                        </div>
+                        <span class="text-green-600 text-sm font-medium">In Stock</span>
+                    </div>
+                </div>
+
+                <!-- Pricing -->
+                <div class="space-y-2">
+                    <div class="flex items-baseline gap-4">
+                        <span id="priceDisplay" class="text-5xl font-bold text-[var(--primary)]">
+                            ${{ product.price }}
+                        </span>
+                        {% if product.cut_price %}
+                        <span class="text-2xl text-gray-400 line-through">${{ product.cut_price }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Color Selection -->
+                {% if product.color_variant.exists %}
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-lg font-medium text-gray-900">Select Color</h3>
+                        <span id="selectedColorName" class="text-sm text-gray-500">Selected: <span class="font-medium">None</span></span>
+                    </div>
+                    <div class="flex flex-wrap gap-3">
+                        {% for color in product.color_variant.all %}
+                        <button class="color-swatch relative group w-14 h-14 rounded-full border-2 border-gray-200 hover:scale-105 
+                                    transition-transform {% if forloop.first %}ring-2 ring-[var(--primary)]{% endif %}"
+                                data-image="{{ color.image.url }}"
+                                data-color="{{ color.color_name }}"
+                                onclick="selectColor(this)">
+                            {% if color.image %}
+                            <img src="{{ color.image.url }}" class="w-full h-full rounded-full object-cover">
+                            {% else %}
+                            <span class="w-full h-full rounded-full block" style="background-color: {{ color.color_code }}"></span>
+                            {% endif %}
+                            <span class="absolute -bottom-6 left-1/2 -translate-x-1/2 text-xs font-medium text-gray-700 opacity-0 
+                                      group-hover:opacity-100 transition-opacity">
+                                {{ color.color_name }}
+                            </span>
+                        </button>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Size Selection -->
+                {% if product.size_variant.exists %}
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-lg font-medium text-gray-900">Select Size</h3>
+                        <span id="selectedSize" class="text-sm text-gray-500">Selected: <span class="font-medium">None</span></span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-3">
+                        {% for size in product.size_variant.all %}
+                        <button class="size-option h-14 rounded-lg border-2 font-medium transition-all relative
+                                    hover:border-[var(--primary)] hover:text-[var(--primary)] text-gray-700
+                                    {% if forloop.first %}border-[var(--primary)] text-[var(--primary)]{% endif %}"
+                                data-price="{{ size.price }}"
+                                data-size="{{ size.size_name }}"
+                                onclick="selectSize(this)">
+                            {{ size.size_name }}
+                            {% if size.price != product.price %}
+                            <span class="absolute bottom-1 right-1 text-xs text-gray-500">+${{ size.price }}</span>
+                            {% endif %}
+                        </button>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Quantity Selector -->
+                <div class="space-y-4">
+                    <h3 class="text-lg font-medium text-gray-900">Quantity</h3>
+                    <div class="flex items-center gap-4">
+                        <div class="flex items-center border-2 rounded-lg bg-white w-fit">
+                            <button class="w-12 h-12 flex items-center justify-center hover:text-[var(--primary)]"
+                                    onclick="updateQuantity(-1)">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                            <input type="number" id="quantity" value="1" min="1" 
+                                   class="w-16 text-center border-x-2 h-12 focus:outline-none font-medium">
+                            <button class="w-12 h-12 flex items-center justify-center hover:text-[var(--primary)]"
+                                    onclick="updateQuantity(1)">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                        <span class="text-sm text-gray-500">Only 12 items left</span>
+                    </div>
+                </div>
+
+                <!-- CTA Buttons -->
+                <div class="space-y-4 pt-4">
+                    <button id="addToCartBtn" 
+                            class="w-full bg-[var(--primary)] text-white h-14 rounded-xl 
+                                   hover:bg-opacity-90 transition-all duration-300 
+                                   flex items-center justify-center gap-2 font-medium
+                                   shadow-lg hover:shadow-[var(--primary)]/20">
+                        <i class="fas fa-shopping-cart"></i>
+                        Add to Cart
+                    </button>
+                    <button class="w-full h-14 border-2 border-[var(--primary)] text-[var(--primary)] 
+                                 rounded-xl hover:bg-[var(--primary)] hover:text-white transition-all duration-300
+                                 font-medium shadow-sm">
+                        Buy Now
+                    </button>
+                </div>
+
+                <!-- Product Details Accordion -->
+                <div class="border-t pt-6 space-y-6">
+                    <div x-data="{ open: true }" class="border-b">
+                        <button @click="open = !open" 
+                                class="flex justify-between items-center w-full py-4 text-left">
+                            <h3 class="text-lg font-medium text-gray-900">Product Details</h3>
+                            <i :class="open ? 'fa-chevron-up' : 'fa-chevron-down'" 
+                               class="fas text-gray-500 transition-transform"></i>
+                        </button>
+                        <div x-show="open" class="pb-6 text-gray-600 space-y-4">
+                            {{ product.description|linebreaks }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reviews Section -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div class="border-t pt-16">
+            <h2 class="text-3xl font-bold text-gray-900 mb-8">Customer Reviews</h2>
+            
+            <!-- Review Summary -->
+            <div class="bg-gray-50 rounded-2xl p-8 mb-12">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center">
+                    <div class="mb-6 md:mb-0">
+                        <h3 class="text-2xl font-bold text-gray-900">4.8/5</h3>
+                        <div class="flex text-yellow-400 text-sm mt-1">
+                            {% for i in "12345" %}
+                            <i class="fas fa-star"></i>
+                            {% endfor %}
+                        </div>
+                        <p class="text-sm text-gray-500 mt-2">Based on 121 reviews</p>
+                    </div>
+                    <div class="flex-1 max-w-lg w-full">
+                        <div class="space-y-2">
+                            {% for i in "54321" %}
+                            <div class="flex items-center gap-4">
+                                <span class="text-sm w-8">{{ i }} star</span>
+                                <div class="flex-1 bg-gray-200 rounded-full h-2.5">
+                                    <div class="bg-[var(--primary)] h-2.5 rounded-full" 
+                                         style="width: {% widthratio forloop.revcounter 1 20 %}%"></div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Review List -->
+            <div class="grid gap-8 md:grid-cols-2">
+                <!-- Review Card 1 -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                    <div class="flex items-center gap-4 mb-4">
+                        <div class="w-12 h-12 bg-[var(--primary)] rounded-full flex items-center justify-center text-white font-bold">JD</div>
+                        <div>
+                            <h4 class="font-medium">John Doe</h4>
+                            <div class="flex items-center gap-2 text-sm text-yellow-400">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star-half-alt"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-gray-600">Absolutely love this product! The quality is amazing and it looks even better in person.</p>
+                </div>
+
+                <!-- Review Card 2 -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                    <div class="flex items-center gap-4 mb-4">
+                        <div class="w-12 h-12 bg-pink-500 rounded-full flex items-center justify-center text-white font-bold">AS</div>
+                        <div>
+                            <h4 class="font-medium">Alice Smith</h4>
+                            <div class="flex items-center gap-2 text-sm text-yellow-400">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-gray-600">Fast delivery and perfect fit. Will definitely purchase again!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.size-option {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.size-option.selected {
+    border-color: var(--primary);
+    background-color: rgba(var(--primary-rgb), 0.05);
+    color: var(--primary);
+}
+
+.color-swatch.selected {
+    box-shadow: 0 0 0 2px white, 0 0 0 4px var(--primary);
+}
+
+#mainImage {
+    view-transition-name: main-image;
+}
+
+.thumbnail-btn {
+    view-transition-name: thumbnail;
+}
+
+::view-transition-group(main-image) {
+    animation-duration: 0.3s;
+}
+</style>
+
+<script>
+    let selectedColor = null;
+    let selectedSize = null;
+    
+    // Image Change Function
+    function changeImage(url, btn) {
+        const mainImage = document.getElementById('mainImage');
+        document.querySelectorAll('.thumbnail-btn').forEach(b => 
+            b.classList.remove('border-[var(--primary)]'));
+        btn.classList.add('border-[var(--primary)]');
+        
+        mainImage.style.opacity = '0';
+        setTimeout(() => {
+            mainImage.src = url;
+            mainImage.style.opacity = '1';
+        }, 200);
+    }
+    
+    // Color Selection with Image Change
+    function selectColor(btn) {
+        const colorName = btn.dataset.color;
+        const imageUrl = btn.dataset.image;
+        
+        if (selectedColor === colorName) {
+            // Deselect color
+            btn.classList.remove('ring-2', 'ring-[var(--primary)]');
+            document.getElementById('selectedColorName').querySelector('span').textContent = 'None';
+            selectedColor = null;
+        } else {
+            // Select new color
+            document.querySelectorAll('.color-swatch').forEach(b => 
+                b.classList.remove('ring-2', 'ring-[var(--primary)]'));
+            btn.classList.add('ring-2', 'ring-[var(--primary)]');
+            document.getElementById('selectedColorName').querySelector('span').textContent = colorName;
+            selectedColor = colorName;
+            
+            // Change main image
+            if (imageUrl) {
+                changeImage(imageUrl, btn);
+            }
+        }
+        updateButtonStates();
+    }
+    
+    // Size Selection with Deselection
+    function selectSize(btn) {
+        const sizeName = btn.dataset.size;
+        
+        if (selectedSize === sizeName) {
+            // Deselect size
+            btn.classList.remove('selected', 'border-[var(--primary)]', 'text-[var(--primary)]');
+            document.getElementById('selectedSize').querySelector('span').textContent = 'None';
+            selectedSize = null;
+            // Reset price to base price
+            document.getElementById('priceDisplay').textContent = `${{ product.price }}`;
+        } else {
+            // Select new size
+            document.querySelectorAll('.size-option').forEach(b => 
+                b.classList.remove('selected', 'border-[var(--primary)]', 'text-[var(--primary)]'));
+            btn.classList.add('selected', 'border-[var(--primary)]', 'text-[var(--primary)]');
+            document.getElementById('selectedSize').querySelector('span').textContent = sizeName;
+            selectedSize = sizeName;
+            // Update price with size variant price
+            const newPrice = parseFloat({{ product.price }}) + parseFloat(btn.dataset.price || 0);
+            document.getElementById('priceDisplay').textContent = `$${newPrice.toFixed(2)}`;
+        }
+        updateButtonStates();
+    }
+    
+    // Improved Information Accordion
+    document.querySelectorAll('.info-accordion').forEach(accordion => {
+        const header = accordion.querySelector('.accordion-header');
+        const content = accordion.querySelector('.accordion-content');
+        const icon = accordion.querySelector('.accordion-icon');
+        
+        header.addEventListener('click', () => {
+            const isOpen = content.style.maxHeight;
+            
+            // Close all other accordions
+            document.querySelectorAll('.info-accordion').forEach(other => {
+                if (other !== accordion) {
+                    other.querySelector('.accordion-content').style.maxHeight = null;
+                    other.querySelector('.accordion-icon').style.transform = 'rotate(0deg)';
+                }
+            });
+            
+            // Toggle current accordion
+            if (isOpen) {
+                content.style.maxHeight = null;
+                icon.style.transform = 'rotate(0deg)';
+            } else {
+                content.style.maxHeight = content.scrollHeight + 'px';
+                icon.style.transform = 'rotate(180deg)';
+            }
+        });
+    });
+    
+    // Image Zoom Effect
+    const mainImageContainer = document.getElementById('mainImageContainer');
+    const mainImage = document.getElementById('mainImage');
+    
+    mainImageContainer.addEventListener('mousemove', (e) => {
+        const rect = mainImageContainer.getBoundingClientRect();
+        const x = (e.clientX - rect.left) / rect.width * 100;
+        const y = (e.clientY - rect.top) / rect.height * 100;
+        mainImage.style.transformOrigin = `${x}% ${y}%`;
+        mainImage.style.transform = 'scale(1.5)';
+    });
+    
+    mainImageContainer.addEventListener('mouseleave', () => {
+        mainImage.style.transform = 'scale(1)';
+    });
+    
+    // Add smooth transitions
+    document.documentElement.style.setProperty('--transition-speed', '0.3s');
+
+
+    
+</script>
+    
+{% endblock %}

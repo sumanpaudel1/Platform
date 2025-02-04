@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OTP Verification</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script>
+        // Store timer state in sessionStorage to persist across form submissions
+        let timeLeft = parseInt(sessionStorage.getItem('otpTimeLeft')) || 90;
+        let timerId = null;
+
+        function startTimer() {
+            if (timerId) clearInterval(timerId);
+            
+            const timerDisplay = document.getElementById('timer-display');
+            const timerCircle = document.getElementById('timer-circle');
+            const resendButton = document.getElementById('resend-button');
+            const circumference = 2 * Math.PI * 44;
+            
+            function updateTimer() {
+                if (timeLeft > 0) {
+                    timerDisplay.textContent = timeLeft + 's';
+                    
+                    // Update circle animation
+                    const offset = circumference * (1 - timeLeft / 90);
+                    timerCircle.style.strokeDashoffset = offset;
+                    
+                    // Store current time in sessionStorage
+                    sessionStorage.setItem('otpTimeLeft', timeLeft);
+                    
+                    timeLeft--;
+                } else {
+                    clearInterval(timerId);
+                    resendButton.classList.remove('hidden');
+                    sessionStorage.removeItem('otpTimeLeft');
+                }
+            }
+
+            timerId = setInterval(updateTimer, 1000);
+            updateTimer(); // Initial update
+        }
+
+        function resendOTP() {
+            timeLeft = 90;
+            sessionStorage.setItem('otpTimeLeft', timeLeft);
+            document.getElementById('resend-button').classList.add('hidden');
+            startTimer();
+            document.getElementById('resend-form').submit();
+        }
+
+        // Handle tab visibility
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                // Save current time when tab becomes hidden
+                sessionStorage.setItem('otpTimeLeft', timeLeft);
+                clearInterval(timerId);
+            } else {
+                // Resume from saved time when tab becomes visible
+                timeLeft = parseInt(sessionStorage.getItem('otpTimeLeft')) || timeLeft;
+                startTimer();
+            }
+        });
+
+        // Auto-tab functionality
+        function autoTab(event, current, next) {
+            if (current.value.length === 1 && next) {
+                next.focus();
+            }
+        }
+
+        // Handle backspace
+        function handleBackspace(event, current, previous) {
+            if (event.key === 'Backspace' && current.value === '' && previous) {
+                previous.focus();
+            }
+        }
+
+        // Start timer when page loads
+        window.onload = function() {
+            // Check if this is a fresh session
+            if (!sessionStorage.getItem('otpSessionStarted')) {
+                timeLeft = 90;
+                sessionStorage.setItem('otpSessionStarted', 'true');
+                sessionStorage.setItem('otpTimeLeft', timeLeft);
+            }
+            startTimer();
+        };
+
+        // Clean up when leaving the page
+        window.onbeforeunload = function() {
+            // Only clear session if we're actually leaving the verification page
+            if (!document.getElementById('otp-verification-form')) {
+                sessionStorage.removeItem('otpTimeLeft');
+                sessionStorage.removeItem('otpSessionStarted');
+            }
+        };
+    </script>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-50 min-h-screen">
+    <div class="min-h-screen flex items-center justify-center p-4">
+        <div class="w-full max-w-md bg-white/80 backdrop-blur-md rounded-xl shadow-xl p-8">
+            <!-- Rest of your existing HTML structure remains the same -->
+            <div class="text-center mb-8">
+                <h2 class="text-2xl font-bold text-gray-900">Verify Your Email</h2>
+                <p class="text-gray-600 mt-2">We've sent a code to {{ email }}</p>
+            </div>
+
+            <!-- Timer Circle -->
+            <div class="relative w-24 h-24 mx-auto mb-8">
+                <svg class="w-full h-full transform -rotate-90">
+                    <circle cx="48" cy="48" r="44" stroke="#E5E7EB" stroke-width="8" fill="none"/>
+                    <circle id="timer-circle" cx="48" cy="48" r="44" stroke="#3B82F6" stroke-width="8" fill="none"
+                            stroke-dasharray="276.46" stroke-dashoffset="0" style="transition: stroke-dashoffset 1s linear"/>
+                </svg>
+                <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                    <span id="timer-display" class="text-xl font-semibold text-gray-700">90s</span>
+                </div>
+            </div>
+
+            <!-- OTP Input Form -->
+            <form id="otp-verification-form" method="POST" class="space-y-6">
+                {% csrf_token %}
+                <div class="flex justify-center gap-2">
+                    {% for i in "123456" %}
+                    <input type="text" 
+                           name="otp{{i}}" 
+                           maxlength="1"
+                           class="w-12 h-12 text-center text-xl font-semibold border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-blue-500 transition-colors"
+                           oninput="autoTab(event, this, this.nextElementSibling)"
+                           onkeydown="handleBackspace(event, this, this.previousElementSibling)"
+                           pattern="[0-9]"
+                           inputmode="numeric"
+                           required>
+                    {% endfor %}
+                </div>
+
+                {% if error %}
+                <div class="rounded-md bg-red-50 p-4">
+                    <div class="flex">
+                        <div class="ml-3">
+                            <p class="text-sm text-red-700">{{ error }}</p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <button type="submit" class="w-full py-3 px-4 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors">
+                    Verify OTP
+                </button>
+            </form>
+
+            <!-- Hidden Resend Form -->
+            <form id="resend-form" method="POST" action="{% url 'resend_otp' email=email %}">
+                {% csrf_token %}
+            </form>
+
+            <!-- Resend Button -->
+            <button id="resend-button" onclick="resendOTP()" class="hidden mt-4 w-full text-blue-600 hover:text-blue-700 font-medium transition-colors">
+                Resend OTP
+            </button>
+        </div>
+    </div>
+</body>
+</html>
