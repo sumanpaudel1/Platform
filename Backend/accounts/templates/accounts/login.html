@@ -1,0 +1,165 @@
+{% load socialaccount %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | Clothy</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+        .transition-all {
+            transition: all 0.3s ease;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-50 min-h-screen">
+    <!-- Navigation -->
+    <nav class="bg-white/80 backdrop-blur-md fixed w-full top-0 z-10 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <div class="flex-shrink-0">
+                    <a href="/" class="text-2xl font-bold text-blue-600">Clothy</a>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="{% url 'register' %}" class="text-gray-600 hover:text-gray-900">Register</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-md w-full space-y-8">
+            <!-- Main Card -->
+            <div class="bg-white/80 backdrop-blur-md rounded-2xl shadow-xl p-8 animate-fade-in">
+                <!-- Logo/Brand -->
+                <div class="text-center mb-10">
+                    <div class="inline-block p-4 rounded-full bg-blue-100 mb-4">
+                        <i class="fas fa-user text-2xl text-blue-600"></i>
+                    </div>
+                    <h2 class="text-3xl font-extrabold text-gray-900 mb-1">Welcome Back</h2>
+                    <p class="text-sm text-gray-600">
+                        Don't have an account?
+                        <a href="{% url 'register' %}" class="font-medium text-blue-600 hover:text-blue-500 transition-colors">
+                            Sign up
+                        </a>
+                    </p>
+                </div>
+
+                <!-- Login Form -->
+                <form method="POST" action="{% url 'login' %}" class="space-y-6">
+                    {% csrf_token %}
+                    
+                    <!-- Email Field -->
+                    <div class="space-y-1 group">
+                        <label for="{{ form.email.id_for_label }}" 
+                               class="block text-sm font-medium text-gray-700 group-hover:text-blue-600 transition-colors">
+                            Email
+                        </label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-envelope text-gray-400"></i>
+                            </div>
+                            {{ form.email }}
+                        </div>
+                    </div>
+
+                    <!-- Password Field -->
+                    <div class="space-y-1 group">
+                        <label for="{{ form.password.id_for_label }}" 
+                               class="block text-sm font-medium text-gray-700 group-hover:text-blue-600 transition-colors">
+                            Password
+                        </label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-lock text-gray-400"></i>
+                            </div>
+                            {{ form.password }}
+                        </div>
+                    </div>
+
+                    <!-- Remember Me & Forgot Password -->
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <input type="checkbox" id="remember_me" name="remember_me" 
+                                   class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                            <label for="remember_me" class="ml-2 block text-sm text-gray-700">
+                                Remember me
+                            </label>
+                        </div>
+                        <a href="{% url 'forgot_password' %}" class="text-sm font-medium text-blue-600 hover:text-blue-500">
+                            Forgot password?
+                        </a>
+                    </div>
+
+                    {% if error %}
+                    <div class="rounded-md bg-red-50 p-4">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-exclamation-circle text-red-400"></i>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm text-red-700">{{ error }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Submit Button -->
+                    <div>
+                        <button type="submit" 
+                                class="w-full flex justify-center items-center py-3 px-4 rounded-xl shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all transform hover:scale-[1.02]">
+                            <i class="fas fa-sign-in-alt mr-2"></i>
+                            Sign In
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Divider -->
+                <div class="mt-8 relative">
+                    <div class="absolute inset-0 flex items-center">
+                        <div class="w-full border-t border-gray-200"></div>
+                    </div>
+                    <div class="relative flex justify-center text-sm">
+                        <span class="px-4 bg-white text-gray-500">Or continue with</span>
+                    </div>
+                </div>
+
+                <!-- Social Login Options -->
+                <div class="mt-6 space-y-4">
+                    <button onclick="window.location.href='{% provider_login_url 'google' %}'"
+                        class="w-full flex items-center justify-center px-4 py-3 rounded-xl border border-gray-200 shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-200 transition-all transform hover:scale-[1.02]">
+                        <img class="h-5 w-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google Logo">
+                        Continue with Google
+                    </button>
+                
+                </div>
+
+                <!-- Security Notice -->
+                <p class="mt-8 text-xs text-center text-gray-500">
+                    <i class="fas fa-shield-alt mr-1"></i>
+                    Protected by reCAPTCHA and subject to our 
+                    <a href="#" class="text-blue-600 hover:underline">Privacy Policy</a> and 
+                    <a href="#" class="text-blue-600 hover:underline">Terms of Service</a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-white/80 backdrop-blur-md py-4">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <p class="text-center text-sm text-gray-500">
+                © 2024 Clothy. All rights reserved.
+            </p>
+        </div>
+    </footer>
+</body>
+</html>

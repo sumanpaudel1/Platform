@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Profile</title>
+</head>
+<body>
+    <h2>Profile</h2>
+    <p>Email: {{ user.email }}</p>
+    <p>First Name: {{ user.first_name }}</p>
+    <p>Last Name: {{ user.last_name }}</p>
+    <p>Middle Name: {{ user.middle_name }}</p>
+    <p>Phone Number: {{ user.phone_number }}</p>
+    <a href="{% url 'update_profile' %}">Update Profile</a>
+</body>
+</html>
