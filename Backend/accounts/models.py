@@ -4,6 +4,7 @@ from datetime import timedelta
 from django.utils.timezone import now
 from django.utils.text import slugify
 import uuid
+from django.utils import timezone
 # Vendor Manager
 class VendorManager(BaseUserManager):
     def create_vendor(self, email, phone_number=None, first_name=None, last_name=None, middle_name=None, password=None):
@@ -195,9 +196,128 @@ class VendorSetting(models.Model):
     meta_title = models.CharField(max_length=100, blank=True)
     meta_description = models.TextField(blank=True)
     
+    # Profile Status
+    is_profile_complete = models.BooleanField(default=False)
+    profile_completion_date = models.DateTimeField(null=True, blank=True)
+    
+    # Subdomain Management
+    subdomain = models.CharField(max_length=50, unique=True, null=True, blank=True)
+    is_subdomain_active = models.BooleanField(default=False)
+    is_published = models.BooleanField(default=False)
+    subdomain_request_date = models.DateTimeField(null=True, blank=True)
+    subdomain_approval_date = models.DateTimeField(null=True, blank=True)
+
     class Meta:
         verbose_name = "Vendor Setting"
         verbose_name_plural = "Vendor Settings"
 
     def __str__(self):
         return f"Settings for {self.vendor.first_name}"
+
+    def request_subdomain(self, subdomain_name):
+        self.subdomain = subdomain_name
+        self.subdomain_request_date = timezone.now()
+        self.save()
+
+    def approve_subdomain(self):
+        self.is_subdomain_active = True
+        self.subdomain_approval_date = timezone.now()
+        self.save()
+        
+        
+      
+      
+      
+
+
+def vendor_document_path(instance, filename):
+    return f'vendor_documents/{instance.vendor.id}/{filename}'
+
+def vendor_photo_path(instance, filename):
+    return f'vendor_photos/{instance.vendor.id}/{filename}'
+
+class VendorProfile(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('under_review', 'Under Review'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected')
+    ]
+
+    # Basic Information
+    vendor = models.OneToOneField(Vendor, on_delete=models.CASCADE, related_name='profile')
+    profile_photo = models.ImageField(upload_to=vendor_photo_path)
+    date_of_birth = models.DateField(null=True, blank=True)
+    gender = models.CharField(max_length=10, choices=[('M', 'Male'), ('F', 'Female'), ('O', 'Other')])
+    
+    # Business Information
+    business_name = models.CharField(max_length=100)
+    business_type = models.CharField(max_length=50)
+    pan_vat_number = models.CharField(max_length=50, unique=True)
+    registration_number = models.CharField(max_length=50, unique=True)
+    
+    # Address Information
+    street_address = models.CharField(max_length=255)
+    city = models.CharField(max_length=100)
+    state = models.CharField(max_length=100)
+    postal_code = models.CharField(max_length=10)
+    country = models.CharField(max_length=100)
+    
+    # Contact Information
+    alternate_phone = models.CharField(max_length=15, blank=True)
+    alternate_email = models.EmailField(blank=True)
+    
+    # Document Uploads
+    pan_vat_document = models.FileField(upload_to=vendor_document_path)
+    business_registration = models.FileField(upload_to=vendor_document_path)
+    citizenship_front = models.ImageField(upload_to=vendor_document_path)
+    citizenship_back = models.ImageField(upload_to=vendor_document_path)
+    citizenship_number = models.CharField(max_length=50, unique=True)
+    
+    # Store/Warehouse Photos
+    store_photos = models.ManyToManyField('StorePhoto', blank=True)
+    
+    # Status and Verification
+    profile_status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    is_verified = models.BooleanField(default=False)
+    verification_date = models.DateTimeField(null=True, blank=True)
+    verified_by = models.ForeignKey(
+        Vendor, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        related_name='verified_profiles'
+    )
+    
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Vendor Profile"
+        verbose_name_plural = "Vendor Profiles"
+
+    def __str__(self):
+        return f"Profile of {self.vendor.first_name} {self.vendor.last_name}"
+
+    def is_profile_complete(self):
+        required_fields = [
+            self.profile_photo,
+            self.business_name,
+            self.pan_vat_number,
+            self.registration_number,
+            self.pan_vat_document,
+            self.business_registration,
+            self.citizenship_front,
+            self.citizenship_back
+        ]
+        return all(required_fields)
+
+class StorePhoto(models.Model):
+    vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE)
+    image = models.ImageField(upload_to=vendor_photo_path)
+    caption = models.CharField(max_length=255, blank=True)
+    is_primary = models.BooleanField(default=False)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-is_primary', '-uploaded_at']  

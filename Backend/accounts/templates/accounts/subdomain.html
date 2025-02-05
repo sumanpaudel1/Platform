@@ -1,0 +1,28 @@
+{% extends 'accounts/home.html' %}
+
+{% block content %}
+<div class="py-6">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 class="text-2xl font-bold">Subdomain Management</h2>
+        <div class="mt-6">
+            <form method="POST" class="space-y-4">
+                {% csrf_token %}
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Subdomain Name</label>
+                    <div class="mt-1 flex rounded-md shadow-sm">
+                        <input type="text" name="subdomain" value="{{ settings.subdomain|default:'' }}" 
+                               class="flex-1 min-w-0 block w-full px-3 py-2 rounded-md border border-gray-300 focus:ring-blue-500 focus:border-blue-500" 
+                               placeholder="your-store">
+                        <span class="inline-flex items-center px-3 py-2 border border-l-0 border-gray-300 bg-gray-50 text-gray-500">
+                            .yourdomain.com
+                        </span>
+                    </div>
+                </div>
+                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-md">
+                    Request Subdomain
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
