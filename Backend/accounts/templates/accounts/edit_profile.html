@@ -1,0 +1,27 @@
+<!-- filepath: /c:/Users/Asus/Desktop/level-6/Final Year Project & Professionalism/Final_Year_Project/Backend/accounts/templates/accounts/edit_profile.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Edit Profile</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto p-6">
+        <h1 class="text-2xl font-bold mb-4">Edit Profile</h1>
+        <form method="post" action="">
+            {% csrf_token %}
+            <div class="mb-4">
+                <label class="block text-gray-700">First Name:</label>
+                <input type="text" name="first_name" class="border p-2 w-full" placeholder="Your first name">
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-700">Last Name:</label>
+                <input type="text" name="last_name" class="border p-2 w-full" placeholder="Your last name">
+            </div>
+            <!-- Add additional form fields as needed -->
+            <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">Save Changes</button>
+        </form>
+    </div>
+</body>
+</html>

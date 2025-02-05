@@ -1,0 +1,31 @@
+<!-- filepath: /C:/Users/Asus/Desktop/level-6/Final Year Project & Professionalism/Final_Year_Project/Backend/accounts/templates/accounts/edit_settings.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Edit Settings</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto p-6">
+        <h1 class="text-2xl font-bold mb-4">Edit Settings</h1>
+        <form method="post" action="">
+            {% csrf_token %}
+            <div class="mb-4">
+                <label class="block text-gray-700">Store Name:</label>
+                <input type="text" name="store_name" class="border p-2 w-full" placeholder="Your store name">
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-700">Tagline:</label>
+                <input type="text" name="tagline" class="border p-2 w-full" placeholder="Your store tagline">
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-700">Primary Color:</label>
+                <input type="text" name="primary_color" class="border p-2 w-full" placeholder="#ffffff">
+            </div>
+            <!-- Add additional fields as needed -->
+            <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">Save Changes</button>
+        </form>
+    </div>
+</body>
+</html>
