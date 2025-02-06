@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm
-from .models import Vendor
+from .models import Vendor, VendorProfile, VendorSetting
 
 
 class RegistrationForm(forms.ModelForm):
@@ -66,19 +66,101 @@ class LoginForm(forms.Form):
 
 from django import forms
 from .models import VendorProfile
-
 class VendorProfileForm(forms.ModelForm):
     class Meta:
         model = VendorProfile
-        fields = [
-            'profile_photo', 'business_name', 'business_type',
-            'pan_vat_number', 'registration_number', 'street_address',
-            'city', 'state', 'postal_code', 'country', 'alternate_phone',
-            'alternate_email', 'pan_vat_document', 'business_registration',
-            'citizenship_front', 'citizenship_back', 'citizenship_number'
-        ]
+        exclude = ['vendor', 'profile_status', 'is_verified', 'verification_date', 'verified_by']
         widgets = {
-            'profile_photo': forms.FileInput(attrs={'class': 'form-input rounded-lg'}),
-            'business_name': forms.TextInput(attrs={'class': 'form-input rounded-lg'}),
-            # Add similar styling for other fields
+            'date_of_birth': forms.DateInput(attrs={
+                'type': 'date',
+                'class': 'mt-1 block w-full rounded-md bg-gray-50 border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm'
+            }),
+            'gender': forms.Select(attrs={
+                'class': 'mt-1 block w-full rounded-md bg-gray-50 border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm'
+            }),
+            'business_name': forms.TextInput(attrs={
+                'class': 'mt-1 block w-full rounded-md bg-gray-50 border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm'
+            }),
+            'business_type': forms.TextInput(attrs={
+                'class': 'mt-1 block w-full rounded-md bg-gray-50 border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm'
+            }),
+            'pan_vat_number': forms.TextInput(attrs={
+                'class': 'mt-1 block w-full rounded-md bg-gray-50 border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm'
+            }),
+            'registration_number': forms.TextInput(attrs={
+                'class': 'mt-1 block w-full rounded-md bg-gray-50 border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm'
+            }),
+            'street_address': forms.TextInput(attrs={
+                'class': 'mt-1 block w-full rounded-md bg-gray-50 border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm'
+            }),
+            'city': forms.TextInput(attrs={
+                'class': 'mt-1 block w-full rounded-md bg-gray-50 border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm'
+            }),
+            'state': forms.TextInput(attrs={
+                'class': 'mt-1 block w-full rounded-md bg-gray-50 border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm'
+            }),
+            'postal_code': forms.TextInput(attrs={
+                'class': 'mt-1 block w-full rounded-md bg-gray-50 border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm'
+            }),
+            'country': forms.TextInput(attrs={
+                'class': 'mt-1 block w-full rounded-md bg-gray-50 border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm'
+            }),
+            'alternate_phone': forms.TextInput(attrs={
+                'class': 'mt-1 block w-full rounded-md bg-gray-50 border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm'
+            }),
+            'alternate_email': forms.EmailInput(attrs={
+                'class': 'mt-1 block w-full rounded-md bg-gray-50 border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm'
+            }),
+            'citizenship_number': forms.TextInput(attrs={
+                'class': 'mt-1 block w-full rounded-md bg-gray-50 border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm'
+            }),
+            'profile_photo': forms.FileInput(attrs={
+                'class': 'mt-1 block w-full rounded-md bg-gray-50 border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm'
+            }),
+            'pan_vat_document': forms.FileInput(attrs={
+                'class': 'mt-1 block w-full rounded-md bg-gray-50 border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm'
+            }),
+            'business_registration': forms.FileInput(attrs={
+                'class': 'mt-1 block w-full rounded-md bg-gray-50 border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm'
+            }),
+            'citizenship_front': forms.FileInput(attrs={
+                'class': 'mt-1 block w-full rounded-md bg-gray-50 border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm'
+            }),
+            'citizenship_back': forms.FileInput(attrs={
+                'class': 'mt-1 block w-full rounded-md bg-gray-50 border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm'
+            })
+        }
+        
+        
+        
+
+
+class VendorSettingForm(forms.ModelForm):
+    class Meta:
+        model = VendorSetting
+        exclude = ['vendor', 'is_profile_complete', 'profile_completion_date', 
+                  'subdomain_request_date', 'subdomain_approval_date']
+        widgets = {
+            'logo': forms.FileInput(attrs={'class': 'hidden', 'accept': 'image/*'}),
+            'favicon': forms.FileInput(attrs={'class': 'hidden', 'accept': 'image/*'}),
+            'store_name': forms.TextInput(attrs={'class': 'form-input'}),
+            'tagline': forms.TextInput(attrs={'class': 'form-input'}),
+            'about': forms.Textarea(attrs={'class': 'form-input', 'rows': 4}),
+            'announcement': forms.TextInput(attrs={'class': 'form-input'}),
+            'primary_color': forms.TextInput(attrs={'type': 'color', 'class': 'h-10 w-full'}),
+            'secondary_color': forms.TextInput(attrs={'type': 'color', 'class': 'h-10 w-full'}),
+            'accent_color': forms.TextInput(attrs={'type': 'color', 'class': 'h-10 w-full'}),
+            'heading_font': forms.Select(attrs={'class': 'form-input'}),
+            'body_font': forms.Select(attrs={'class': 'form-input'}),
+            'facebook': forms.URLInput(attrs={'class': 'form-input'}),
+            'instagram': forms.URLInput(attrs={'class': 'form-input'}),
+            'twitter': forms.URLInput(attrs={'class': 'form-input'}),
+            'meta_title': forms.TextInput(attrs={'class': 'form-input'}),
+            'meta_description': forms.Textarea(attrs={'class': 'form-input', 'rows': 3}),
+            'contact_email': forms.EmailInput(attrs={'class': 'form-input'}),
+            'contact_phone': forms.TextInput(attrs={'class': 'form-input'}),
+            'contact_address': forms.TextInput(attrs={'class': 'form-input'}),
+            'popup_title': forms.TextInput(attrs={'class': 'form-input'}),
+            'popup_text': forms.Textarea(attrs={'class': 'form-input', 'rows': 3}),
+            'popup_delay': forms.NumberInput(attrs={'class': 'form-input'}),
         }

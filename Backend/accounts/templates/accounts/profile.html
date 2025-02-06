@@ -1,145 +1,561 @@
+
+
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Profile</title>
+    <title>Vendor Profile</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        .form-input {
+            @apply mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm;
+        }
+        .form-label {
+            @apply block text-sm font-medium text-gray-700 mb-1;
+        }
+        .form-error {
+            @apply mt-1 text-sm text-red-600;
+        }
+    </style>
 </head>
-{% block content %}
-<div class="min-h-screen bg-gray-100 py-6">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <!-- Profile Header -->
-        <div class="md:flex md:items-center md:justify-between mb-8">
-            <div class="flex-1 min-w-0">
-                <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
-                    {% if is_new %}Create Profile{% else %}Update Profile{% endif %}
-                </h2>
+<body class="bg-gray-50">
+    <div class="min-h-screen py-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <!-- Header -->
+            <div class="flex justify-between items-center mb-8">
+                <h1 class="text-3xl font-bold text-gray-900">Vendor Profile</h1>
+                <a href="{% url 'home' %}" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                    <svg class="mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                    </svg>
+                    Back to Home
+                </a>
             </div>
-        </div>
 
-        <!-- Profile Form -->
-        <form method="POST" enctype="multipart/form-data" class="space-y-8 divide-y divide-gray-200">
-            {% csrf_token %}
-            
-            <div class="space-y-8 divide-y divide-gray-200">
-                <!-- Basic Information -->
-                <div class="pt-8">
-                    <div>
-                        <h3 class="text-lg leading-6 font-medium text-gray-900">Basic Information</h3>
-                        <p class="mt-1 text-sm text-gray-500">This information will be displayed publicly.</p>
+            <!-- Main Form -->
+            <form method="POST" enctype="multipart/form-data" id="profileForm">
+                {% csrf_token %}
+                <div class="bg-white shadow rounded-lg overflow-hidden">
+                    <!-- Profile Photo Section -->
+                    <div class="p-6 bg-gray-50 border-b">
+                        <div class="flex justify-center">
+                            <div class="relative">
+                                {% if profile.profile_photo %}
+                                    <img src="{{ profile.profile_photo.url }}" alt="Profile" class="h-32 w-32 rounded-full object-cover ring-4 ring-white shadow-lg">
+                                {% else %}
+                                    <div class="h-32 w-32 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-center ring-4 ring-white shadow-lg">
+                                        <span class="text-4xl text-white">{{ request.user.first_name|first }}</span>
+                                    </div>
+                                {% endif %}
+                                <label class="absolute bottom-0 right-0 bg-indigo-600 rounded-full p-2 cursor-pointer shadow-lg hover:bg-indigo-700 transition-colors">
+                                    <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+                                    </svg>
+                                    <input type="file" name="profile_photo" class="hidden" accept="image/*">
+                                </label>
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="mt-6 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
-                        <!-- Profile Photo -->
-                        <!-- Profile Photo Section -->
-<div class="flex items-center">
-    {% if request.user.profile %}
-        {% if request.user.profile.profile_photo %}
-            <img src="{{ request.user.profile.profile_photo.url }}" 
-                 alt="Profile Photo"
-                 class="h-12 w-12 rounded-full object-cover">
-        {% else %}
-            <div class="h-12 w-12 rounded-full bg-gray-200 flex items-center justify-center">
-                <span class="text-xl font-medium text-gray-600">
-                    {{ request.user.first_name|first|default:"V" }}
-                </span>
-            </div>
-        {% endif %}
-    {% else %}
-        <div class="h-12 w-12 rounded-full bg-gray-200 flex items-center justify-center">
-            <span class="text-xl font-medium text-gray-600">
-                {{ request.user.first_name|first|default:"V" }}
-            </span>
+                    <!-- Form Content -->
+                    <div class="p-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- Basic Information -->
+                            <div>
+                                <h3 class="text-lg font-medium text-gray-900 mb-4">Basic Information</h3>
+                                {% for field in form %}
+                                    {% if field.name in 'date_of_birth,gender,street_address,city,state,postal_code,country' %}
+                                        <div class="mb-4">
+                                            <label class="form-label">{{ field.label }}</label>
+                                            {{ field }}
+                                            {% if field.errors %}
+                                                <p class="form-error">{{ field.errors.0 }}</p>
+                                            {% endif %}
+                                        </div>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+
+                            <!-- Business Information -->
+                            <div>
+                                <h3 class="text-lg font-medium text-gray-900 mb-4">Business Information</h3>
+                                {% for field in form %}
+                                    {% if field.name in 'business_name,business_type,pan_vat_number,registration_number,citizenship_number,alternate_phone,alternate_email' %}
+                                        <div class="mb-4">
+                                            <label class="form-label">{{ field.label }}</label>
+                                            {{ field }}
+                                            {% if field.errors %}
+                                                <p class="form-error">{{ field.errors.0 }}</p>
+                                            {% endif %}
+                                        </div>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <!-- Documents Section -->
+                        <div class="mt-8">
+                            <h3 class="text-lg font-medium text-gray-900 mb-4">Documents</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <!-- PAN/VAT Document -->
+                                <div class="p-4 bg-gray-50 rounded-lg">
+                                    <h4 class="font-medium mb-2">PAN/VAT Document</h4>
+                                    {% if profile.pan_vat_document %}
+                                        <a href="{{ profile.pan_vat_document.url }}" target="_blank" class="text-indigo-600 hover:text-indigo-900 flex items-center mb-2">
+                                            <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                            </svg>
+                                            View Document
+                                        </a>
+                                    {% endif %}
+                                    {{ form.pan_vat_document }}
+                                </div>
+
+                                <!-- Business Registration -->
+                                <div class="p-4 bg-gray-50 rounded-lg">
+                                    <h4 class="font-medium mb-2">Business Registration</h4>
+                                    {% if profile.business_registration %}
+                                        <a href="{{ profile.business_registration.url }}" target="_blank" class="text-indigo-600 hover:text-indigo-900 flex items-center mb-2">
+                                            <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                            </svg>
+                                            View Document
+                                        </a>
+                                    {% endif %}
+                                    {{ form.business_registration }}
+                                </div>
+
+                                <!-- Citizenship Front -->
+                                <div class="p-4 bg-gray-50 rounded-lg">
+                                    <h4 class="font-medium mb-2">Citizenship Front</h4>
+                                    {% if profile.citizenship_front %}
+                                        <img src="{{ profile.citizenship_front.url }}" alt="Citizenship Front" class="h-32 w-full object-cover rounded-lg mb-2">
+                                    {% endif %}
+                                    {{ form.citizenship_front }}
+                                </div>
+
+                                <!-- Citizenship Back -->
+                                <div class="p-4 bg-gray-50 rounded-lg">
+                                    <h4 class="font-medium mb-2">Citizenship Back</h4>
+                                    {% if profile.citizenship_back %}
+                                        <img src="{{ profile.citizenship_back.url }}" alt="Citizenship Back" class="h-32 w-full object-cover rounded-lg mb-2">
+                                    {% endif %}
+                                    {{ form.citizenship_back }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Store Photos Section -->
+                        <div class="mt-8">
+                            <h3 class="text-lg font-medium text-gray-900 mb-4">Store Photos</h3>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                {% for photo in store_photos %}
+                                    <div class="relative group">
+                                        <img src="{{ photo.image.url }}" alt="Store Photo" class="h-40 w-full object-cover rounded-lg">
+                                        {% if photo.is_primary %}
+                                            <span class="absolute top-2 right-2 bg-green-500 text-white px-2 py-1 text-xs rounded">Primary</span>
+                                        {% endif %}
+                                    </div>
+                                {% endfor %}
+
+                                <!-- Upload New Photo -->
+                                <label class="cursor-pointer h-40 rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center hover:border-indigo-500 transition-colors">
+                                    <svg class="h-10 w-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                    </svg>
+                                    <span class="mt-2 text-sm text-gray-500">Add Store Photo</span>
+                                    <input type="file" name="store_photos" multiple accept="image/*" class="hidden" onchange="previewStorePhotos(this)">
+                                </label>
+                            </div>
+                            <div id="photo-preview" class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4"></div>
+                        </div>
+                    </div>
+
+                    <!-- Form Actions -->
+                    <div class="px-6 py-4 bg-gray-50 border-t flex justify-end space-x-3">
+                        <a href="{% url 'home' %}" class="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                            Cancel
+                        </a>
+                        <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                            <span id="saveText">Save Changes</span>
+                            <svg id="saveLoader" class="animate-spin ml-2 h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </form>
         </div>
+    </div>
+
+    <!-- Notifications -->
+    {% if messages %}
+        {% for message in messages %}
+            <div id="notification" class="fixed top-4 right-4 px-4 py-2 rounded-lg shadow-lg {% if message.tags == 'success' %}bg-green-500{% else %}bg-red-500{% endif %} text-white transform transition-all duration-300">
+                {{ message }}
+            </div>
+        {% endfor %}
     {% endif %}
-    <div class="ml-3">
-        <p class="text-sm font-medium text-gray-700">
-            {{ request.user.first_name }} {{ request.user.last_name }}
-        </p>
-        <p class="text-xs text-gray-500">
-            {{ request.user.email }}
-        </p>
-    </div>
-</div>
 
-                        <!-- Business Information -->
-                        <div class="sm:col-span-3">
-                            <label class="block text-sm font-medium text-gray-700">Business Name</label>
-                            <div class="mt-1">
-                                {{ form.business_name }}
-                            </div>
-                        </div>
+    <script>
+        // Handle form submission
+        document.getElementById('profileForm').addEventListener('submit', function() {
+            document.getElementById('saveText').classList.add('hidden');
+            document.getElementById('saveLoader').classList.remove('hidden');
+        });
 
-                        <div class="sm:col-span-3">
-                            <label class="block text-sm font-medium text-gray-700">Business Type</label>
-                            <div class="mt-1">
-                                {{ form.business_type }}
-                            </div>
-                        </div>
-                    </div>
-                </div>
+        // Preview store photos
+        function previewStorePhotos(input) {
+            const preview = document.getElementById('photo-preview');
+            preview.innerHTML = '';
 
-                <!-- Documents -->
-                <div class="pt-8">
-                    <div>
-                        <h3 class="text-lg leading-6 font-medium text-gray-900">Legal Documents</h3>
-                        <p class="mt-1 text-sm text-gray-500">Upload required business documents.</p>
-                    </div>
+            if (input.files) {
+                [...input.files].forEach(file => {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const div = document.createElement('div');
+                        div.className = 'relative group';
+                        div.innerHTML = `
+                            <img src="${e.target.result}" alt="Preview" class="h-40 w-full object-cover rounded-lg">
+                        `;
+                        preview.appendChild(div);
+                    }
+                    reader.readAsDataURL(file);
+                });
+            }
+        }
 
-                    <div class="mt-6 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
-                        <div class="sm:col-span-3">
-                            <label class="block text-sm font-medium text-gray-700">PAN/VAT Document</label>
-                            <div class="mt-1">
-                                {{ form.pan_vat_document }}
-                            </div>
-                        </div>
+        // Handle notifications
+        const notification = document.getElementById('notification');
+        if (notification) {
+            setTimeout(() => {
+                notification.style.transform = 'translateX(150%)';
+            }, 3000);
+        }
 
-                        <div class="sm:col-span-3">
-                            <label class="block text-sm font-medium text-gray-700">Business Registration</label>
-                            <div class="mt-1">
-                                {{ form.business_registration }}
-                            </div>
-                        </div>
-                    </div>
-                </div>
+        // Preview profile photo
+        const profilePhotoInput = document.querySelector('input[name="profile_photo"]');
+        if (profilePhotoInput) {
+            profilePhotoInput.addEventListener('change', function(e) {
+                if (profile.html
 
-                <!-- Contact Information -->
-                <div class="pt-8">
-                    <div>
-                        <h3 class="text-lg leading-6 font-medium text-gray-900">Contact Information</h3>
-                    </div>
-
-                    <div class="mt-6 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
-                        <div class="sm:col-span-3">
-                            <label class="block text-sm font-medium text-gray-700">Street Address</label>
-                            <div class="mt-1">
-                                {{ form.street_address }}
-                            </div>
-                        </div>
-
-                        <div class="sm:col-span-3">
-                            <label class="block text-sm font-medium text-gray-700">City</label>
-                            <div class="mt-1">
-                                {{ form.city }}
-                            </div>
-                        </div>
-                    </div>
-                </div>
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vendor Profile</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        .form-input {
+            @apply mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm;
+        }
+        .form-label {
+            @apply block text-sm font-medium text-gray-700 mb-1;
+        }
+        .form-error {
+            @apply mt-1 text-sm text-red-600;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="min-h-screen py-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <!-- Header -->
+            <div class="flex justify-between items-center mb-8">
+                <h1 class="text-3xl font-bold text-gray-900">Vendor Profile</h1>
+                <a href="{% url 'home' %}" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                    <svg class="mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                    </svg>
+                    Back to Home
+                </a>
             </div>
 
-            <div class="pt-5">
-                <div class="flex justify-end">
-                    <button type="button" class="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                        Cancel
-                    </button>
-                    <button type="submit" class="ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                        Save
-                    </button>
+            <!-- Main Form -->
+            <form method="POST" enctype="multipart/form-data" id="profileForm">
+                {% csrf_token %}
+                <div class="bg-white shadow rounded-lg overflow-hidden">
+                    <!-- Profile Photo Section -->
+                    <div class="p-6 bg-gray-50 border-b">
+                        <div class="flex justify-center">
+                            <div class="relative">
+                                {% if profile.profile_photo %}
+                                    <img src="{{ profile.profile_photo.url }}" alt="Profile" class="h-32 w-32 rounded-full object-cover ring-4 ring-white shadow-lg">
+                                {% else %}
+                                    <div class="h-32 w-32 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-center ring-4 ring-white shadow-lg">
+                                        <span class="text-4xl text-white">{{ request.user.first_name|first }}</span>
+                                    </div>
+                                {% endif %}
+                                <label class="absolute bottom-0 right-0 bg-indigo-600 rounded-full p-2 cursor-pointer shadow-lg hover:bg-indigo-700 transition-colors">
+                                    <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+                                    </svg>
+                                    <input type="file" name="profile_photo" class="hidden" accept="image/*">
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Form Content -->
+                    <div class="p-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- Basic Information -->
+                            <div>
+                                <h3 class="text-lg font-medium text-gray-900 mb-4">Basic Information</h3>
+                                {% for field in form %}
+                                    {% if field.name in 'date_of_birth,gender,alternate_phone,alternate_email' %}
+                                        <div class="mb-4">
+                                            <label class="form-label">{{ field.label }}</label>
+                                            {{ field }}
+                                            {% if field.errors %}
+                                                <p class="form-error">{{ field.errors.0 }}</p>
+                                            {% endif %}
+                                        </div>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+
+                            <!-- Business Information -->
+                            <div>
+                                <h3 class="text-lg font-medium text-gray-900 mb-4">Business Information</h3>
+                                {% for field in form %}
+                                    {% if field.name in 'business_name,business_type,pan_vat_number,registration_number,citizenship_number' %}
+                                        <div class="mb-4">
+                                            <label class="form-label">{{ field.label }}</label>
+                                            {{ field }}
+                                            {% if field.errors %}
+                                                <p class="form-error">{{ field.errors.0 }}</p>
+                                            {% endif %}
+                                        </div>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <!-- Documents Section -->
+                        <div class="mt-8">
+                            <h3 class="text-lg font-medium text-gray-900 mb-4">Documents</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <!-- PAN/VAT Document -->
+                                <div class="p-4 bg-gray-50 rounded-lg">
+                                    <h4 class="font-medium mb-2">PAN/VAT Document</h4>
+                                    {% if profile.pan_vat_document %}
+                                        <a href="{{ profile.pan_vat_document.url }}" target="_blank" class="text-indigo-600 hover:text-indigo-900 flex items-center mb-2">
+                                            <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                            </svg>
+                                            View Document
+                                        </a>
+                                    {% endif %}
+                                    {{ form.pan_vat_document }}
+                                </div>
+
+                                <!-- Business Registration -->
+                                <div class="p-4 bg-gray-50 rounded-lg">
+                                    <h4 class="font-medium mb-2">Business Registration</h4>
+                                    {% if profile.business_registration %}
+                                        <a href="{{ profile.business_registration.url }}" target="_blank" class="text-indigo-600 hover:text-indigo-900 flex items-center mb-2">
+                                            <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                            </svg>
+                                            View Document
+                                        </a>
+                                    {% endif %}
+                                    {{ form.business_registration }}
+                                </div>
+
+                                <!-- Citizenship Front -->
+                                <div class="p-4 bg-gray-50 rounded-lg">
+                                    <h4 class="font-medium mb-2">Citizenship Front</h4>
+                                    {% if profile.citizenship_front %}
+                                        <img src="{{ profile.citizenship_front.url }}" alt="Citizenship Front" class="h-32 w-full object-cover rounded-lg mb-2">
+                                    {% endif %}
+                                    {{ form.citizenship_front }}
+                                </div>
+
+                                <!-- Citizenship Back -->
+                                <div class="p-4 bg-gray-50 rounded-lg">
+                                    <h4 class="font-medium mb-2">Citizenship Back</h4>
+                                    {% if profile.citizenship_back %}
+                                        <img src="{{ profile.citizenship_back.url }}" alt="Citizenship Back" class="h-32 w-full object-cover rounded-lg mb-2">
+                                    {% endif %}
+                                    {{ form.citizenship_back }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Store Photos Section -->
+                        <div class="mt-8">
+                            <h3 class="text-lg font-medium text-gray-900 mb-4">Store Photos</h3>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                {% for photo in store_photos %}
+                                    <div class="relative group">
+                                        <img src="{{ photo.image.url }}" alt="Store Photo" class="h-40 w-full object-cover rounded-lg">
+                                        {% if photo.is_primary %}
+                                            <span class="absolute top-2 right-2 bg-green-500 text-white px-2 py-1 text-xs rounded">Primary</span>
+                                        {% endif %}
+                                    </div>
+                                {% endfor %}
+
+                                <!-- Upload New Photo -->
+                                <label class="cursor-pointer h-40 rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center hover:border-indigo-500 transition-colors">
+                                    <svg class="h-10 w-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                    </svg>
+                                    <span class="mt-2 text-sm text-gray-500">Add Store Photo</span>
+                                    <input type="file" name="store_photos" multiple accept="image/*" class="hidden" onchange="previewStorePhotos(this)">
+                                </label>
+                            </div>
+                            <div id="photo-preview" class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4"></div>
+                        </div>
+                    </div>
+
+                    <!-- Form Actions -->
+                    <div class="px-6 py-4 bg-gray-50 border-t flex justify-end space-x-3">
+                        <a href="{% url 'home' %}" class="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                            Cancel
+                        </a>
+                        <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                            <span id="saveText">Save Changes</span>
+                            <svg id="saveLoader" class="animate-spin ml-2 h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
-            </div>
-        </form>
+            </form>
+        </div>
     </div>
-</div>
-{% endblock %}
+
+    <!-- Notifications -->
+    {% if messages %}
+        {% for message in messages %}
+            <div id="notification" class="fixed top-4 right-4 px-4 py-2 rounded-lg shadow-lg {% if message.tags == 'success' %}bg-green-500{% else %}bg-red-500{% endif %} text-white transform transition-all duration-300">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <script>
+        // Handle form submission with loading state
+        document.getElementById('profileForm').addEventListener('submit', function(e) {
+            // Show loading spinner
+            document.getElementById('saveText').classList.add('hidden');
+            document.getElementById('saveLoader').classList.remove('hidden');
+            
+            // Validate file sizes
+            const maxFileSize = 5 * 1024 * 1024; // 5MB
+            const fileInputs = this.querySelectorAll('input[type="file"]');
+            let hasError = false;
+    
+            fileInputs.forEach(input => {
+                if (input.files) {
+                    [...input.files].forEach(file => {
+                        if (file.size > maxFileSize) {
+                            e.preventDefault();
+                            hasError = true;
+                            alert(`File ${file.name} is too large. Maximum size is 5MB.`);
+                        }
+                    });
+                }
+            });
+    
+            if (hasError) {
+                document.getElementById('saveText').classList.remove('hidden');
+                document.getElementById('saveLoader').classList.add('hidden');
+            }
+        });
+    
+        // Preview profile photo
+        const profilePhotoInput = document.querySelector('input[name="profile_photo"]');
+        if (profilePhotoInput) {
+            profilePhotoInput.addEventListener('change', function(e) {
+                if (this.files && this.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const preview = document.querySelector('img[alt="Profile"]') || 
+                                      document.querySelector('.rounded-full');
+                        if (preview) {
+                            if (preview.tagName === 'IMG') {
+                                preview.src = e.target.result;
+                            } else {
+                                const img = document.createElement('img');
+                                img.src = e.target.result;
+                                img.alt = 'Profile';
+                                img.className = 'h-32 w-32 rounded-full object-cover ring-4 ring-white shadow-lg';
+                                preview.replaceWith(img);
+                            }
+                        }
+                    };
+                    reader.readAsDataURL(this.files[0]);
+                }
+            });
+        }
+    
+        // Preview store photos
+        function previewStorePhotos(input) {
+            const preview = document.getElementById('photo-preview');
+            preview.innerHTML = '';
+    
+            if (input.files) {
+                [...input.files].forEach(file => {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const div = document.createElement('div');
+                        div.className = 'relative group';
+                        div.innerHTML = `
+                            <img src="${e.target.result}" alt="Store Photo Preview" 
+                                 class="h-40 w-full object-cover rounded-lg">
+                            <div class="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 
+                                      transition-opacity duration-200 rounded-lg flex items-center justify-center">
+                                <span class="text-white text-sm">Preview</span>
+                            </div>
+                        `;
+                        preview.appendChild(div);
+                    };
+                    reader.readAsDataURL(file);
+                });
+            }
+        }
+    
+        // Handle notifications
+        const notification = document.getElementById('notification');
+        if (notification) {
+            // Show notification
+            notification.style.transform = 'translateX(0)';
+            
+            // Hide notification after 3 seconds
+            setTimeout(() => {
+                notification.style.transform = 'translateX(150%)';
+                // Remove notification after animation
+                setTimeout(() => {
+                    notification.remove();
+                }, 300);
+            }, 3000);
+        }
+    
+        // Preview document uploads
+        document.querySelectorAll('input[type="file"][accept*="image"]').forEach(input => {
+            input.addEventListener('change', function(e) {
+                if (this.files && this.files[0]) {
+                    const reader = new FileReader();
+                    const previewContainer = this.closest('div').querySelector('img');
+                    
+                    if (previewContainer) {
+                        reader.onload = function(e) {
+                            previewContainer.src = e.target.result;
+                        };
+                        reader.readAsDataURL(this.files[0]);
+                    }
+                }
+            });
+        });
+    </script>
+</body> 
+</html>

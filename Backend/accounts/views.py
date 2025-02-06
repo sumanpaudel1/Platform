@@ -1,8 +1,8 @@
 from django.http import HttpResponse
 from django.shortcuts import render, redirect
 from django.contrib.auth import login, authenticate
-from .forms import RegistrationForm, LoginForm, VendorProfileForm
-from .models import Vendor, OTP, VendorProfile
+from .forms import RegistrationForm, LoginForm, VendorProfileForm, VendorSettingForm
+from .models import Vendor, OTP, VendorProfile, StorePhoto, VendorSetting, CoverPhoto, Subdomain
 from .utils import generate_otp, send_otp_to_email
 
 def register(request):
@@ -220,29 +220,148 @@ def main_home(request):
 
 # accounts/views.py
 
+
+from django.contrib import messages
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+
 @login_required
 def vendor_profile(request):
-    vendor = request.user
     try:
-        profile = vendor.profile
+        profile = request.user.profile
+        store_photos = request.user.storephoto_set.all()  # Get store photos
         is_new = False
     except VendorProfile.DoesNotExist:
-        profile = None
+        profile = VendorProfile(vendor=request.user)
+        store_photos = []
         is_new = True
 
     if request.method == "POST":
         form = VendorProfileForm(request.POST, request.FILES, instance=profile)
         if form.is_valid():
             profile = form.save(commit=False)
-            profile.vendor = vendor
+            profile.vendor = request.user
+            
+            # Handle profile photo
+            if 'profile_photo' in request.FILES:
+                profile.profile_photo = request.FILES['profile_photo']
+                
+            # Handle store photos
+            store_photos = request.FILES.getlist('store_photos')
+            for photo in store_photos:
+                StorePhoto.objects.create(
+                    vendor=request.user,
+                    image=photo
+                )
+                
             profile.save()
-            messages.success(request, "Profile updated successfully!")
-            return redirect('vendor_dashboard')
+            messages.success(request, 'Profile updated successfully!')
+            return redirect('vendor_profile')
+        else:
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{field}: {error}")
     else:
         form = VendorProfileForm(instance=profile)
 
     return render(request, 'accounts/profile.html', {
         'form': form,
         'profile': profile,
-        'is_new': is_new
+        'is_new': is_new,
+        'store_photos': store_photos
     })
+
+
+
+from django.contrib.auth.decorators import login_required
+from .models import VendorSetting
+
+from django.contrib import messages
+from django.shortcuts import render, redirect
+from .models import VendorSetting, CoverPhoto
+from django.contrib.auth.decorators import login_required
+
+@login_required
+def store_settings(request):
+    # Get or create settings for vendor
+    try:
+        settings = VendorSetting.objects.get(vendor=request.user)
+    except VendorSetting.DoesNotExist:
+        settings = VendorSetting(vendor=request.user)
+        settings.save()
+
+    if request.method == 'POST':
+        # Handle regular form fields
+        settings.store_name = request.POST.get('store_name')
+        settings.tagline = request.POST.get('tagline')
+        settings.about = request.POST.get('about')
+        settings.announcement = request.POST.get('announcement')
+        
+        # Handle colors and typography
+        settings.primary_color = request.POST.get('primary_color')
+        settings.secondary_color = request.POST.get('secondary_color')
+        settings.accent_color = request.POST.get('accent_color')
+        settings.heading_font = request.POST.get('heading_font')
+        settings.body_font = request.POST.get('body_font')
+
+        # Handle social links
+        settings.facebook = request.POST.get('facebook')
+        settings.instagram = request.POST.get('instagram')
+        settings.twitter = request.POST.get('twitter')
+
+        # Handle contact info
+        settings.contact_email = request.POST.get('contact_email')
+        settings.contact_phone = request.POST.get('contact_phone')
+        settings.contact_address = request.POST.get('contact_address')
+
+        # Handle SEO fields
+        settings.meta_title = request.POST.get('meta_title')
+        settings.meta_description = request.POST.get('meta_description')
+
+        # Handle popup settings
+        settings.popup_title = request.POST.get('popup_title')
+        settings.popup_text = request.POST.get('popup_text')
+        settings.show_popup = 'show_popup' in request.POST
+        settings.popup_delay = request.POST.get('popup_delay')
+
+        # Handle file uploads
+        if request.FILES.get('logo'):
+            settings.logo = request.FILES['logo']
+        if request.FILES.get('favicon'):
+            settings.favicon = request.FILES['favicon']
+        if request.FILES.get('popup_image'):
+            settings.popup_image = request.FILES['popup_image']
+
+        # Handle multiple cover photos
+        if request.FILES.getlist('cover_photos'):
+            for photo in request.FILES.getlist('cover_photos'):
+                CoverPhoto.objects.create(
+                    vendor_setting=settings,
+                    image=photo
+                )
+
+        try:
+            settings.save()
+            messages.success(request, 'Settings updated successfully!')
+        except Exception as e:
+            messages.error(request, f'Error saving settings: {str(e)}')
+        
+        return redirect('vendor_settings')
+
+    context = {
+        'settings': settings,
+        'cover_photos': settings.cover_photos.all() if settings.id else []
+    }
+    return render(request, 'accounts/store_settings.html', context)
+    
+    
+@login_required
+def delete_cover_photo(request, photo_id):
+    if request.method == 'POST':
+        try:
+            photo = CoverPhoto.objects.get(id=photo_id, vendor_setting__vendor=request.user)
+            photo.delete()
+            messages.success(request, 'Cover photo deleted successfully!')
+        except CoverPhoto.DoesNotExist:
+            messages.error(request, 'Cover photo not found!')
+    return redirect('vendor_settings')

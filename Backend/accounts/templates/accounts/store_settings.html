@@ -1,61 +1,262 @@
 {% extends 'accounts/home.html' %}
 
-{% block content %}
-<div class="py-6">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="md:flex md:items-center md:justify-between mb-6">
-            <h2 class="text-2xl font-bold text-gray-900">Store Settings</h2>
+{% block dashboard_content %}
+<div class="grid grid-cols-1 gap-5 mt-6">
+    <div class="bg-white overflow-hidden shadow rounded-lg">
+        <!-- Settings Header -->
+        <div class="border-b border-gray-200">
+            <nav class="-mb-px flex space-x-8 px-6" aria-label="Tabs">
+                <button type="button" onclick="showTab('branding')" class="tab-btn active border-b-2 border-indigo-500 py-4 px-1 text-sm font-medium">
+                    Branding
+                </button>
+                <button type="button" onclick="showTab('design')" class="tab-btn border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500">
+                    Design
+                </button>
+                <button type="button" onclick="showTab('store-info')" class="tab-btn border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500">
+                    Store Info
+                </button>
+                <button type="button" onclick="showTab('social')" class="tab-btn border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500">
+                    Social Links
+                </button>
+                <button type="button" onclick="showTab('seo')" class="tab-btn border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500">
+                    SEO
+                </button>
+                <button type="button" onclick="showTab('popup')" class="tab-btn border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500">
+                    Popup
+                </button>
+
+                <button type="button" onclick="showTab('contact')" class="tab-btn border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500">
+                    Contact Info
+                </button>
+                <button type="button" onclick="showTab('cover-photos')" class="tab-btn border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500">
+                    Cover Photos
+                </button>
+            </nav>
         </div>
 
-        {% if messages %}
-            {% for message in messages %}
-                <div class="mb-4 p-4 rounded-md {% if message.tags == 'success' %}bg-green-50 text-green-800{% else %}bg-red-50 text-red-800{% endif %}">
-                    {{ message }}
+                <!-- Messages -->
+                {% if messages %}
+                <div class="p-4">
+                    {% for message in messages %}
+                    <div class="p-4 mb-4 {% if message.tags == 'success' %}bg-green-100 text-green-700{% else %}bg-red-100 text-red-700{% endif %} rounded">
+                        {{ message }}
+                    </div>
+                    {% endfor %}
                 </div>
-            {% endfor %}
-        {% endif %}
+                {% endif %}
 
-        <div class="bg-white shadow rounded-lg">
-            <form method="POST" enctype="multipart/form-data" class="space-y-6 p-6">
+
+        <!-- Settings Content -->
+        <div class="p-6">
+            <form method="POST" enctype="multipart/form-data" id="settingsForm">
                 {% csrf_token %}
+
+                <!-- Branding Tab -->
+                <div id="branding" class="tab-content">
+                    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                        <!-- Logo -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Store Logo</label>
+                            <div class="mt-2 flex items-center">
+                                {% if settings.logo %}
+                                    <img src="{{ settings.logo.url }}" alt="Logo" class="h-32 w-32 object-contain">
+                                {% endif %}
+                                <input type="file" name="logo" accept="image/*" class="ml-5">
+                            </div>
+                        </div>
+
+                        <!-- Favicon -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Favicon</label>
+                            <div class="mt-2 flex items-center">
+                                {% if settings.favicon %}
+                                    <img src="{{ settings.favicon.url }}" alt="Favicon" class="h-16 w-16 object-contain">
+                                {% endif %}
+                                <input type="file" name="favicon" accept="image/*" class="ml-5">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Design Tab -->
+                <div id="design" class="tab-content hidden">
+                    <div class="grid grid-cols-1 gap-6 sm:grid-cols-3">
+                        <!-- Colors -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Primary Color</label>
+                            <input type="color" name="primary_color" value="{{ settings.primary_color }}" class="mt-1 h-10 w-full rounded-md">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Secondary Color</label>
+                            <input type="color" name="secondary_color" value="{{ settings.secondary_color }}" class="mt-1 h-10 w-full rounded-md">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Accent Color</label>
+                            <input type="color" name="accent_color" value="{{ settings.accent_color }}" class="mt-1 h-10 w-full rounded-md">
+                        </div>
+
+                        <!-- Typography -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Heading Font</label>
+                            <select name="heading_font" class="mt-1 block w-full rounded-md border-gray-300">
+                                <option value="Arial">Arial</option>
+                                <option value="Helvetica">Helvetica</option>
+                                <option value="Times New Roman">Times New Roman</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Body Font</label>
+                            <select name="body_font" class="mt-1 block w-full rounded-md border-gray-300">
+                                <option value="Arial">Arial</option>
+                                <option value="Helvetica">Helvetica</option>
+                                <option value="Times New Roman">Times New Roman</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Store Info Tab -->
+                <div id="store-info" class="tab-content hidden">
+                    <div class="grid grid-cols-1 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Store Name</label>
+                            <input type="text" name="store_name" value="{{ settings.store_name }}" class="mt-1 block w-full rounded-md border-gray-300">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Tagline</label>
+                            <input type="text" name="tagline" value="{{ settings.tagline }}" class="mt-1 block w-full rounded-md border-gray-300">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">About</label>
+                            <textarea name="about" rows="4" class="mt-1 block w-full rounded-md border-gray-300">{{ settings.about }}</textarea>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Announcement</label>
+                            <input type="text" name="announcement" value="{{ settings.announcement }}" class="mt-1 block w-full rounded-md border-gray-300">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Social Links Tab -->
+                <div id="social" class="tab-content hidden">
+                    <div class="grid grid-cols-1 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Facebook</label>
+                            <input type="url" name="facebook" value="{{ settings.facebook }}" class="mt-1 block w-full rounded-md border-gray-300">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Instagram</label>
+                            <input type="url" name="instagram" value="{{ settings.instagram }}" class="mt-1 block w-full rounded-md border-gray-300">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Twitter</label>
+                            <input type="url" name="twitter" value="{{ settings.twitter }}" class="mt-1 block w-full rounded-md border-gray-300">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SEO Tab -->
+                <div id="seo" class="tab-content hidden">
+                    <div class="grid grid-cols-1 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Meta Title</label>
+                            <input type="text" name="meta_title" value="{{ settings.meta_title }}" class="mt-1 block w-full rounded-md border-gray-300">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Meta Description</label>
+                            <textarea name="meta_description" rows="3" class="mt-1 block w-full rounded-md border-gray-300">{{ settings.meta_description }}</textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Popup Tab -->
+                <div id="popup" class="tab-content hidden">
+                    <div class="grid grid-cols-1 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Popup Title</label>
+                            <input type="text" name="popup_title" value="{{ settings.popup_title }}" class="mt-1 block w-full rounded-md border-gray-300">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Popup Text</label>
+                            <textarea name="popup_text" rows="3" class="mt-1 block w-full rounded-md border-gray-300">{{ settings.popup_text }}</textarea>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Popup Image</label>
+                            <div class="mt-2 flex items-center">
+                                {% if settings.popup_image %}
+                                    <img src="{{ settings.popup_image.url }}" alt="Popup Image" class="h-32 w-32 object-contain">
+                                {% endif %}
+                                <input type="file" name="popup_image" accept="image/*" class="ml-5">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Show Popup</label>
+                            <input type="checkbox" name="show_popup" {% if settings.show_popup %}checked{% endif %} class="mt-1">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Popup Delay (seconds)</label>
+                            <input type="number" name="popup_delay" value="{{ settings.popup_delay }}" class="mt-1 block w-full rounded-md border-gray-300">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contact Info Tab -->
+                <!-- Add Contact Info Tab -->
+                <div id="contact" class="tab-content hidden">
+                    <div class="grid grid-cols-1 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Contact Email</label>
+                            <input type="email" name="contact_email" value="{{ settings.contact_email }}" 
+                                   class="mt-1 block w-full rounded-md border-gray-300 bg-gray-50">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Contact Phone</label>
+                            <input type="tel" name="contact_phone" value="{{ settings.contact_phone }}"
+                                   class="mt-1 block w-full rounded-md border-gray-300 bg-gray-50">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Contact Address</label>
+                            <input type="text" name="contact_address" value="{{ settings.contact_address }}"
+                                   class="mt-1 block w-full rounded-md border-gray-300 bg-gray-50">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cover Photos Tab -->
+
+
+                                <!-- Add Cover Photos Tab -->
+                                <div id="cover-photos" class="tab-content hidden">
+                                    <div class="space-y-6">
+                                        <!-- Existing Cover Photos -->
+                                        {% if cover_photos %}
+                                        <div class="grid grid-cols-2 gap-4 mb-6">
+                                            {% for photo in cover_photos %}
+                                            <div class="relative">
+                                                <img src="{{ photo.image.url }}" alt="Cover Photo" class="w-full h-48 object-cover rounded">
+                                                <button type="button" onclick="deleteCoverPhoto({{ photo.id }})" 
+                                                        class="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                        {% endif %}
                 
-                <!-- Store Name -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Store Name</label>
-                    <div class="mt-1">
-                        {{ form.store_name }}
-                    </div>
-                </div>
+                                        <!-- Upload New Cover Photos -->
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700">Add Cover Photos</label>
+                                            <input type="file" name="cover_photos" multiple accept="image/*" 
+                                                   class="mt-1 block w-full">
+                                        </div>
+                                    </div>
+                                </div>
 
-                <!-- Store Logo -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Store Logo</label>
-                    <div class="mt-1">
-                        {{ form.logo }}
-                    </div>
-                </div>
-
-                <!-- Store Colors -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Primary Color</label>
-                    <div class="mt-1">
-                        {{ form.primary_color }}
-                    </div>
-                </div>
-
-                <!-- Subdomain -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Subdomain</label>
-                    <div class="mt-1 flex rounded-md shadow-sm">
-                        {{ form.subdomain }}
-                        <span class="inline-flex items-center px-3 rounded-r-md border border-l-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
-                            .yourdomain.com
-                        </span>
-                    </div>
-                </div>
-
-                <div class="flex justify-end pt-5">
-                    <button type="submit" class="ml-3 inline-flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                <!-- Save Button -->
+                <div class="mt-6 flex justify-end">
+                    <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
                         Save Changes
                     </button>
                 </div>
@@ -63,4 +264,38 @@
         </div>
     </div>
 </div>
-{% endblock %}
+
+<script>
+    function showTab(tabId) {
+        document.querySelectorAll('.tab-content').forEach(tab => {
+            tab.classList.add('hidden');
+        });
+        document.getElementById(tabId).classList.remove('hidden');
+        
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.remove('border-indigo-500', 'text-gray-900');
+            btn.classList.add('border-transparent', 'text-gray-500');
+        });
+        event.currentTarget.classList.remove('border-transparent', 'text-gray-500');
+        event.currentTarget.classList.add('border-indigo-500', 'text-gray-900');
+    }
+    
+    async function deleteCoverPhoto(photoId) {
+        if (confirm('Are you sure you want to delete this cover photo?')) {
+            try {
+                const response = await fetch(`/delete-cover-photo/${photoId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    }
+                });
+                if (response.ok) {
+                    location.reload();
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+    }
+    </script>
+    {% endblock %}

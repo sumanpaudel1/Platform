@@ -4,109 +4,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Home</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-</head>
-{% comment %} <div class="flex min-h-screen bg-gray-100">
-    <!-- Sidebar -->
-    <div class="w-64 bg-white shadow-md">
-        <div class="p-4">
-            <h2 class="text-xl font-bold">Dashboard</h2>
-        </div>
-        <nav class="mt-4">
-            <a href="#settings" class="block px-4 py-2 hover:bg-gray-50">Store Settings</a>
-            <a href="#products" class="block px-4 py-2 hover:bg-gray-50">Products</a>
-            <a href="#orders" class="block px-4 py-2 hover:bg-gray-50">Orders</a>
-        </nav>
-    </div>
-
-    <!-- Main Content -->
-    <div class="flex-1 p-8">
-        <!-- Store Settings Form -->
-        <div id="settings" class="bg-white rounded-lg shadow-md p-6">
-            <h3 class="text-2xl font-bold mb-6">Store Settings</h3>
-            
-            <form method="POST" enctype="multipart/form-data" class="space-y-6">
-                {% csrf_token %}
-                
-                <!-- Branding -->
-                <div class="grid grid-cols-2 gap-6">
-                    <div>
-                        <label class="block text-sm font-medium mb-2">Store Logo</label>
-                        <input type="file" name="logo" accept="image/*" class="w-full border rounded-lg p-2">
-                        {% if vendor.settings.logo %}
-                            <img src="{{ vendor.settings.logo.url }}" class="mt-2 h-20 w-20 object-cover rounded">
-                        {% endif %}
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-medium mb-2">Cover Image</label>
-                        <input type="file" name="cover_image" accept="image/*" class="w-full border rounded-lg p-2">
-                        {% if vendor.settings.cover_image %}
-                            <img src="{{ vendor.settings.cover_image.url }}" class="mt-2 h-20 w-40 object-cover rounded">
-                        {% endif %}
-                    </div>
-                </div>
-
-                <!-- Store Info -->
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium mb-2">Store Name</label>
-                        <input type="text" name="store_name" value="{{ vendor.settings.store_name }}" 
-                               class="w-full border rounded-lg p-2">
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-medium mb-2">Tagline</label>
-                        <input type="text" name="tagline" value="{{ vendor.settings.tagline }}"
-                               class="w-full border rounded-lg p-2">
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-medium mb-2">About</label>
-                        <textarea name="about" rows="4" class="w-full border rounded-lg p-2">{{ vendor.settings.about }}</textarea>
-                    </div>
-                </div>
-
-                <!-- Colors -->
-                <div class="grid grid-cols-3 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium mb-2">Primary Color</label>
-                        <input type="color" name="primary_color" value="{{ vendor.settings.primary_color }}"
-                               class="w-full h-10 rounded cursor-pointer">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium mb-2">Secondary Color</label>
-                        <input type="color" name="secondary_color" value="{{ vendor.settings.secondary_color }}"
-                               class="w-full h-10 rounded cursor-pointer">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium mb-2">Accent Color</label>
-                        <input type="color" name="accent_color" value="{{ vendor.settings.accent_color }}"
-                               class="w-full h-10 rounded cursor-pointer">
-                    </div>
-                </div>
-
-                <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
-                    Save Changes
-                </button>
-            </form>
-        </div>
-
-        <!-- Preview -->
-        <div class="mt-8 bg-white rounded-lg shadow-md overflow-hidden">
-            <h3 class="text-xl font-bold p-4 border-b">Store Preview</h3>
-            {% comment %} <iframe src="{% url 'vendor_home' vendor.subdomain %}" class="w-full h-[600px]"></iframe> {% endcomment %}
-        {% comment %} </div>
-    </div>
-</div> {% endcomment %}
-
-
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vendor Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
@@ -116,17 +13,13 @@
     <!-- Sidebar -->
     <div class="hidden md:flex md:flex-shrink-0">
         <div class="flex flex-col w-64 bg-white shadow">
-            <!-- Profile Summary -->
-            <div class="flex flex-col items-center p-6 border-b">
-                {% if request.user.profile.profile_photo %}
-                    <img src="{{ request.user.profile.profile_photo.url }}" class="w-20 h-20 rounded-full">
+            <!-- Vendor Name Header -->
+            <div class="flex items-center p-7 border-b">
+                {% if request.user.profile.business_name %}
+                    <h2 class="text-lg font-medium text-indigo-400">{{ request.user.profile.business_name }}</h2>
                 {% else %}
-                    <div class="w-20 h-20 rounded-full bg-gray-300 flex items-center justify-center">
-                        <span class="text-2xl text-gray-600">{{ request.user.first_name|first }}</span>
-                    </div>
+                    <h2 class="text-lg font-medium text-indigo-400">My Business</h2>
                 {% endif %}
-                <h2 class="mt-4 text-lg font-medium">{{ request.user.first_name }} {{ request.user.last_name }}</h2>
-                <p class="text-sm text-gray-600">{{ request.user.email }}</p>
             </div>
 
             <!-- Navigation -->
@@ -143,6 +36,15 @@
                     </svg>
                     Profile
                 </a>
+
+                <a href="{% url 'vendor_settings' %}" class="flex items-center p-3 text-gray-700 rounded-lg hover:bg-gray-100">
+                    <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                              d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                    Store Settings
+                </a>
                 <!-- Add more navigation items -->
             </nav>
         </div>
@@ -151,15 +53,75 @@
     <!-- Main Content -->
     <div class="flex flex-col flex-1 overflow-hidden">
         <!-- Top Navigation -->
-        <header class="bg-white shadow">
-            <div class="px-4 py-6 mx-auto max-w-7xl sm:px-6 lg:px-8">
-                <div class="flex justify-between">
-                    <h1 class="text-3xl font-bold text-gray-900">Dashboard</h1>
-                    {% if not request.user.profile %}
-                        <a href="{% url 'vendor_profile' %}" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">
-                            Complete Profile
-                        </a>
-                    {% endif %}
+        <!-- Replace existing Top Navigation section -->
+        <header class="bg-white shadow border-b p-1">
+            <div class="px-4 py-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
+                <div class="flex items-center justify-between">
+                    <!-- Left side -->
+                    <div class="flex items-center flex-1">
+                        <!-- Search Bar -->
+                        <div class="max-w-lg w-full ml-8">
+                            <div class="relative">
+                                <input type="text" class="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:border-indigo-500" placeholder="Search...">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center">
+                                    <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right side -->
+                    <div class="flex items-center space-x-4">
+                        <!-- Notifications -->
+                        <div class="relative">
+                            <button onclick="toggleNotifications()" class="p-2 text-gray-600 hover:text-gray-900 focus:outline-none">
+                                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                                </svg>
+                                <span class="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500"></span>
+                            </button>
+                            <!-- Notifications Dropdown -->
+                            <div id="notificationsDropdown" class="hidden absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg py-2 z-10">
+                                <div class="px-4 py-2 border-b">
+                                    <h3 class="text-sm font-semibold">Notifications</h3>
+                                </div>
+                                <!-- Add notification items here -->
+                                <div class="max-h-64 overflow-y-auto">
+                                    <!-- Sample notification -->
+                                    <a href="#" class="block px-4 py-3 hover:bg-gray-50">
+                                        <p class="text-sm text-gray-600">New order received</p>
+                                        <p class="text-xs text-gray-400 mt-1">2 minutes ago</p>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Profile Dropdown -->
+                        <div class="relative">
+                            <button onclick="toggleProfile()" class="flex items-center space-x-3 focus:outline-none">
+                                {% if request.user.profile.profile_photo %}
+                                    <img src="{{ request.user.profile.profile_photo.url }}" class="h-8 w-8 rounded-full">
+                                {% else %}
+                                    <div class="h-8 w-8 rounded-full bg-gray-300 flex items-center justify-center">
+                                        <span class="text-sm text-gray-600">{{ request.user.first_name|first }}</span>
+                                    </div>
+                                {% endif %}
+                                <span class="text-sm font-medium text-gray-700">{{ request.user.first_name }}</span>
+                                <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                </svg>
+                            </button>
+                            <!-- Profile Dropdown Menu -->
+                            <div id="profileDropdown" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 z-10">
+                                <a href="{% url 'vendor_profile' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profile</a>
+                                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Settings</a>
+                                <div class="border-t border-gray-100"></div>
+                                <a href="{% url 'logout' %}" class="block px-4 py-2 text-sm text-red-600 hover:bg-gray-100">Logout</a>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </header>
@@ -187,13 +149,36 @@
                     </div>
                     {% endif %}
 
-                    <!-- Dashboard Metrics -->
-                    <div class="grid grid-cols-1 gap-5 mt-6 sm:grid-cols-2 lg:grid-cols-3">
-                        <!-- Add your dashboard metrics cards here -->
-                    </div>
+                    <!-- Page Title -->
+
+                    {% block dashboard_content %}
+                    <!-- Default dashboard content -->
+                    {% endblock dashboard_content %}
+
                 </div>
             </div>
         </main>
     </div>
 </div>
+
+<!-- Add this JavaScript at the bottom of your file -->
+<script>
+    function toggleNotifications() {
+        document.getElementById('notificationsDropdown').classList.toggle('hidden');
+        document.getElementById('profileDropdown').classList.add('hidden');
+    }
+
+    function toggleProfile() {
+        document.getElementById('profileDropdown').classList.toggle('hidden');
+        document.getElementById('notificationsDropdown').classList.add('hidden');
+    }
+
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', function(event) {
+        if (!event.target.closest('.relative')) {
+            document.getElementById('notificationsDropdown').classList.add('hidden');
+            document.getElementById('profileDropdown').classList.add('hidden');
+        }
+    });
+</script>
 {% endblock %}
