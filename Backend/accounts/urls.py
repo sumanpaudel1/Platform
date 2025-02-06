@@ -13,4 +13,6 @@ urlpatterns = [
     path('verify-reset-otp/<str:email>/', views.verify_reset_otp, name='verify_reset_otp'),
     path('reset-password/<str:email>/', views.reset_password, name='reset_password'),
     path('home/profile/', views.vendor_profile, name='vendor_profile'),
+    path('home/store-settings/', views.store_settings, name='vendor_settings'),
+    path('delete-cover-photo/<int:photo_id>/', views.delete_cover_photo, name='delete_cover_photo'),
 ]

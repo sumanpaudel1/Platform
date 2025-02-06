@@ -237,6 +237,17 @@ def vendor_document_path(instance, filename):
     return f'vendor_documents/{instance.vendor.id}/{filename}'
 
 
+class StorePhoto(models.Model):
+    vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE)
+    image = models.ImageField(upload_to=vendor_photo_path)
+    caption = models.CharField(max_length=255, blank=True)
+    is_primary = models.BooleanField(default=False)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'accounts_storephoto'
+        ordering = ['-is_primary', '-uploaded_at']
+
 class VendorProfile(models.Model):
     STATUS_CHOICES = [
         ('pending', 'Pending'),
@@ -280,8 +291,7 @@ class VendorProfile(models.Model):
     citizenship_number = models.CharField(max_length=50, unique=True)
     
     # Store/Warehouse Photos
-    store_photos = models.ManyToManyField('StorePhoto', blank=True)
-    
+    # store_photos = models.ManyToManyField(StorePhoto, blank=True)
     # Status and Verification
     profile_status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     is_verified = models.BooleanField(default=False)
@@ -316,12 +326,4 @@ class VendorProfile(models.Model):
         ]
         return all(required_fields)
 
-class StorePhoto(models.Model):
-    vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE)
-    image = models.ImageField(upload_to=vendor_photo_path)
-    caption = models.CharField(max_length=255, blank=True)
-    is_primary = models.BooleanField(default=False)
-    uploaded_at = models.DateTimeField(auto_now_add=True)
 
-    class Meta:
-        ordering = ['-is_primary', '-uploaded_at']  
