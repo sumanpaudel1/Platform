@@ -1,8 +1,8 @@
 from django.http import HttpResponse
 from django.shortcuts import render, redirect
 from django.contrib.auth import login, authenticate
-from .forms import RegistrationForm, LoginForm
-from .models import Vendor, OTP
+from .forms import RegistrationForm, LoginForm, VendorProfileForm
+from .models import Vendor, OTP, VendorProfile
 from .utils import generate_otp, send_otp_to_email
 
 def register(request):
@@ -216,3 +216,33 @@ def main_home(request):
     return HttpResponse('Welcome to the main homepage')
 
 
+
+
+# accounts/views.py
+
+@login_required
+def vendor_profile(request):
+    vendor = request.user
+    try:
+        profile = vendor.profile
+        is_new = False
+    except VendorProfile.DoesNotExist:
+        profile = None
+        is_new = True
+
+    if request.method == "POST":
+        form = VendorProfileForm(request.POST, request.FILES, instance=profile)
+        if form.is_valid():
+            profile = form.save(commit=False)
+            profile.vendor = vendor
+            profile.save()
+            messages.success(request, "Profile updated successfully!")
+            return redirect('vendor_dashboard')
+    else:
+        form = VendorProfileForm(instance=profile)
+
+    return render(request, 'accounts/profile.html', {
+        'form': form,
+        'profile': profile,
+        'is_new': is_new
+    })

@@ -1,7 +1,4 @@
 
-{% load static %}
-
-{% block content %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -114,365 +111,89 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
 </head>
-<body class="bg-gray-100">
-    <div class="flex h-screen overflow-hidden">
-        <!-- Sidebar -->
-        <aside class="hidden md:flex md:flex-shrink-0">
-            <div class="flex flex-col w-64">
-                <div class="flex flex-col flex-grow pt-5 overflow-y-auto bg-white border-r">
-                    <div class="flex flex-col items-center flex-shrink-0 px-4">
-                        <a href="#" class="px-8 text-left focus:outline-none">
-                            <h2 class="block p-2 text-xl font-medium tracking-tighter text-gray-900 transition duration-500 ease-in-out transform cursor-pointer hover:text-gray-900">Vendor Dashboard</h2>
-                        </a>
-                        <button class="hidden rounded-lg focus:outline-none focus:shadow-outline">
-                            <svg fill="currentColor" viewBox="0 0 20 20" class="w-6 h-6">
-                                <path fill-rule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM9 15a1 1 0 011-1h6a1 1 0 110 2h-6a1 1 0 01-1-1z" clip-rule="evenodd"></path>
-                            </svg>
-                        </button>
+{% block content %}
+<div class="flex h-screen bg-gray-100">
+    <!-- Sidebar -->
+    <div class="hidden md:flex md:flex-shrink-0">
+        <div class="flex flex-col w-64 bg-white shadow">
+            <!-- Profile Summary -->
+            <div class="flex flex-col items-center p-6 border-b">
+                {% if request.user.profile.profile_photo %}
+                    <img src="{{ request.user.profile.profile_photo.url }}" class="w-20 h-20 rounded-full">
+                {% else %}
+                    <div class="w-20 h-20 rounded-full bg-gray-300 flex items-center justify-center">
+                        <span class="text-2xl text-gray-600">{{ request.user.first_name|first }}</span>
                     </div>
-                    <nav class="flex-1 space-y-1 bg-white">
-                        <ul>
-                            <li>
-                                <a class="inline-flex items-center w-full px-4 py-2 mt-1 text-base text-gray-900 transition duration-500 ease-in-out transform rounded-lg bg-gray-50 focus:shadow-outline" href="#">
-                                    <i class="fas fa-home mr-4"></i>
-                                    Dashboard
-                                </a>
-                            </li>
-                            <li>
-                                <a class="inline-flex items-center w-full px-4 py-2 mt-1 text-base text-gray-600 transition duration-500 ease-in-out transform rounded-lg focus:shadow-outline hover:bg-gray-50" href="#">
-                                    <i class="fas fa-box mr-4"></i>
-                                    Products
-                                </a>
-                            </li>
-                            <li>
-                                <a class="inline-flex items-center w-full px-4 py-2 mt-1 text-base text-gray-600 transition duration-500 ease-in-out transform rounded-lg focus:shadow-outline hover:bg-gray-50" href="#">
-                                    <i class="fas fa-shopping-cart mr-4"></i>
-                                    Orders
-                                </a>
-                            </li>
-                            <li>
-                                <a class="inline-flex items-center w-full px-4 py-2 mt-1 text-base text-gray-600 transition duration-500 ease-in-out transform rounded-lg focus:shadow-outline hover:bg-gray-50" href="#">
-                                    <i class="fas fa-chart-bar mr-4"></i>
-                                    Analytics
-                                </a>
-                            </li>
-                            <li>
-                                <a class="inline-flex items-center w-full px-4 py-2 mt-1 text-base text-gray-600 transition duration-500 ease-in-out transform rounded-lg focus:shadow-outline hover:bg-gray-50" href="#">
-                                    <i class="fas fa-cog mr-4"></i>
-                                    Settings
-                                </a>
-                            </li>
-                        </ul>
-                    </nav>
-                </div>
+                {% endif %}
+                <h2 class="mt-4 text-lg font-medium">{{ request.user.first_name }} {{ request.user.last_name }}</h2>
+                <p class="text-sm text-gray-600">{{ request.user.email }}</p>
             </div>
-        </aside>
 
-        <!-- Main Content -->
-        <div class="flex flex-col flex-1 w-0 overflow-hidden">
-            <!-- Header -->
-            <header class="relative z-10 flex flex-shrink-0 h-16 bg-white shadow">
-                <div class="flex flex-1 px-4 sm:px-6">
-                    <div class="flex items-center justify-between flex-1">
-                        <!-- Search Bar -->
-                        <div class="flex items-center flex-1">
-                            <div class="w-full max-w-2xl">
-                                <label for="search" class="sr-only">Search</label>
-                                <div class="relative">
-                                    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                                        <i class="fas fa-search text-gray-400"></i>
-                                    </div>
-                                    <input id="search" name="search" class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm" placeholder="Search" type="search">
-                                </div>
-                            </div>
-                        </div>
-                        <!-- User Menu -->
-                        <div class="ml-4 flex items-center md:ml-6">
-                            <button class="p-1 text-gray-400 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                                <span class="sr-only">View notifications</span>
-                                <i class="fas fa-bell"></i>
-                            </button>
-                            <div class="ml-3 relative">
-                                <div>
-                                    <button class="max-w-xs bg-white flex items-center text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" id="user-menu" aria-haspopup="true">
-                                        <span class="sr-only">Open user menu</span>
-                                        <img class="h-8 w-8 rounded-full" src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="">
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </header>
-
-            <!-- Main Content Area -->
-            <main class="flex-1 overflow-y-auto focus:outline-none">
-                <div class="py-6">
-                    <div class="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-                        <h1 class="text-2xl font-semibold text-gray-900">Dashboard</h1>
-                    </div>
-                    <div class="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-                        <!-- Key Metrics -->
-                        <div class="mt-8">
-                            <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-                                <!-- Total Sales Card -->
-                                <div class="bg-white overflow-hidden shadow rounded-lg">
-                                    <div class="p-5">
-                                        <div class="flex items-center">
-                                            <div class="flex-shrink-0">
-                                                <i class="fas fa-dollar-sign text-2xl text-gray-400"></i>
-                                            </div>
-                                            <div class="ml-5 w-0 flex-1">
-                                                <dl>
-                                                    <dt class="text-sm font-medium text-gray-500 truncate">
-                                                        Total Sales
-                                                    </dt>
-                                                    <dd>
-                                                        <div class="text-lg font-medium text-gray-900">
-                                                            $24,560
-                                                        </div>
-                                                    </dd>
-                                                </dl>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="bg-gray-50 px-5 py-3">
-                                        <div class="text-sm">
-                                            <a href="#" class="font-medium text-blue-600 hover:text-blue-500">
-                                                View all
-                                            </a>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Total Orders Card -->
-                                <div class="bg-white overflow-hidden shadow rounded-lg">
-                                    <div class="p-5">
-                                        <div class="flex items-center">
-                                            <div class="flex-shrink-0">
-                                                <i class="fas fa-shopping-cart text-2xl text-gray-400"></i>
-                                            </div>
-                                            <div class="ml-5 w-0 flex-1">
-                                                <dl>
-                                                    <dt class="text-sm font-medium text-gray-500 truncate">
-                                                        Total Orders
-                                                    </dt>
-                                                    <dd>
-                                                        <div class="text-lg font-medium text-gray-900">
-                                                            356
-                                                        </div>
-                                                    </dd>
-                                                </dl>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="bg-gray-50 px-5 py-3">
-                                        <div class="text-sm">
-                                            <a href="#" class="font-medium text-blue-600 hover:text-blue-500">
-                                                View all
-                                            </a>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Total Products Card -->
-                                <div class="bg-white overflow-hidden shadow rounded-lg">
-                                    <div class="p-5">
-                                        <div class="flex items-center">
-                                            <div class="flex-shrink-0">
-                                                <i class="fas fa-box text-2xl text-gray-400"></i>
-                                            </div>
-                                            <div class="ml-5 w-0 flex-1">
-                                                <dl>
-                                                    <dt class="text-sm font-medium text-gray-500 truncate">
-                                                        Total Products
-                                                    </dt>
-                                                    <dd>
-                                                        <div class="text-lg font-medium text-gray-900">
-                                                            128
-                                                        </div>
-                                                    </dd>
-                                                </dl>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="bg-gray-50 px-5 py-3">
-                                        <div class="text-sm">
-                                            <a href="#" class="font-medium text-blue-600 hover:text-blue-500">
-                                                View all
-                                            </a>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Customer Satisfaction Card -->
-                                <div class="bg-white overflow-hidden shadow rounded-lg">
-                                    <div class="p-5">
-                                        <div class="flex items-center">
-                                            <div class="flex-shrink-0">
-                                                <i class="fas fa-smile text-2xl text-gray-400"></i>
-                                            </div>
-                                            <div class="ml-5 w-0 flex-1">
-                                                <dl>
-                                                    <dt class="text-sm font-medium text-gray-500 truncate">
-                                                        Customer Satisfaction
-                                                    </dt>
-                                                    <dd>
-                                                        <div class="text-lg font-medium text-gray-900">
-                                                            98%
-                                                        </div>
-                                                    </dd>
-                                                </dl>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="bg-gray-50 px-5 py-3">
-                                        <div class="text-sm">
-                                            <a href="#" class="font-medium text-blue-600 hover:text-blue-500">
-                                                View details
-                                            </a>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Recent Orders -->
-                        <div class="mt-8">
-                            <h2 class="text-lg leading-6 font-medium text-gray-900">Recent Orders</h2>
-                            <div class="mt-4 flex flex-col">
-                                <div class="-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
-                                    <div class="py-2 align-middle inline-block min-w-full sm:px-6 lg:px-8">
-                                        <div class="shadow overflow-hidden border-b border-gray-200 sm:rounded-lg">
-                                            <table class="min-w-full divide-y divide-gray-200">
-                                                <thead class="bg-gray-50">
-                                                    <tr>
-                                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                            Order ID
-                                                        </th>
-                                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                            Customer
-                                                        </th>
-                                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                            Status
-                                                        </th>
-                                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                            Total
-                                                        </th>
-                                                        <th scope="col" class="relative px-6 py-3">
-                                                            <span class="sr-only">Edit</span>
-                                                        </th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody class="bg-white divide-y divide-gray-200">
-                                                    <tr>
-                                                        <td class="px-6 py-4 whitespace-nowrap">
-                                                            <div class="text-sm text-gray-900">#1234</div>
-                                                        </td>
-                                                        <td class="px-6 py-4 whitespace-nowrap">
-                                                            <div class="flex items-center">
-                                                                <div class="flex-shrink-0 h-10 w-10">
-                                                                    <img class="h-10 w-10 rounded-full" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=4&w=256&h=256&q=60" alt="">
-                                                                </div>
-                                                                <div class="ml-4">
-                                                                    <div class="text-sm font-medium text-gray-900">
-                                                                        Jane Cooper
-                                                                    </div>
-                                                                    <div class="text-sm text-gray-500">
-                                                                        jane.cooper@example.com
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </td>
-                                                        <td class="px-6 py-4 whitespace-nowrap">
-                                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                                                Completed
-                                                            </span>
-                                                        </td>
-                                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                            $120.00
-                                                        </td>
-                                                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                            <a href="#" class="text-blue-600 hover:text-blue-900">Edit</a>
-                                                        </td>
-                                                    </tr>
-                                                    <!-- More rows... -->
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Product Inventory -->
-                        <div class="mt-8">
-                            <h2 class="text-lg leading-6 font-medium text-gray-900">Product Inventory</h2>
-                            <div class="mt-4 flex flex-col">
-                                <div class="-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
-                                    <div class="py-2 align-middle inline-block min-w-full sm:px-6 lg:px-8">
-                                        <div class="shadow overflow-hidden border-b border-gray-200 sm:rounded-lg">
-                                            <table class="min-w-full divide-y divide-gray-200">
-                                                <thead class="bg-gray-50">
-                                                    <tr>
-                                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                            Product
-                                                        </th>
-                                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                            Category
-                                                        </th>
-                                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                            Stock
-                                                        </th>
-                                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                            Price
-                                                        </th>
-                                                        <th scope="col" class="relative px-6 py-3">
-                                                            <span class="sr-only">Edit</span>
-                                                        </th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody class="bg-white divide-y divide-gray-200">
-                                                    <tr>
-                                                        <td class="px-6 py-4 whitespace-nowrap">
-                                                            <div class="flex items-center">
-                                                                <div class="flex-shrink-0 h-10 w-10">
-                                                                    <img class="h-10 w-10 rounded-full" src="/placeholder.svg?height=40&width=40" alt="Product image">
-                                                                </div>
-                                                                <div class="ml-4">
-                                                                    <div class="text-sm font-medium text-gray-900">
-                                                                        Premium Headphones
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </td>
-                                                        <td class="px-6 py-4 whitespace-nowrap">
-                                                            <div class="text-sm text-gray-900">Electronics</div>
-                                                        </td>
-                                                        <td class="px-6 py-4 whitespace-nowrap">
-                                                            <div class="text-sm text-gray-900">250</div>
-                                                        </td>
-                                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                            $99.99
-                                                        </td>
-                                                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                            <a href="#" class="text-blue-600 hover:text-blue-900">Edit</a>
-                                                        </td>
-                                                    </tr>
-                                                    <!-- More rows... -->
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </main>
+            <!-- Navigation -->
+            <nav class="flex-1 p-4 space-y-2">
+                <a href="{% url 'home' %}" class="flex items-center p-3 text-gray-700 rounded-lg hover:bg-gray-100">
+                    <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+                    </svg>
+                    Dashboard
+                </a>
+                <a href="{% url 'vendor_profile' %}" class="flex items-center p-3 text-gray-700 rounded-lg hover:bg-gray-100">
+                    <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                    </svg>
+                    Profile
+                </a>
+                <!-- Add more navigation items -->
+            </nav>
         </div>
     </div>
-</body>
-</html>
 
+    <!-- Main Content -->
+    <div class="flex flex-col flex-1 overflow-hidden">
+        <!-- Top Navigation -->
+        <header class="bg-white shadow">
+            <div class="px-4 py-6 mx-auto max-w-7xl sm:px-6 lg:px-8">
+                <div class="flex justify-between">
+                    <h1 class="text-3xl font-bold text-gray-900">Dashboard</h1>
+                    {% if not request.user.profile %}
+                        <a href="{% url 'vendor_profile' %}" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">
+                            Complete Profile
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </header>
+
+        <!-- Dashboard Content -->
+        <main class="flex-1 overflow-y-auto bg-gray-100">
+            <div class="py-6">
+                <div class="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
+                    <!-- Profile Status -->
+                    {% if not request.user.profile %}
+                    <div class="p-4 mb-6 bg-yellow-50 border-l-4 border-yellow-400">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm text-yellow-700">
+                                    Your profile is incomplete. Please complete your profile to access all features.
+                                    <a href="{% url 'vendor_profile' %}" class="font-medium underline">Complete now</a>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Dashboard Metrics -->
+                    <div class="grid grid-cols-1 gap-5 mt-6 sm:grid-cols-2 lg:grid-cols-3">
+                        <!-- Add your dashboard metrics cards here -->
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
 {% endblock %}

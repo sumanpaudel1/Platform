@@ -230,11 +230,12 @@ class VendorSetting(models.Model):
       
 
 
+def vendor_photo_path(instance, filename):
+    return f'vendor_photos/{instance.vendor.id}/{filename}'
+
 def vendor_document_path(instance, filename):
     return f'vendor_documents/{instance.vendor.id}/{filename}'
 
-def vendor_photo_path(instance, filename):
-    return f'vendor_photos/{instance.vendor.id}/{filename}'
 
 class VendorProfile(models.Model):
     STATUS_CHOICES = [
@@ -246,7 +247,11 @@ class VendorProfile(models.Model):
 
     # Basic Information
     vendor = models.OneToOneField(Vendor, on_delete=models.CASCADE, related_name='profile')
-    profile_photo = models.ImageField(upload_to=vendor_photo_path)
+    profile_photo = models.ImageField(
+        upload_to=vendor_photo_path,
+        null=True,
+        blank=True
+    )
     date_of_birth = models.DateField(null=True, blank=True)
     gender = models.CharField(max_length=10, choices=[('M', 'Male'), ('F', 'Female'), ('O', 'Other')])
     
@@ -293,8 +298,7 @@ class VendorProfile(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     
     class Meta:
-        verbose_name = "Vendor Profile"
-        verbose_name_plural = "Vendor Profiles"
+        db_table = 'accounts_vendorprofile'
 
     def __str__(self):
         return f"Profile of {self.vendor.first_name} {self.vendor.last_name}"
