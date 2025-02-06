@@ -42,7 +42,7 @@ INSTALLED_APPS = [
     'allauth.socialaccount',
     'allauth.socialaccount.providers.google',
     'django.contrib.sites',
-    'social_django',
+    # 'social_django',
 
 ]
 
@@ -189,10 +189,11 @@ AUTHENTICATION_BACKENDS = (
 )
 
 
+ACCOUNT_ADAPTER = 'accounts.adapters.CustomAccountAdapter'
 SOCIALACCOUNT_ADAPTER = 'accounts.adapters.CustomSocialAccountAdapter'
 SITE_ID = 1
 ACCOUNT_DEFAULT_HTTP_PROTOCOL = 'http'
-ACCOUNT_ADAPTER = 'accounts.adapters.MyAccountAdapter'
+# ACCOUNT_ADAPTER = 'accounts.adapters.MyAccountAdapter'
 
 
 DEBUG = True

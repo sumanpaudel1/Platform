@@ -1,15 +1,145 @@
+{% load static %}
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Profile</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 </head>
-<body>
-    <h2>Profile</h2>
-    <p>Email: {{ user.email }}</p>
-    <p>First Name: {{ user.first_name }}</p>
-    <p>Last Name: {{ user.last_name }}</p>
-    <p>Middle Name: {{ user.middle_name }}</p>
-    <p>Phone Number: {{ user.phone_number }}</p>
-    <a href="{% url 'update_profile' %}">Update Profile</a>
-</body>
-</html>
+{% block content %}
+<div class="min-h-screen bg-gray-100 py-6">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Profile Header -->
+        <div class="md:flex md:items-center md:justify-between mb-8">
+            <div class="flex-1 min-w-0">
+                <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
+                    {% if is_new %}Create Profile{% else %}Update Profile{% endif %}
+                </h2>
+            </div>
+        </div>
+
+        <!-- Profile Form -->
+        <form method="POST" enctype="multipart/form-data" class="space-y-8 divide-y divide-gray-200">
+            {% csrf_token %}
+            
+            <div class="space-y-8 divide-y divide-gray-200">
+                <!-- Basic Information -->
+                <div class="pt-8">
+                    <div>
+                        <h3 class="text-lg leading-6 font-medium text-gray-900">Basic Information</h3>
+                        <p class="mt-1 text-sm text-gray-500">This information will be displayed publicly.</p>
+                    </div>
+
+                    <div class="mt-6 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
+                        <!-- Profile Photo -->
+                        <!-- Profile Photo Section -->
+<div class="flex items-center">
+    {% if request.user.profile %}
+        {% if request.user.profile.profile_photo %}
+            <img src="{{ request.user.profile.profile_photo.url }}" 
+                 alt="Profile Photo"
+                 class="h-12 w-12 rounded-full object-cover">
+        {% else %}
+            <div class="h-12 w-12 rounded-full bg-gray-200 flex items-center justify-center">
+                <span class="text-xl font-medium text-gray-600">
+                    {{ request.user.first_name|first|default:"V" }}
+                </span>
+            </div>
+        {% endif %}
+    {% else %}
+        <div class="h-12 w-12 rounded-full bg-gray-200 flex items-center justify-center">
+            <span class="text-xl font-medium text-gray-600">
+                {{ request.user.first_name|first|default:"V" }}
+            </span>
+        </div>
+    {% endif %}
+    <div class="ml-3">
+        <p class="text-sm font-medium text-gray-700">
+            {{ request.user.first_name }} {{ request.user.last_name }}
+        </p>
+        <p class="text-xs text-gray-500">
+            {{ request.user.email }}
+        </p>
+    </div>
+</div>
+
+                        <!-- Business Information -->
+                        <div class="sm:col-span-3">
+                            <label class="block text-sm font-medium text-gray-700">Business Name</label>
+                            <div class="mt-1">
+                                {{ form.business_name }}
+                            </div>
+                        </div>
+
+                        <div class="sm:col-span-3">
+                            <label class="block text-sm font-medium text-gray-700">Business Type</label>
+                            <div class="mt-1">
+                                {{ form.business_type }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Documents -->
+                <div class="pt-8">
+                    <div>
+                        <h3 class="text-lg leading-6 font-medium text-gray-900">Legal Documents</h3>
+                        <p class="mt-1 text-sm text-gray-500">Upload required business documents.</p>
+                    </div>
+
+                    <div class="mt-6 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
+                        <div class="sm:col-span-3">
+                            <label class="block text-sm font-medium text-gray-700">PAN/VAT Document</label>
+                            <div class="mt-1">
+                                {{ form.pan_vat_document }}
+                            </div>
+                        </div>
+
+                        <div class="sm:col-span-3">
+                            <label class="block text-sm font-medium text-gray-700">Business Registration</label>
+                            <div class="mt-1">
+                                {{ form.business_registration }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contact Information -->
+                <div class="pt-8">
+                    <div>
+                        <h3 class="text-lg leading-6 font-medium text-gray-900">Contact Information</h3>
+                    </div>
+
+                    <div class="mt-6 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
+                        <div class="sm:col-span-3">
+                            <label class="block text-sm font-medium text-gray-700">Street Address</label>
+                            <div class="mt-1">
+                                {{ form.street_address }}
+                            </div>
+                        </div>
+
+                        <div class="sm:col-span-3">
+                            <label class="block text-sm font-medium text-gray-700">City</label>
+                            <div class="mt-1">
+                                {{ form.city }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pt-5">
+                <div class="flex justify-end">
+                    <button type="button" class="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        Cancel
+                    </button>
+                    <button type="submit" class="ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        Save
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

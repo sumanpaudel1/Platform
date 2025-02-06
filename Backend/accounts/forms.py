@@ -59,3 +59,26 @@ class LoginForm(forms.Form):
             'placeholder': '••••••••',
         })
     )
+    
+    
+
+
+
+from django import forms
+from .models import VendorProfile
+
+class VendorProfileForm(forms.ModelForm):
+    class Meta:
+        model = VendorProfile
+        fields = [
+            'profile_photo', 'business_name', 'business_type',
+            'pan_vat_number', 'registration_number', 'street_address',
+            'city', 'state', 'postal_code', 'country', 'alternate_phone',
+            'alternate_email', 'pan_vat_document', 'business_registration',
+            'citizenship_front', 'citizenship_back', 'citizenship_number'
+        ]
+        widgets = {
+            'profile_photo': forms.FileInput(attrs={'class': 'form-input rounded-lg'}),
+            'business_name': forms.TextInput(attrs={'class': 'form-input rounded-lg'}),
+            # Add similar styling for other fields
+        }
