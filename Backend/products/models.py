@@ -22,25 +22,29 @@ class Category(models.Model):
 
 class ColorVariant(models.Model):
     vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE, related_name='colors')
+    # Changed related_name to avoid conflict
+    product = models.ForeignKey('Product', on_delete=models.CASCADE, related_name='product_colors', null=True)
     color_name = models.CharField(max_length=100)
     image = models.ImageField(upload_to="color_variants", blank=True, null=True)
 
     class Meta:
-        unique_together = ['vendor', 'color_name']
+        unique_together = ['vendor', 'product', 'color_name']
 
     def __str__(self):
-        return f"{self.color_name} - {self.vendor.first_name}"
+        return f"{self.color_name} - {self.product.name if self.product else 'No Product'}"
 
 class SizeVariant(models.Model):
     vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE, related_name='sizes')
+    # Changed related_name to avoid conflict
+    product = models.ForeignKey('Product', on_delete=models.CASCADE, related_name='product_sizes', null=True)
     size_name = models.CharField(max_length=100)
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 
     class Meta:
-        unique_together = ['vendor', 'size_name']
+        unique_together = ['vendor', 'size_name', 'product']
 
     def __str__(self):
-        return f"{self.size_name} - {self.vendor.email}"
+        return f"{self.size_name} - {self.product.name if self.product else 'No Product'}"
 
 
 class Product(models.Model):
@@ -53,8 +57,8 @@ class Product(models.Model):
     cut_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     stock = models.IntegerField()
     rating = models.DecimalField(max_digits=3, decimal_places=2, null=True, blank=True)
-    color_variant = models.ManyToManyField(ColorVariant, blank=True)
-    size_variant = models.ManyToManyField(SizeVariant, blank=True)
+    color_variant = models.ManyToManyField(ColorVariant, blank=True, related_name='variant_products')
+    size_variant = models.ManyToManyField(SizeVariant, blank=True, related_name='variant_products')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

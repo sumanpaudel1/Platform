@@ -164,3 +164,123 @@ class VendorSettingForm(forms.ModelForm):
             'popup_text': forms.Textarea(attrs={'class': 'form-input', 'rows': 3}),
             'popup_delay': forms.NumberInput(attrs={'class': 'form-input'}),
         }
+        
+        
+ 
+ 
+ 
+        
+        
+from django import forms
+from django.forms import inlineformset_factory
+from products.models import Product, ProductImage, Category, ColorVariant, SizeVariant
+
+
+class ProductForm(forms.ModelForm):
+    """Main product form without variants"""
+    class Meta:
+        model = Product
+        fields = ['name', 'category', 'description', 'price', 'cut_price', 'stock']
+        exclude = ['vendor', 'slug', 'rating', 'color_variant', 'size_variant']
+        widgets = {
+            'name': forms.TextInput(attrs={
+                'class': 'mt-1 block w-full rounded-md border-gray-300 bg-gray-50 shadow-sm focus:border-indigo-500 focus:ring-indigo-500',
+                'placeholder': 'Enter product name'
+            }),
+            'category': forms.Select(attrs={
+                'class': 'mt-1 block w-full rounded-md border-gray-300 bg-gray-50 shadow-sm focus:border-indigo-500 focus:ring-indigo-500'
+            }),
+            'description': forms.Textarea(attrs={
+                'class': 'mt-1 block w-full rounded-md border-gray-300 bg-gray-50 shadow-sm focus:border-indigo-500 focus:ring-indigo-500',
+                'rows': 4,
+                'placeholder': 'Product description'
+            }),
+            'price': forms.NumberInput(attrs={
+                'class': 'mt-1 block w-full rounded-md border-gray-300 bg-gray-50 shadow-sm focus:border-indigo-500 focus:ring-indigo-500',
+                'placeholder': '0.00'
+            }),
+            'cut_price': forms.NumberInput(attrs={
+                'class': 'mt-1 block w-full rounded-md border-gray-300 bg-gray-50 shadow-sm focus:border-indigo-500 focus:ring-indigo-500',
+                'placeholder': '0.00'
+            }),
+            'stock': forms.NumberInput(attrs={
+                'class': 'mt-1 block w-full rounded-md border-gray-300 bg-gray-50 shadow-sm focus:border-indigo-500 focus:ring-indigo-500',
+                'placeholder': '0'
+            })
+        }
+
+from django import forms
+from products.models import ProductImage
+
+class ProductImageForm(forms.ModelForm):
+    class Meta:
+        model = ProductImage
+        fields = ['image']
+        widgets = {
+            'image': forms.FileInput(attrs={
+                'class': 'form-control',
+                'accept': 'image/*'
+            })
+        }
+
+class ProductColorVariantForm(forms.ModelForm):
+    class Meta:
+        model = ColorVariant
+        fields = ['color_name', 'image']
+        widgets = {
+            'color_name': forms.TextInput(attrs={
+                'class': 'mt-1 block w-full rounded-md border-gray-300 bg-gray-50 shadow-sm focus:border-indigo-500 focus:ring-indigo-500',
+                'placeholder': 'Enter color name'
+            }),
+            'image': forms.FileInput(attrs={
+                'class': 'hidden',
+                'accept': 'image/*'
+            })
+        }
+
+class ProductSizeVariantForm(forms.ModelForm):
+    """Form for product-specific size variants"""
+    class Meta:
+        model = SizeVariant
+        fields = ['size_name', 'price']
+        widgets = {
+            'size_name': forms.TextInput(attrs={
+                'class': 'mt-1 block w-full rounded-md border-gray-300 bg-gray-50 shadow-sm focus:border-indigo-500 focus:ring-indigo-500',
+                'placeholder': 'Enter size'
+            }),
+            'price': forms.NumberInput(attrs={
+                'class': 'mt-1 block w-full rounded-md border-gray-300 bg-gray-50 shadow-sm focus:border-indigo-500 focus:ring-indigo-500',
+                'placeholder': 'Additional price for this size'
+            })
+        }
+
+class CategoryForm(forms.ModelForm):
+    class Meta:
+        model = Category
+        fields = ['category_name', 'category_image']
+        widgets = {
+            'category_name': forms.TextInput(attrs={
+                'class': 'mt-1 block w-full rounded-md border-gray-300 bg-gray-50 shadow-sm focus:border-indigo-500 focus:ring-indigo-500',
+                'placeholder': 'Enter category name'
+            }),
+            'category_image': forms.FileInput(attrs={
+                'class': 'hidden',
+                'accept': 'image/*'
+            })
+        }
+
+# Custom clean methods for validation
+def clean_price(self):
+    price = self.cleaned_data.get('price')
+    if price <= 0:
+        raise forms.ValidationError("Price must be greater than zero")
+    return price
+
+def clean_stock(self):
+    stock = self.cleaned_data.get('stock')
+    if stock < 0:
+        raise forms.ValidationError("Stock cannot be negative")
+    return stock
+
+ProductForm.clean_price = clean_price
+ProductForm.clean_stock = clean_stock

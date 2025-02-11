@@ -365,3 +365,372 @@ def delete_cover_photo(request, photo_id):
         except CoverPhoto.DoesNotExist:
             messages.error(request, 'Cover photo not found!')
     return redirect('vendor_settings')
+
+
+
+#Product views
+
+
+
+
+
+
+# Remove duplicate imports and organize them at the top
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from products.models import Product, Category, ColorVariant, SizeVariant, ProductImage
+from .forms import (
+    ProductForm,  CategoryForm, ProductColorVariantForm, ProductSizeVariantForm 
+)
+from django.http import JsonResponse
+
+
+@login_required
+def vendor_products(request):
+    """View for listing all products of a vendor"""
+    products = Product.objects.filter(vendor=request.user).prefetch_related(
+        'product_images',  # Use the new related_name
+        'category'
+    ).order_by('-created_at')
+    
+    context = {
+        'products': products,
+        'active_tab': 'products'
+    }
+    return render(request, 'accounts/vendor_products.html', context)
+
+# Keep only these product-related views and update them
+
+@login_required
+def vendor_product_edit(request, pk):
+    """View for editing a vendor's product"""
+    product = get_object_or_404(Product, pk=pk, vendor=request.user)
+    
+    if request.method == 'POST':
+        form = ProductForm(request.POST, request.FILES, instance=product)
+        if form.is_valid():
+            product = form.save()
+            
+            
+
+            
+            # Handle product images
+            if request.FILES.getlist('product_images'):
+                for image in request.FILES.getlist('product_images'):
+                    ProductImage.objects.create(product=product, image=image)
+
+            # Handle color variants
+            product.color_variant.set(request.POST.getlist('color_variants'))
+            
+            # Handle size variants
+            product.size_variant.set(request.POST.getlist('size_variants'))
+
+            messages.success(request, 'Product updated successfully!')
+            return redirect('vendor_products')
+        else:
+            messages.error(request, 'Please correct the errors below.')
+    else:
+        form = ProductForm(instance=product)
+    
+    context = {
+        'form': form,
+        'product': product,
+        'category_form': CategoryForm(),
+        'color_form': ProductColorVariantForm(),
+        'size_form': ProductSizeVariantForm(),
+        'categories': Category.objects.all(),  # Add this line
+        'images': product.product_images.all(),
+        'colors': product.color_variant.all(),
+        'sizes': product.size_variant.all(),
+        'active_tab': 'category',
+        'is_edit': True
+    }
+    return render(request, 'accounts/vendor_product_form.html', context)
+
+@login_required
+def delete_product_image(request, image_id):
+    if request.method == 'POST':
+        try:
+            image = get_object_or_404(ProductImage, 
+                                    id=image_id, 
+                                    product__vendor=request.user)
+            image.delete()
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Image deleted successfully!'
+            })
+        except Exception as e:
+            return JsonResponse({
+                'status': 'error',
+                'message': str(e)
+            }, status=400)
+    return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
+
+
+
+
+
+@login_required
+def vendor_product_delete(request, pk):
+    """View for deleting a vendor's product"""
+    product = get_object_or_404(Product, pk=pk, vendor=request.user)
+    
+    if request.method == 'POST':
+        try:
+            # Delete associated images first
+            product.productimage_set.all().delete()
+            # Delete the product
+            product.delete()
+            messages.success(request, 'Product deleted successfully!')
+        except Exception as e:
+            messages.error(request, f'Error deleting product: {str(e)}')
+        return redirect('vendor_products')
+    
+    # If GET request, show confirmation page
+    context = {
+        'product': product,
+        'active_tab': 'products'
+    }
+    return render(request, 'accounts/vendor_product_delete.html', context)
+
+
+
+@login_required
+def add_category(request):
+    if request.method == 'POST':
+        form = CategoryForm(request.POST, request.FILES)  # Add request.FILES
+        if form.is_valid():
+            try:
+                category = form.save(commit=False)
+                category.vendor = request.user
+                
+                # Handle category image
+                if 'category_image' in request.FILES:
+                    category.category_image = request.FILES['category_image']
+                
+                category.save()
+                return JsonResponse({
+                    'status': 'success',
+                    'id': category.id,
+                    'name': category.category_name,
+                    'image_url': category.category_image.url if category.category_image else None
+                })
+            except Exception as e:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': str(e)
+                }, status=400)
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Invalid form data',
+            'errors': form.errors
+        }, status=400)
+    return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
+
+from django.db import IntegrityError
+from django.http import JsonResponse
+
+@login_required
+def add_color_variant(request):
+    if request.method == 'POST':
+        form = ProductColorVariantForm(request.POST, request.FILES)
+        if form.is_valid():
+            try:
+                color = form.save(commit=False)
+                color.vendor = request.user
+                if 'image' in request.FILES:
+                    color.image = request.FILES['image']
+                color.save()
+                
+                return JsonResponse({
+                    'status': 'success',
+                    'id': color.id,
+                    'color_name': color.color_name,
+                    'image_url': color.image.url if color.image else None
+                })
+            except Exception as e:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': str(e)
+                }, status=400)
+    return JsonResponse({
+        'status': 'error',
+        'message': 'Invalid form data'
+    }, status=400)
+
+@login_required
+def add_size_variant(request):
+    if request.method == 'POST':
+        form = ProductSizeVariantForm(request.POST)
+        if form.is_valid():
+            try:
+                size = form.save(commit=False)
+                size.vendor = request.user
+                size.save()
+                
+                return JsonResponse({
+                    'status': 'success',
+                    'id': size.id,
+                    'size_name': size.size_name,
+                    'price': str(size.price)
+                })
+            except Exception as e:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': str(e)
+                }, status=400)
+    return JsonResponse({
+        'status': 'error',
+        'message': 'Invalid form data'
+    }, status=400)
+
+@login_required
+def vendor_product_create(request):
+    if request.method == 'POST':
+        form = ProductForm(request.POST, request.FILES)
+        if form.is_valid():
+            product = form.save(commit=False)
+            product.vendor = request.user
+            product.save()
+            
+            images = request.FILES.getlist('product_images')
+            for img in images:
+                ProductImage.objects.create(product=product, image=img)
+
+            # Handle new color variants
+            new_colors = []
+            for key in request.POST:
+                if key.startswith('new_color_variants'):
+                    index = key.split('[')[1].split(']')[0]
+                    color_name = request.POST.get(f'new_color_variants[{index}][color_name]')
+                    new_colors.append(ColorVariant(
+                        product=product,
+                        color_name=color_name,
+                        vendor=request.user
+                    ))
+            ColorVariant.objects.bulk_create(new_colors)
+
+            # Handle new size variants
+            new_sizes = []
+            for key in request.POST:
+                if key.startswith('new_size_variants'):
+                    index = key.split('[')[1].split(']')[0]
+                    size_name = request.POST.get(f'new_size_variants[{index}][size_name]')
+                    price = request.POST.get(f'new_size_variants[{index}][price]')
+                    new_sizes.append(SizeVariant(
+                        product=product,
+                        size_name=size_name,
+                        price=price,
+                        vendor=request.user
+                    ))
+            SizeVariant.objects.bulk_create(new_sizes)
+
+            # Handle existing variants
+            product.color_variant.set(request.POST.getlist('color_variants'))
+            product.size_variant.set(request.POST.getlist('size_variants'))
+
+            # Handle deletions
+            for color_id in request.POST.getlist('delete_colors'):
+                ColorVariant.objects.filter(id=color_id, product=product).delete()
+            for size_id in request.POST.getlist('delete_sizes'):
+                SizeVariant.objects.filter(id=size_id, product=product).delete()
+
+            messages.success(request, 'Product created successfully!')
+            return redirect('vendor_products')
+        else:
+            print(form.errors)  # Debug
+            messages.error(request, f"Form errors: {form.errors}")
+    else:
+        form = ProductForm()
+    return render(request, 'accounts/vendor_product_form.html', {
+        'form': form,
+        'category_form': CategoryForm(),
+        'color_form': ProductColorVariantForm(),
+        'size_form': ProductSizeVariantForm(),
+        'categories': Category.objects.filter(vendor=request.user),  # Add this line to get vendor's categories
+        'active_tab': 'category',
+        'active_tab': 'products',
+    })
+    
+        
+    
+
+@login_required
+def add_product_images(request, pk):
+    if request.method == 'POST':
+        product = get_object_or_404(Product, pk=pk, vendor=request.user)
+        try:
+            for image in request.FILES.getlist('product_images'):
+                ProductImage.objects.create(
+                    product=product,
+                    image=image
+                )
+            return JsonResponse({'status': 'success'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+    return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
+
+
+
+
+
+from django.http import JsonResponse
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import get_object_or_404
+from products.models import Category, ColorVariant, SizeVariant, ProductImage
+
+@login_required
+def delete_category(request, pk):
+    if request.method == 'POST':
+        category = get_object_or_404(Category, pk=pk, vendor=request.user)
+        category.delete()
+        return JsonResponse({'status': 'success'})
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
+
+@login_required
+def delete_color_variant(request, pk):
+    if request.method == 'POST':
+        variant = get_object_or_404(ColorVariant, pk=pk, vendor=request.user)
+        variant.delete()
+        return JsonResponse({'status': 'success'})
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
+
+@login_required
+def delete_size_variant(request, pk):
+    if request.method == 'POST':
+        variant = get_object_or_404(SizeVariant, pk=pk, vendor=request.user)
+        variant.delete()
+        return JsonResponse({'status': 'success'})
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
+
+
+
+
+from django.http import JsonResponse
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import get_object_or_404
+from products.models import Product
+
+@login_required
+def delete_product(request, pk):
+    if request.method == 'POST':
+        try:
+            product = get_object_or_404(Product, pk=pk, vendor=request.user)
+            product.delete()
+            return JsonResponse({'status': 'success'})
+        except Product.DoesNotExist:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Product not found'
+            }, status=404)
+        except Exception as e:
+            return JsonResponse({
+                'status': 'error',
+                'message': str(e)
+            }, status=400)
+    return JsonResponse({
+        'status': 'error',
+        'message': 'Invalid request method'
+    }, status=405)
+

@@ -15,4 +15,33 @@ urlpatterns = [
     path('home/profile/', views.vendor_profile, name='vendor_profile'),
     path('home/store-settings/', views.store_settings, name='vendor_settings'),
     path('delete-cover-photo/<int:photo_id>/', views.delete_cover_photo, name='delete_cover_photo'),
+    
+    
+    path('home/products/', views.vendor_products, name='vendor_products'),
+    path('home/products/create/', views.vendor_product_create, name='vendor_product_create'),
+    path('home/products/<int:pk>/edit/', views.vendor_product_edit, name='vendor_product_edit'),
+    path('home/products/<int:pk>/delete/', views.vendor_product_delete, name='vendor_product_delete'),
+    path('home/products/add-category/', views.add_category, name='add_category'),
+   
+   
+    path('home/products/images/<int:image_id>/delete/', views.delete_product_image, name='delete_product_image'),
+    
+    
+    path('home/products/add-category/', views.add_category, name='add_category'),
+    path('home/products/add-color/', views.add_color_variant, name='add_color_variant'),
+    path('home/products/add-size/', views.add_size_variant, name='add_size_variant'),
+    path('home/products/images/<int:image_id>/delete/', views.delete_product_image, name='delete_product_image'),
+    path('home/products/<int:pk>/add-images/', views.add_product_images, name='add_product_images'),
+    path('home/products/category/<int:pk>/delete/', views.delete_category, name='delete_category'),
+    path('home/products/color/<int:pk>/delete/', views.delete_color_variant, name='delete_color_variant'),
+    path('home/products/size/<int:pk>/delete/', views.delete_size_variant, name='delete_size_variant'),
+    path('products/<int:pk>/delete/', views.delete_product, name='delete_product'),
+    
 ]
+
+    # path('home/products/<int:product_id>/add-color/', views.add_product_color, name='add_product_color'),
+    # path('home/products/<int:product_id>/add-size/', views.add_product_size, name='add_product_size'),
+
+
+
+
