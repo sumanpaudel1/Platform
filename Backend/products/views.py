@@ -5,15 +5,37 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from accounts.models import Subdomain
 from .models import Product, Category
-from accounts.models import Vendor,VendorSetting
+from accounts.models import Vendor,VendorSetting ,Subdomain
 from datetime import datetime
 
 
+
+from django.shortcuts import redirect
+from django.contrib import messages
+from functools import wraps
+from accounts.models import Vendor
+from accounts.urls import urlpatterns
+from accounts.views import customer_login
+
+
+
+from functools import wraps
+from django.shortcuts import redirect
+from django.urls import reverse
+from .models import Vendor
+from accounts.views import vendor_login_required
+
+
+
+
+@vendor_login_required
 def vendor_home(request, subdomain):
     subdomain = subdomain.replace('.platform', '')
     subdomain_obj = get_object_or_404(Subdomain, subdomain=subdomain)
     vendor = subdomain_obj.vendor
     
+    print(f"Rendering home page for subdomain: {subdomain}")
+    print(f"User: {request.user}, is_authenticated: {request.user.is_authenticated}")
     # Get all products and new arrivals
     products = Product.objects.filter(vendor=vendor)
     
