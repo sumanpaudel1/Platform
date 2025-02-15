@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ vendor.settings.store_name }} - {% block title %}{% endblock %}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
+    <style>
+        :root {
+            --primary: {{ vendor.settings.primary_color }};
+            --secondary: {{ vendor.settings.secondary_color }};
+            --accent: {{ vendor.settings.accent_color }};
+        }
+        body {
+            font-family: '{{ vendor.settings.body_font }}', sans-serif;
+        }
+        h1, h2, h3, h4, h5, h6 {
+            font-family: '{{ vendor.settings.heading_font }}', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation Bar -->
+    <nav class="bg-white shadow mb-4">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-4">
+                {% if vendor.settings.logo %}
+                    <img src="{{ vendor.settings.logo.url }}" alt="Logo" class="h-10 w-10 rounded-full">
+                {% endif %}
+                <span class="text-xl font-bold text-gray-800">{{ vendor.settings.store_name }}</span>
+            </div>
+        </div>
+    </nav>
+    
+    <div class="container mx-auto px-4">
+        {% block content %}{% endblock %}
+    </div>
+</body>
+</html>

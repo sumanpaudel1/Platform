@@ -1,5 +1,5 @@
 from django.db import models
-from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin , Group, Permission
 from datetime import timedelta
 from django.utils.timezone import now
 from django.utils.text import slugify
@@ -54,6 +54,23 @@ class Vendor(AbstractBaseUser, PermissionsMixin):
     
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['first_name', 'last_name', 'phone_number']
+    
+    
+    groups = models.ManyToManyField(
+        Group,
+        related_name="vendor_users",  # unique related_name for Vendor
+        blank=True,
+        help_text="The groups this vendor belongs to.",
+        verbose_name="groups"
+    )
+    
+    user_permissions = models.ManyToManyField(
+        Permission,
+        related_name="vendor_permissions",  # unique related_name for Vendor
+        blank=True,
+        help_text="Specific permissions for this vendor.",
+        verbose_name="user permissions"
+    )
     
     def has_perm(self, perm, obj=None):
         return True
@@ -229,7 +246,6 @@ class VendorSetting(models.Model):
       
       
 
-
 def vendor_photo_path(instance, filename):
     return f'vendor_photos/{instance.vendor.id}/{filename}'
 
@@ -327,3 +343,66 @@ class VendorProfile(models.Model):
         return all(required_fields)
 
 
+
+
+
+
+
+
+# Customer Manager
+class CustomerManager(BaseUserManager):
+    def create_customer(self, email, phone_number=None, first_name=None, last_name=None, password=None, vendor=None):
+        if not email:
+            raise ValueError("Customers must have an email address")
+        if vendor is None:
+            raise ValueError("Customer registration must occur on a vendor subdomain")
+        customer = self.model(
+            email=self.normalize_email(email),
+            phone_number=phone_number,
+            first_name=first_name or '',
+            last_name=last_name or '',
+            vendor=vendor
+        )
+        if password:
+            customer.set_password(password)
+        customer.save(using=self._db)
+        return customer
+    
+    def get_by_natural_key(self, email):
+        return self.get(email=email)
+
+# Customer Model
+class Customer(AbstractBaseUser, PermissionsMixin):
+    email = models.EmailField(unique=True)
+    phone_number = models.CharField(max_length=15, blank=True, null=True)
+    first_name = models.CharField(max_length=30)
+    last_name = models.CharField(max_length=30)
+    # Associate each customer with a Vendor.
+    vendor = models.ForeignKey('Vendor', on_delete=models.CASCADE, related_name='customers')
+    is_active = models.BooleanField(default=True)
+    date_joined = models.DateTimeField(auto_now_add=True)
+
+    objects = CustomerManager()
+
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['first_name', 'last_name']
+    
+    
+    groups = models.ManyToManyField(
+        Group,
+        related_name="customer_users",  # unique related_name for Customer
+        blank=True,
+        help_text="The groups this user belongs to.",
+        verbose_name="groups"
+    )
+    
+    user_permissions = models.ManyToManyField(
+        Permission,
+        related_name="customer_permissions",  # unique related_name for Customer
+        blank=True,
+        help_text="Specific permissions for this user.",
+        verbose_name="user permissions"
+    )
+
+    def __str__(self):
+        return self.email

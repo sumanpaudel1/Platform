@@ -1,6 +1,7 @@
 from django.urls import path
 from . import views
 
+
 urlpatterns = [
     
     path('register/', views.register, name='register'),
@@ -36,6 +37,27 @@ urlpatterns = [
     path('home/products/color/<int:pk>/delete/', views.delete_color_variant, name='delete_color_variant'),
     path('home/products/size/<int:pk>/delete/', views.delete_size_variant, name='delete_size_variant'),
     path('products/<int:pk>/delete/', views.delete_product, name='delete_product'),
+    
+    
+    # Customer endpoints:
+    path('<str:subdomain>.platform/customer/register/', views.customer_register, name='customer_register'),
+    path('<str:subdomain>.platform/customer/verify-otp/', views.verify_customer_otp, name='verify_customer_otp'),
+    path('<str:subdomain>.platform/customer/login/', views.customer_login, name='customer_login'),
+    # path('<str:subdomain>.platform/customer/forgot-password/', views.customer_forgot_password, name='customer_forgot_password'),
+   
+    path('<str:subdomain>.platform/customer/forgot-password/', 
+         views.customer_forgot_password, 
+         name='customer_forgot_password'),
+    
+    path('<str:subdomain>.platform/customer/verify-reset-otp/<str:email>/',
+         views.verify_customer_reset_otp,
+         name='verify_customer_reset_otp'),
+    
+    path('<str:subdomain>.platform/customer/reset-password/<str:email>/',
+         views.reset_customer_password,
+         name='reset_customer_password'),
+   
+  
     
 ]
 

@@ -1,0 +1,38 @@
+{% extends "accounts/base_customer.html" %}
+{% block title %}Customer Registration{% endblock %}
+{% block content %}
+<div class="max-w-md mx-auto bg-white p-6 rounded shadow">
+    <h1 class="text-2xl font-bold mb-6 text-[var(--primary)]">Customer Registration</h1>
+    <form method="post">
+        {% csrf_token %}
+        <div class="mb-4">
+            <label for="id_first_name" class="block text-gray-700">First Name</label>
+            <input type="text" name="first_name" id="id_first_name" class="w-full border rounded p-2" required>
+        </div>
+        <div class="mb-4">
+            <label for="id_last_name" class="block text-gray-700">Last Name</label>
+            <input type="text" name="last_name" id="id_last_name" class="w-full border rounded p-2" required>
+        </div>
+        <div class="mb-4">
+            <label for="id_email" class="block text-gray-700">Email</label>
+            <input type="email" name="email" id="id_email" class="w-full border rounded p-2" required>
+        </div>
+        <div class="mb-4">
+            <label for="id_phone_number" class="block text-gray-700">Phone Number</label>
+            <input type="text" name="phone_number" id="id_phone_number" class="w-full border rounded p-2">
+        </div>
+        <div class="mb-4">
+            <label for="id_password1" class="block text-gray-700">Password</label>
+            <input type="password" name="password1" id="id_password1" class="w-full border rounded p-2" required>
+        </div>
+        <div class="mb-4">
+            <label for="id_password2" class="block text-gray-700">Confirm Password</label>
+            <input type="password" name="password2" id="id_password2" class="w-full border rounded p-2" required>
+        </div>
+        <button type="submit" class="w-full bg-[var(--primary)] text-white p-2 rounded hover:bg-[var(--accent)]">Register</button>
+    </form>
+    <p class="mt-4 text-center text-gray-600">
+        Already have an account? <a href="{% url 'customer_login' subdomain=vendor.subdomain %}" class="text-[var(--primary)]">Login</a>
+    </p>
+</div>
+{% endblock %}
