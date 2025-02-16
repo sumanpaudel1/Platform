@@ -5,35 +5,49 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ vendor.settings.store_name }} - {% block title %}{% endblock %}</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
+    <!-- Add Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: {{ vendor.settings.primary_color }};
-            --secondary: {{ vendor.settings.secondary_color }};
-            --accent: {{ vendor.settings.accent_color }};
+            --primary: {{ vendor.settings.primary_color|default:'#4F46E5' }};
+            --accent: {{ vendor.settings.accent_color|default:'#4338CA' }};
+            --secondary: {{ vendor.settings.secondary_color|default:'#1F2937' }};
+            --background: {{ vendor.settings.background_color|default:'#F3F4F6' }};
         }
-        body {
-            font-family: '{{ vendor.settings.body_font }}', sans-serif;
+        
+        /* Button specific styles */
+        .custom-button {
+            background-color: var(--primary);
+            transition: all 0.3s ease;
         }
-        h1, h2, h3, h4, h5, h6 {
-            font-family: '{{ vendor.settings.heading_font }}', sans-serif;
+        
+        .custom-button:hover {
+            background-color: var(--accent);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
         }
     </style>
 </head>
-<body class="bg-gray-50">
+<body class="min-h-screen bg-gray-50">
     <!-- Navigation Bar -->
-    <nav class="bg-white shadow mb-4">
-        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
-            <div class="flex items-center space-x-4">
-                {% if vendor.settings.logo %}
-                    <img src="{{ vendor.settings.logo.url }}" alt="Logo" class="h-10 w-10 rounded-full">
-                {% endif %}
-                <span class="text-xl font-bold text-gray-800">{{ vendor.settings.store_name }}</span>
+    <nav class="bg-white shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    {% if vendor.settings.logo %}
+                        <img src="{{ vendor.settings.logo.url }}" alt="Logo" class="h-8 w-auto">
+                    {% endif %}
+                    <span class="ml-3 text-xl font-bold text-[var(--primary)]">
+                        {{ vendor.settings.store_name }}
+                    </span>
+                </div>
             </div>
         </div>
     </nav>
     
-    <div class="container mx-auto px-4">
+    <!-- Main Content -->
+    <main>
         {% block content %}{% endblock %}
-    </div>
+    </main>
 </body>
 </html>

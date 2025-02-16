@@ -34,30 +34,38 @@ def vendor_home(request, subdomain):
     subdomain_obj = get_object_or_404(Subdomain, subdomain=subdomain)
     vendor = subdomain_obj.vendor
     
+    customer = request.customer
+    
     print(f"Rendering home page for subdomain: {subdomain}")
     print(f"User: {request.user}, is_authenticated: {request.user.is_authenticated}")
+    print(f"Customer direct check: {customer}")
+    print(f"Customer email: {customer.email if customer else 'No customer'}")
+    
     # Get all products and new arrivals
     products = Product.objects.filter(vendor=vendor)
-    
-    new_arrivals = products.order_by('-created_at')[:8]  # Get 8 newest products
+    new_arrivals = products.order_by('-created_at')[:8]
     
     # Filter by category if provided
     category_slug = request.GET.get('category')
     if category_slug:
         products = products.filter(category__slug=category_slug)
     
-    
     context = {
         'vendor': vendor,
         'products': products,
+        'customer': customer,
         'new_arrivals': new_arrivals,
         'categories': Category.objects.filter(vendor=vendor),
         'cover_photos': vendor.settings.cover_photos.all().order_by('order'),
         'year': datetime.now().year,
         'show_popup': vendor.settings.show_popup,
-        'popup_delay': vendor.settings.popup_delay
+        'popup_delay': vendor.settings.popup_delay,
     }
+    
+    print(f"Context customer before render: {context['customer']}")  # Debug print
     return render(request, 'products/vendor_home.html', context)
+
+
 
 @receiver(post_save, sender=Vendor)
 def create_vendor_settings(sender, instance, created, **kwargs):
@@ -114,3 +122,13 @@ def product_create(request):
     else:
         form = ProductForm()
     return render(request, 'products/product_form.html', {'form': form})
+
+
+
+from django.contrib.auth import logout
+
+def customer_logout(request, subdomain):
+    """Handle customer logout"""
+    logout(request)
+    messages.success(request, "You have been successfully logged out.")
+    return redirect('customer_login', subdomain=subdomain)
