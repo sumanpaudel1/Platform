@@ -19,6 +19,16 @@
         h1, h2, h3, h4, h5, h6 { 
             font-family: '{{ vendor.settings.heading_font }}', sans-serif; 
         }
+
+        .dropdown-menu {
+            display: none;
+        }
+        .dropdown:hover .dropdown-menu {
+            display: block;
+        }
+        .dropdown-menu.show {
+            display: block;
+        }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -62,19 +72,62 @@
                         <i class="fas fa-shopping-cart"></i>
                         <span class="ml-1">Cart</span>
                     </a>
-                    <div class="relative group">
-                        <button class="flex items-center space-x-1">
-                            <i class="far fa-user-circle text-xl"></i>
-                            <span>Account</span>
-                        </button>
-                        <div class="absolute right-0 w-48 mt-2 bg-white rounded-lg shadow-xl py-2 hidden group-hover:block">
-                            <a href="#" class="block px-4 py-2 hover:bg-gray-100">Profile</a>
-                            <a href="#" class="block px-4 py-2 hover:bg-gray-100">Orders</a>
-                            <a href="#" class="block px-4 py-2 hover:bg-gray-100">Settings</a>
-                            <hr class="my-2">
-                            <a href="#" class="block px-4 py-2 text-red-600 hover:bg-gray-100">Logout</a>
-                        </div>
-                    </div>
+
+                    <!-- Account Dropdown -->
+<!-- Replace the Account Dropdown section -->
+<div class="relative dropdown" x-data="{ open: false }">
+    <button @click="open = !open" 
+            class="flex items-center space-x-2 py-2 px-4 hover:bg-gray-100 rounded-lg" 
+            id="accountDropdown">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+        </svg>
+        <span class="hidden md:inline">
+            {% if request.user.is_authenticated and request.user.customer %}
+                {{ request.user.customer.first_name|default:request.user.customer.email }}
+            {% else %}
+                Account
+            {% endif %}
+        </span>
+    </button>
+
+    <div class="dropdown-menu absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl z-50"
+         x-show="open"
+         @click.away="open = false">
+        {% if request.user.is_authenticated and request.user.customer %}
+            <div class="px-4 py-3 border-b border-gray-100">
+                <p class="text-sm text-gray-500">Logged in as</p>
+                <p class="font-medium truncate">{{ request.user.customer.email }}</p>
+            </div>
+            <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                <i class="fas fa-user-circle mr-2"></i>My Profile
+            </a>
+            <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                <i class="fas fa-shopping-bag mr-2"></i>My Orders
+            </a>
+            <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                <i class="fas fa-heart mr-2"></i>Wishlist
+            </a>
+            <div class="border-t border-gray-100">
+                <a href="{% url 'accounts:customer_logout' subdomain=vendor.subdomain %}" 
+                   class="block px-4 py-2 text-sm text-red-600 hover:bg-gray-100">
+                    <i class="fas fa-sign-out-alt mr-2"></i>Logout
+                </a>
+            </div>
+            {% else %}
+            <a href="{% url 'customer_login' subdomain=vendor.subdomain.subdomain %}" 
+               class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                <i class="fas fa-sign-in-alt mr-2"></i>Login
+            </a>
+            <a href="{% url 'customer_register' subdomain=vendor.subdomain.subdomain %}" 
+               class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                <i class="fas fa-user-plus mr-2"></i>Register
+            </a>
+        {% endif %}
+    </div>
+</div>
+
+                    <!-- Mobile Menu -->
                 </div>
             </div>
         </div>
@@ -309,6 +362,36 @@
         </footer>
     
         <script>
+
+
+            document.addEventListener('DOMContentLoaded', function() {
+                const dropdown = document.querySelector('.dropdown');
+                const dropdownMenu = document.querySelector('.dropdown-menu');
+                let timeoutId;
+            
+                dropdown.addEventListener('mouseenter', function() {
+                    clearTimeout(timeoutId);
+                    dropdownMenu.classList.add('show');
+                });
+            
+                dropdown.addEventListener('mouseleave', function() {
+                    timeoutId = setTimeout(() => {
+                        dropdownMenu.classList.remove('show');
+                    }, 200);
+                });
+            
+                // Also handle click for mobile devices
+                dropdown.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    dropdownMenu.classList.toggle('show');
+                });
+            
+                // Close dropdown when clicking outside
+                document.addEventListener('click', function() {
+                    dropdownMenu.classList.remove('show');
+                });
+            });
+
             // Carousel Functionality
             const covers = document.querySelectorAll('[data-cover]');
             const slideButtons = document.querySelectorAll('[data-slide]');

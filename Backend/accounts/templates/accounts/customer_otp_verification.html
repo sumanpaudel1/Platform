@@ -1,19 +1,79 @@
 {% extends "accounts/base_customer.html" %}
 {% block title %}OTP Verification{% endblock %}
+
 {% block content %}
-<div class="max-w-md mx-auto bg-white p-6 rounded shadow">
-    <h1 class="text-2xl font-bold mb-6 text-[var(--primary)]">OTP Verification</h1>
-    <p class="mb-4 text-gray-700">An OTP has been sent to: {{ email }}</p>
-    <form method="post">
-        {% csrf_token %}
-        <div class="mb-4">
-            <label for="id_otp" class="block text-gray-700">Enter OTP</label>
-            <input type="text" name="otp" id="id_otp" class="w-full border rounded p-2" required>
+<div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full bg-white p-8 rounded-lg shadow-lg">
+        <!-- Logo Section -->
+        <div class="text-center mb-8">
+            {% if vendor.settings.logo %}
+                <img src="{{ vendor.settings.logo.url }}" alt="{{ vendor.settings.store_name }}" 
+                     class="mx-auto h-16 w-auto mb-4">
+            {% endif %}
+            <h2 class="text-3xl font-extrabold text-[var(--primary)]">Verify OTP</h2>
+            <p class="mt-2 text-sm text-gray-600">
+                Enter the verification code sent to<br>
+                <span class="font-medium text-gray-800">{{ email }}</span>
+            </p>
         </div>
-        <button type="submit" class="w-full bg-[var(--primary)] text-white p-2 rounded hover:bg-[var(--accent)]">Verify OTP</button>
-    </form>
-    <p class="mt-4 text-center">
-        Didn't receive OTP? <a href="{% url 'resend_otp' email=email %}" class="text-[var(--primary)] font-medium">Resend OTP</a>
-    </p>
+
+        <!-- Error Messages -->
+        {% if messages %}
+            {% for message in messages %}
+                <div class="mb-4 p-4 rounded-md {% if message.tags == 'error' %}bg-red-50 text-red-700{% else %}bg-green-50 text-green-700{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+            <div>
+                <label for="id_otp" class="block text-sm font-medium text-gray-700">Verification Code</label>
+                <div class="mt-1">
+                    <input type="text" name="otp" id="id_otp" required
+                           class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md 
+                                  shadow-sm placeholder-gray-400 focus:outline-none focus:ring-[var(--primary)] 
+                                  focus:border-[var(--primary)]"
+                           placeholder="Enter 6-digit code">
+                </div>
+            </div>
+
+            <!-- Verify Button -->
+            <div>
+                <button type="submit" 
+                        style="background-color: var(--primary);"
+                        class="w-full flex justify-center items-center py-3 px-6 border border-transparent rounded-lg 
+                               shadow-lg text-lg font-semibold text-white
+                               hover:opacity-90 hover:transform hover:scale-105
+                               focus:outline-none focus:ring-4 focus:ring-opacity-50 
+                               transition-all duration-300 ease-in-out">
+                    <svg xmlns="http://www.w3.org/2000/svg" 
+                         class="h-6 w-6 mr-2" 
+                         fill="none" 
+                         viewBox="0 0 24 24" 
+                         stroke="currentColor"
+                         style="color: white;">
+                        <path stroke-linecap="round" 
+                              stroke-linejoin="round" 
+                              stroke-width="2" 
+                              d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                    <span class="text-white">Verify OTP</span>
+                </button>
+            </div>
+        </form>
+
+        <!-- Resend Link -->
+        <div class="mt-6 text-center">
+            <p class="text-sm text-gray-600">
+                Didn't receive the code? 
+                <a href="{% url 'resend_customer_otp' subdomain=vendor.subdomain  email=email %}" 
+                   class="font-medium text-[var(--primary)] hover:text-[var(--accent)] transition-colors duration-200">
+                    Resend OTP
+                </a>
+            </p>
+        </div>
+    </div>
 </div>
 {% endblock %}

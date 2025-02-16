@@ -356,6 +356,12 @@ class CustomerManager(BaseUserManager):
             raise ValueError("Customers must have an email address")
         if vendor is None:
             raise ValueError("Customer registration must occur on a vendor subdomain")
+        
+        # Check if customer already exists for this vendor
+        if self.filter(email=email, vendor=vendor).exists():
+            raise ValueError("You are already registered with this store")
+        
+        
         customer = self.model(
             email=self.normalize_email(email),
             phone_number=phone_number,
@@ -373,7 +379,7 @@ class CustomerManager(BaseUserManager):
 
 # Customer Model
 class Customer(AbstractBaseUser, PermissionsMixin):
-    email = models.EmailField(unique=True)
+    email = models.EmailField()
     phone_number = models.CharField(max_length=15, blank=True, null=True)
     first_name = models.CharField(max_length=30)
     last_name = models.CharField(max_length=30)
