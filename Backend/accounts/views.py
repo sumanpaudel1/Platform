@@ -754,7 +754,7 @@ from django.contrib import messages
 from django.contrib.auth import login, authenticate
 from .forms import CustomerRegistrationForm, OTPVerificationForm
 from .models import Customer, OTP
-from .utils import generate_otp, send_otp_to_email
+from .utils import generate_otp, send_otp_to_email, send_customer_otp_to_email
 from .models import Vendor
 from .models import Subdomain
 
@@ -799,7 +799,8 @@ def customer_register(request, subdomain):
                 request.session['pending_customer_email'] = customer.email
                 
                 # Send OTP email
-                if send_otp_to_email(customer.email, otp_val):
+                
+                if send_customer_otp_to_email(customer.email, otp_val, vendor):
                     messages.success(request, 
                         "Registration successful! Please check your email for verification code.")
                     return redirect('accounts:verify_customer_otp', subdomain=subdomain)
@@ -930,7 +931,6 @@ def vendor_login_required(view_func):
             # Clear invalid session and redirect
             print("No valid customer found in session")
             request.session.flush()
-            messages.error(request, "Please log in to continue.")
             return redirect(f'/{subdomain}.platform/customer/login/')
             
         except Subdomain.DoesNotExist:
