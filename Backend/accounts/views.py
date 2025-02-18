@@ -108,7 +108,7 @@ from django.shortcuts import redirect
 from django.contrib import messages
 import logging
 from .models import OTP
-from .utils import generate_otp, send_otp_to_email
+from .utils import generate_otp
 
 logger = logging.getLogger(__name__)
 
@@ -754,7 +754,7 @@ from django.contrib import messages
 from django.contrib.auth import login, authenticate
 from .forms import CustomerRegistrationForm, OTPVerificationForm
 from .models import Customer, OTP
-from .utils import generate_otp, send_otp_to_email, send_customer_otp_to_email
+from .utils import generate_otp, send_customer_otp_to_email
 from .models import Vendor
 from .models import Subdomain
 
@@ -1014,7 +1014,7 @@ def resend_customer_otp(request, subdomain, email):
         )
         
         # Send new OTP
-        if send_otp_to_email(email, new_otp):
+        if send_customer_otp_to_email(customer.email, new_otp, vendor):
             messages.success(request, "New verification code has been sent to your email.")
         else:
             messages.error(request, "Failed to send verification code. Please try again.")
@@ -1048,7 +1048,7 @@ def customer_forgot_password(request, subdomain):  # Add subdomain parameter
             OTP.objects.filter(email=email, status='active').update(status='expired')
             OTP.objects.create(email=email, otp=str(otp_val), status='active')
             
-            if send_otp_to_email(email, otp_val):
+            if send_customer_otp_to_email(customer.email, otp_val, vendor):
                 messages.success(request, "Password reset OTP has been sent to your email.")
                 request.session['pending_customer_email'] = email
                 return redirect('accounts:verify_customer_reset_otp', subdomain=subdomain, email=email)
