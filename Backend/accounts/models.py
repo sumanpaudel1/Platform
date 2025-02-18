@@ -412,3 +412,12 @@ class Customer(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.email
+    
+    class Meta:
+        unique_together = ['email', 'vendor']  # This ensures email uniqueness per vendor
+        constraints = [
+            models.UniqueConstraint(
+                fields=['email', 'vendor'], 
+                name='unique_customer_email_per_vendor'
+            )
+        ]

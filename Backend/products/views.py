@@ -7,13 +7,14 @@ from accounts.models import Subdomain
 from .models import Product, Category
 from accounts.models import Vendor,VendorSetting ,Subdomain
 from datetime import datetime
+from django.conf import settings
 
 
 
 from django.shortcuts import redirect
 from django.contrib import messages
 from functools import wraps
-from accounts.models import Vendor
+from accounts.models import Vendor, Customer
 from accounts.urls import urlpatterns
 from accounts.views import customer_login
 
@@ -28,6 +29,7 @@ from accounts.views import vendor_login_required
 
 
 
+
 @vendor_login_required
 def vendor_home(request, subdomain):
     subdomain = subdomain.replace('.platform', '')
@@ -36,10 +38,23 @@ def vendor_home(request, subdomain):
     
     customer = request.customer
     
-    print(f"Rendering home page for subdomain: {subdomain}")
-    print(f"User: {request.user}, is_authenticated: {request.user.is_authenticated}")
-    print(f"Customer direct check: {customer}")
-    print(f"Customer email: {customer.email if customer else 'No customer'}")
+    # Add debug prints
+    print("Debug Info:")
+    print(f"Session Data: {dict(request.session)}")
+    print(f"User Auth: {request.user.is_authenticated}")
+    print(f"Customer ID in session: {request.session.get('customer_id')}")
+    
+    
+    customer = None
+    if request.session.get('customer_id'):
+        try:
+            customer = Customer.objects.get(
+                id=request.session['customer_id'],
+                vendor=vendor
+            )
+            print(f"Found customer: {customer.email}")
+        except Customer.DoesNotExist:
+            print("Customer not found in database")
     
     # Get all products and new arrivals
     products = Product.objects.filter(vendor=vendor)
@@ -60,8 +75,11 @@ def vendor_home(request, subdomain):
         'year': datetime.now().year,
         'show_popup': vendor.settings.show_popup,
         'popup_delay': vendor.settings.popup_delay,
+        'debug': settings.DEBUG,
     }
     
+    print(f"Session customer_id: {request.session.get('customer_id')}")  # Debug print
+    print(f"Customer in context: {context['customer']}")  # Debug print
     print(f"Context customer before render: {context['customer']}")  # Debug print
     return render(request, 'products/vendor_home.html', context)
 
@@ -125,10 +143,3 @@ def product_create(request):
 
 
 
-from django.contrib.auth import logout
-
-def customer_logout(request, subdomain):
-    """Handle customer logout"""
-    logout(request)
-    messages.success(request, "You have been successfully logged out.")
-    return redirect('customer_login', subdomain=subdomain)

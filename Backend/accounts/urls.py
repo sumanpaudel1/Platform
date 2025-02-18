@@ -1,6 +1,8 @@
 from django.urls import path
 from . import views
 
+app_name = 'accounts'
+
 
 urlpatterns = [
     
@@ -57,9 +59,13 @@ urlpatterns = [
          views.reset_customer_password,
          name='reset_customer_password'),
     
-        path('<str:subdomain>.platform/customer/resend-otp/<str:email>/',
+     path('<str:subdomain>.platform/customer/resend-otp/<str:email>/',
          views.resend_customer_otp,
          name='resend_customer_otp'),
+        
+    path('<str:subdomain>.platform/customer/logout/', 
+         views.customer_logout, 
+         name='customer_logout'),  
    
   
     

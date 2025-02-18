@@ -102,7 +102,7 @@
         <!-- Login Link -->
         <p class="mt-6 text-center text-sm text-gray-600">
             Already have an account? 
-            <a href="{% url 'customer_login' subdomain=vendor.subdomain %}" 
+            <a href="{% url 'accounts:customer_login' subdomain=vendor.subdomain %}" 
                class="font-medium text-[var(--primary)] hover:text-[var(--accent)] transition-colors duration-200">
                 Sign in here
             </a>

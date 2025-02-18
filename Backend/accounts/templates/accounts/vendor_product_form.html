@@ -220,7 +220,7 @@
             </div>
 
             <div class="mt-6 flex justify-end space-x-3">
-                <a href="{% url 'vendor_products' %}" class="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                <a href="{% url 'accounts:vendor_products' %}" class="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
                     Cancel
                 </a>
                 <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
@@ -327,7 +327,7 @@
         const formData = new FormData(form);
         
         try {
-            const response = await fetch("{% url 'add_category' %}", {
+            const response = await fetch("{% url 'accounts:add_category' %}", {
                 method: 'POST',
                 body: formData,
                 headers: {'X-CSRFToken': '{{ csrf_token }}'}
@@ -370,7 +370,7 @@
         const formData = new FormData(form);
         
         try {
-            const response = await fetch("{% url 'add_color_variant' %}", {
+            const response = await fetch("{% url 'accounts:add_color_variant' %}", {
                 method: 'POST',
                 body: formData,
                 headers: {'X-CSRFToken': '{{ csrf_token }}'}
@@ -409,7 +409,7 @@
         const formData = new FormData(form);
         
         try {
-            const response = await fetch("{% url 'add_size_variant' %}", {
+            const response = await fetch("{% url 'accounts:add_size_variant' %}", {
                 method: 'POST',
                 body: formData,
                 headers: {'X-CSRFToken': '{{ csrf_token }}'}
@@ -543,7 +543,7 @@ document.getElementById('productForm').addEventListener('submit', function(e) {
     .then(html => {
         if (html.includes('success')) {
             showNotification('success', 'Product saved successfully');
-            window.location.href = "{% url 'vendor_products' %}";
+            window.location.href = "{% url 'accounts:vendor_products' %}";
         } else {
             showNotification('error', 'Error saving product');
         }
