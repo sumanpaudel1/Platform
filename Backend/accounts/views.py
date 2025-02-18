@@ -93,7 +93,7 @@ def login_vendor(request):
 
 from django.contrib.auth.decorators import login_required
 
-@login_required(login_url='login')
+@login_required(login_url='accounts:login')
 def home(request):
     return render(request, 'accounts/home.html')
 
@@ -802,7 +802,7 @@ def customer_register(request, subdomain):
                 if send_otp_to_email(customer.email, otp_val):
                     messages.success(request, 
                         "Registration successful! Please check your email for verification code.")
-                    return redirect('verify_customer_otp', subdomain=subdomain)
+                    return redirect('accounts:verify_customer_otp', subdomain=subdomain)
                 else:
                     messages.error(request, 
                         "Failed to send verification code. Please try again or contact support.")
@@ -872,7 +872,7 @@ def verify_customer_otp(request, subdomain):
             except Exception as e:
                 messages.error(request, f"An error occurred: {str(e)}")
             
-            return redirect('verify_customer_otp', subdomain=subdomain)
+            return redirect('accounts:verify_customer_otp', subdomain=subdomain)
     else:
         form = OTPVerificationForm()
 
@@ -902,21 +902,14 @@ def vendor_login_required(view_func):
     def _wrapped_view(request, *args, **kwargs):
         subdomain = kwargs.get('subdomain', '').replace('.platform', '')
         
-        print(f"Checking auth for subdomain: {subdomain}")
-        print(f"User authenticated: {request.user.is_authenticated}")
-        print(f"Session data: {dict(request.session)}")
-        
-        # Check session authentication first
-        if not request.session.get('is_authenticated'):
-            messages.error(request, "Please log in to continue.")
-            return redirect(f'/{subdomain}.platform/customer/login/')
-        
         try:
             subdomain_obj = Subdomain.objects.get(subdomain=subdomain)
             vendor = subdomain_obj.vendor
             
-            # Get customer from session
+            # Check session data first
             customer_id = request.session.get('customer_id')
+            print(f"Checking session data - customer_id: {customer_id}")
+            
             if customer_id:
                 try:
                     customer = Customer.objects.get(
@@ -924,14 +917,20 @@ def vendor_login_required(view_func):
                         vendor=vendor,
                         is_active=True
                     )
+                    # Add customer to request
                     request.customer = customer
+                    # Ensure user is authenticated
+                    if not request.user.is_authenticated:
+                        login(request, customer, backend='django.contrib.auth.backends.ModelBackend')
                     return view_func(request, *args, **kwargs)
                 except Customer.DoesNotExist:
+                    print(f"Customer with ID {customer_id} not found")
                     pass
             
-            # Clear invalid session
+            # Clear invalid session and redirect
+            print("No valid customer found in session")
             request.session.flush()
-            messages.error(request, "Please log in again.")
+            messages.error(request, "Please log in to continue.")
             return redirect(f'/{subdomain}.platform/customer/login/')
             
         except Subdomain.DoesNotExist:
@@ -995,8 +994,11 @@ def resend_customer_otp(request, subdomain, email):
     vendor = subdomain_obj.vendor
     
     try:
-        # Verify customer exists for this vendor
-        customer = get_object_or_404(Customer, email=email, vendor=vendor)
+        # Get the most recently registered customer using date_joined instead of created_at
+        customer = Customer.objects.filter(
+            email=email, 
+            vendor=vendor
+        ).latest('date_joined')  # Changed from created_at to date_joined
         
         # Generate new OTP
         new_otp = generate_otp()
@@ -1019,14 +1021,16 @@ def resend_customer_otp(request, subdomain, email):
             
     except Customer.DoesNotExist:
         messages.error(request, "No account found with this email.")
+    except Exception as e:
+        messages.error(request, f"An error occurred: {str(e)}")
     
+    # Determine where to redirect based on the context
     if 'is_password_reset' in request.GET:
-        return redirect('verify_customer_reset_otp', subdomain=subdomain, email=email)
-    return redirect('verify_customer_otp', subdomain=subdomain)
+        return redirect('accounts:verify_customer_reset_otp', subdomain=subdomain, email=email)
+    return redirect('accounts:verify_customer_otp', subdomain=subdomain)
 
 
-
-
+ 
 
 def customer_forgot_password(request, subdomain):  # Add subdomain parameter
     sub = subdomain.replace('.platform', '')
@@ -1047,7 +1051,7 @@ def customer_forgot_password(request, subdomain):  # Add subdomain parameter
             if send_otp_to_email(email, otp_val):
                 messages.success(request, "Password reset OTP has been sent to your email.")
                 request.session['pending_customer_email'] = email
-                return redirect('verify_customer_reset_otp', subdomain=subdomain, email=email)
+                return redirect('accounts:verify_customer_reset_otp', subdomain=subdomain, email=email)
             else:
                 messages.error(request, "Failed to send OTP. Please try again.")
                 
@@ -1074,19 +1078,35 @@ def verify_customer_reset_otp(request, subdomain, email):
         if form.is_valid():
             otp_input = form.cleaned_data['otp']
             try:
+                # First verify OTP
                 otp_obj = OTP.objects.get(email=email, status='active')
+                
+                # Check if customer exists for this vendor
+                customer = Customer.objects.get(email=email, vendor=vendor)
+                
                 if otp_obj.is_valid(otp_input):
                     otp_obj.mark_as_used()
                     messages.success(request, "OTP verified successfully")
-                    # Add debug print
-                    print(f"Redirecting to reset password with subdomain: {subdomain}, email: {email}")
-                    return redirect('reset_customer_password', subdomain=subdomain, email=email)
+                    
+                    # Store email in session for password reset
+                    request.session['reset_email'] = email
+                    
+                    # Debug prints
+                    print(f"OTP verified for email: {email}")
+                    print(f"Redirecting to reset password page")
+                    
+                    return redirect('accounts:reset_customer_password', 
+                                  subdomain=subdomain, 
+                                  email=email)
                 else:
                     messages.error(request, "Invalid or expired OTP")
             except OTP.DoesNotExist:
                 messages.error(request, "No active OTP found")
-        else:
-            messages.error(request, "Invalid OTP format")
+            except Customer.DoesNotExist:
+                messages.error(request, "No account found with this email")
+            except Exception as e:
+                print(f"Error in verify_customer_reset_otp: {str(e)}")
+                messages.error(request, "An error occurred during verification")
     
     return render(request, 'accounts/customer_otp_verification.html', {
         'form': OTPVerificationForm(),
@@ -1094,7 +1114,6 @@ def verify_customer_reset_otp(request, subdomain, email):
         'is_password_reset': True,
         'vendor': vendor
     })
-    
 
 def reset_customer_password(request, subdomain, email):  # Add subdomain parameter
     # Get vendor from subdomain
@@ -1117,12 +1136,24 @@ def reset_customer_password(request, subdomain, email):  # Add subdomain paramet
             customer.set_password(password1)
             customer.save()
             messages.success(request, "Password reset successfully")
-            return redirect('customer_login', subdomain=subdomain)
+            return redirect('accounts:customer_login', subdomain=subdomain)
         except Customer.DoesNotExist:
             messages.error(request, "Customer not found")
-            return redirect('customer_login', subdomain=subdomain)
+            return redirect('accounts:customer_login', subdomain=subdomain)
 
     return render(request, 'accounts/customer_reset_password.html', {
         'email': email,
         'vendor': vendor
     })
+
+
+
+from django.contrib.auth import logout
+from django.shortcuts import redirect
+from django.contrib import messages
+
+def customer_logout(request, subdomain):
+    logout(request)
+    request.session.flush()
+    messages.success(request, "Successfully logged out")
+    return redirect(f'/{subdomain}.platform/customer/login/')
