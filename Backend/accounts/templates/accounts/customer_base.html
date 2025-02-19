@@ -1,0 +1,97 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Customer Dashboard{% endblock %} - {{ vendor.settings.store_name }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="bg-gray-50">
+    <!-- Sidebar -->
+    <div class="min-h-screen flex">
+        <div class="hidden md:flex md:flex-shrink-0">
+            <div class="flex flex-col w-64 border-r border-gray-200 bg-white">
+                <div class="flex flex-col flex-grow pt-5 pb-4 overflow-y-auto">
+
+                    <div class="px-4 mb-4">
+                        <a href="/{{ vendor.subdomain }}.platform/home" 
+                        class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                         <svg class="mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                         </svg>
+                         Back to Shop
+                     </a>
+                    </div>
+
+
+                    <div class="flex items-center flex-shrink-0 px-4">
+                        <span class="text-xl font-semibold text-gray-800">{{ vendor.settings.store_name }}</span>
+                    </div>
+                    <nav class="mt-5 flex-1 px-2 space-y-1">
+                        <a href="{% url 'accounts:customer_dashboard' subdomain=vendor.subdomain %}" 
+                           class="group flex items-center px-2 py-2 text-sm font-medium rounded-md {% if request.resolver_match.url_name == 'customer_dashboard' %}bg-gray-100 text-gray-900{% else %}text-gray-600 hover:bg-gray-50 hover:text-gray-900{% endif %}">
+                            <i class="fas fa-home mr-3 text-gray-400"></i>
+                            Dashboard
+                        </a>
+
+                        <a href="{% url 'accounts:customer_profile' subdomain=vendor.subdomain %}"
+                           class="group flex items-center px-2 py-2 text-sm font-medium rounded-md {% if request.resolver_match.url_name == 'customer_profile' %}bg-gray-100 text-gray-900{% else %}text-gray-600 hover:bg-gray-50 hover:text-gray-900{% endif %}">
+                            <i class="fas fa-user mr-3 text-gray-400"></i>
+                            Profile
+                        </a>
+
+                        <a href="{% url 'products:cart' subdomain=vendor.subdomain %}" 
+                        class="group flex items-center px-2 py-2 text-sm font-medium rounded-md {% if request.resolver_match.url_name == 'cart' %}bg-gray-100 text-gray-900{% else %}text-gray-600 hover:bg-gray-50 hover:text-gray-900{% endif %}">
+                         <i class="fas fa-shopping-cart mr-3 text-gray-400"></i>
+                         Cart
+                         {% if cart_count > 0 %}
+                         <span class="ml-auto bg-[var(--primary)] text-white text-xs px-2 py-1 rounded-full">
+                             {{ cart_count }}
+                         </span>
+                         {% endif %}
+                        </a>
+                        <a href="#" class="group flex items-center px-2 py-2 text-sm font-medium text-gray-600 rounded-md hover:bg-gray-50 hover:text-gray-900">
+                            <i class="fas fa-shopping-bag mr-3 text-gray-400"></i>
+                            Orders
+                        </a>
+                        <a href="#" class="group flex items-center px-2 py-2 text-sm font-medium text-gray-600 rounded-md hover:bg-gray-50 hover:text-gray-900">
+                            <i class="fas fa-heart mr-3 text-gray-400"></i>
+                            Wishlist
+                        </a>
+                    </nav>
+                </div>
+                <div class="flex-shrink-0 flex border-t border-gray-200 p-4">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <div class="h-8 w-8 rounded-full bg-gray-300 flex items-center justify-center">
+                                <i class="fas fa-user text-gray-500"></i>
+                            </div>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm font-medium text-gray-700">{{ request.user.email }}</p>
+                            <a href="{% url 'accounts:customer_logout' subdomain=vendor.subdomain %}" 
+                               class="text-xs font-medium text-gray-500 hover:text-gray-700">Logout</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex flex-col w-0 flex-1 overflow-hidden">
+            <main class="flex-1 relative z-0 overflow-y-auto focus:outline-none">
+                <div class="py-6">
+                    <div class="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
+                        {% block content %}{% endblock %}
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

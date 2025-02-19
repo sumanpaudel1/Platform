@@ -1,0 +1,63 @@
+{% extends 'accounts/customer_base.html' %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Welcome Section -->
+    <div class="bg-white shadow rounded-lg p-6">
+        <h2 class="text-2xl font-semibold text-gray-800">Welcome, {{ customer.first_name|default:customer.email }}</h2>
+        <p class="mt-1 text-gray-600">Here's what's happening with your account.</p>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Orders -->
+        <div class="bg-white shadow rounded-lg p-6">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-indigo-100">
+                    <i class="fas fa-shopping-bag text-indigo-600"></i>
+                </div>
+                <div class="ml-4">
+                    <h3 class="text-lg font-semibold text-gray-800">Orders</h3>
+                    <p class="text-gray-600">0 orders placed</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Wishlist -->
+        <div class="bg-white shadow rounded-lg p-6">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-pink-100">
+                    <i class="fas fa-heart text-pink-600"></i>
+                </div>
+                <div class="ml-4">
+                    <h3 class="text-lg font-semibold text-gray-800">Wishlist</h3>
+                    <p class="text-gray-600">0 items saved</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Account Status -->
+        <div class="bg-white shadow rounded-lg p-6">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-green-100">
+                    <i class="fas fa-user-check text-green-600"></i>
+                </div>
+                <div class="ml-4">
+                    <h3 class="text-lg font-semibold text-gray-800">Account Status</h3>
+                    <p class="text-gray-600">Active</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="bg-white shadow rounded-lg p-6">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">Recent Activity</h3>
+        <div class="text-gray-600 text-center py-4">
+            <i class="fas fa-inbox text-4xl text-gray-400 mb-2"></i>
+            <p>No recent activity to show</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

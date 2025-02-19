@@ -445,6 +445,95 @@
 
 
     
+    // Update Add to Cart Button State
+
+    // Add this to your existing script section
+
+    function updateQuantity(itemId, action) {
+        fetch('{% url "products:update_cart" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                item_id: itemId,
+                action: action
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                const itemElement = document.querySelector(`[data-item="${itemId}"]`);
+                
+                if (data.quantity === 0) {
+                    // Remove item if quantity is 0
+                    itemElement.remove();
+                    if (data.cart_count === 0) {
+                        location.reload();
+                    }
+                } else {
+                    // Update quantity display
+                    const quantityEl = itemElement.querySelector('.quantity-value');
+                    quantityEl.textContent = data.quantity;
+                    
+                    // Update item price
+                    const priceEl = itemElement.querySelector('.item-price');
+                    priceEl.textContent = `$${data.item_total.toFixed(2)}`;
+                }
+                
+                // Update cart count and totals
+                updateCartCount(data.cart_count);
+                document.querySelector('.subtotal').textContent = `$${data.subtotal.toFixed(2)}`;
+                document.querySelector('.total').textContent = `$${data.total.toFixed(2)}`;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    }
+    
+    document.querySelectorAll('.update-quantity').forEach(button => {
+        button.addEventListener('click', () => {
+            const itemId = button.closest('[data-item]').dataset.item;
+            const action = button.dataset.action;
+            updateQuantity(itemId, action);
+        });
+    });
+    
+
+document.getElementById('addToCartBtn').addEventListener('click', function() {
+    const quantity = parseInt(document.getElementById('quantity').value);
+    const colorId = selectedColor ? document.querySelector('.color-swatch.selected').dataset.colorId : null;
+    const sizeId = selectedSize ? document.querySelector('.size-option.selected').dataset.sizeId : null;
+    
+    fetch('{% url "products:add_to_cart" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            product_id: {{ product.id }},
+            quantity: quantity,
+            color_id: colorId,
+            size_id: sizeId
+        })
+    })
+    .then(response => {
+        if (response.status === 401) {
+            window.location.href = "{% url 'accounts:customer_login' subdomain=vendor.subdomain %}";
+            return;
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.status === 'success') {
+            updateCartCount(data.cart_count);
+            showNotification('Added to cart successfully');
+        }
+    });
+});
 </script>
     
 {% endblock %}

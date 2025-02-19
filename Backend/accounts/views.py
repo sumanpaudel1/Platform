@@ -76,7 +76,7 @@ def login_vendor(request):
                 if vendor is not None:
                     if vendor.is_verified:
                         login(request, vendor)
-                        return redirect('home')
+                        return redirect('accounts:home')
                     else:
                         return render(request, 'accounts/login.html', 
                                     {'form': form, 'error': "Please verify your email first"})
@@ -102,7 +102,7 @@ from django.shortcuts import redirect
 
 def logout_vendor(request):
     logout(request)
-    return redirect('login')
+    return redirect('accounts:login')
 
 from django.shortcuts import redirect
 from django.contrib import messages
@@ -200,7 +200,7 @@ def reset_password(request, email):
             vendor.set_password(password1)
             vendor.save()
             messages.success(request, "Password reset successfully")
-            return redirect('login')
+            return redirect('accounts:login')
             
         except Vendor.DoesNotExist:
             messages.error(request, "Vendor not found")
@@ -830,7 +830,7 @@ def verify_customer_otp(request, subdomain):
     pending_email = request.session.get('pending_customer_email')
     if not pending_email:
         messages.error(request, "No pending verification found.")
-        return redirect('customer_register', subdomain=subdomain)
+        return redirect('accounts:customer_register', subdomain=subdomain)
 
     if request.method == "POST":
         form = OTPVerificationForm(request.POST)
@@ -1157,3 +1157,61 @@ def customer_logout(request, subdomain):
     request.session.flush()
     messages.success(request, "Successfully logged out")
     return redirect(f'/{subdomain}.platform/customer/login/')
+
+
+
+
+
+
+@vendor_login_required
+def customer_profile(request, subdomain):
+    subdomain = subdomain.replace('.platform', '')
+    subdomain_obj = get_object_or_404(Subdomain, subdomain=subdomain)
+    vendor = subdomain_obj.vendor
+    
+    try:
+        customer = Customer.objects.get(id=request.session.get('customer_id'), vendor=vendor)
+    except Customer.DoesNotExist:
+        messages.error(request, "Please login to access your profile")
+        return redirect('accounts:customer_login', subdomain=subdomain)
+    
+    if request.method == "POST":
+        # Update profile
+        customer.first_name = request.POST.get('first_name', customer.first_name)
+        customer.last_name = request.POST.get('last_name', customer.last_name)
+        customer.phone_number = request.POST.get('phone_number', customer.phone_number)
+        
+        if 'profile_picture' in request.FILES:
+            customer.profile_picture = request.FILES['profile_picture']
+        
+        customer.save()
+        messages.success(request, "Profile updated successfully")
+        return redirect('accounts:customer_profile', subdomain=subdomain)
+    
+    return render(request, 'accounts/customer_profile.html', {
+        'customer': customer,
+        'vendor': vendor
+    })
+    
+    
+
+
+@vendor_login_required
+def customer_dashboard(request, subdomain):
+    subdomain = subdomain.replace('.platform', '')
+    subdomain_obj = get_object_or_404(Subdomain, subdomain=subdomain)
+    vendor = subdomain_obj.vendor
+    
+    try:
+        customer = Customer.objects.get(id=request.session.get('customer_id'), vendor=vendor)
+    except Customer.DoesNotExist:
+        messages.error(request, "Please login to access your dashboard")
+        return redirect('accounts:customer_login', subdomain=subdomain)
+    
+    context = {
+        'customer': customer,
+        'vendor': vendor,
+        # Add other context data for dashboard
+    }
+    
+    return render(request, 'accounts/customer_dashboard.html', context)

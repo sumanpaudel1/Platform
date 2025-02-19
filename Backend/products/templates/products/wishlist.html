@@ -1,0 +1,86 @@
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold mb-8 text-[var(--primary)]">My Wishlist</h1>
+
+    {% if wishlist_items %}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {% for item in wishlist_items %}
+        <div class="bg-white rounded-lg shadow-md overflow-hidden">
+            <div class="relative">
+                <img src="{{ item.product.product_images.first.image.url }}" 
+                     alt="{{ item.product.name }}"
+                     class="w-full h-48 object-cover">
+                <button class="absolute top-2 right-2 text-red-500 hover:text-red-600"
+                        onclick="removeFromWishlist({{ item.product.id }})">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="p-4">
+                <h3 class="font-semibold text-lg mb-2">{{ item.product.name }}</h3>
+                <div class="flex justify-between items-center mb-4">
+                    <span class="text-[var(--primary)] font-bold">${{ item.product.price }}</span>
+                    {% if item.product.cut_price %}
+                    <span class="text-sm text-gray-500 line-through">${{ item.product.cut_price }}</span>
+                    {% endif %}
+                </div>
+                
+                <div class="space-y-2">
+                    <a href="{% url 'products:product_detail' subdomain=vendor.subdomain slug=item.product.slug %}" 
+                       class="block text-center py-2 px-4 border border-[var(--primary)] text-[var(--primary)] 
+                              rounded hover:bg-[var(--primary)] hover:text-white transition duration-300">
+                        View Details
+                    </a>
+                    <button onclick="addToCart({{ item.product.id }})"
+                            class="w-full bg-[var(--accent)] text-white py-2 px-4 rounded 
+                                   hover:bg-opacity-90 transition duration-300">
+                        Add to Cart
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-16">
+        <div class="text-gray-400 mb-4">
+            <i class="far fa-heart text-6xl"></i>
+        </div>
+        <h2 class="text-2xl font-semibold mb-4">Your wishlist is empty</h2>
+        <p class="text-gray-600 mb-8">Save items you like and they will appear here</p>
+        <a href="{% url 'products:vendor_home' subdomain=vendor.subdomain %}" 
+           class="inline-block bg-[var(--accent)] text-white px-8 py-3 rounded-lg
+                  hover:bg-opacity-90 transition duration-300">
+            Continue Shopping
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function removeFromWishlist(productId) {
+    window.location.href = `{% url 'products:remove_from_wishlist' 0 %}`.replace('0', productId);
+}
+
+function addToCart(productId) {
+    fetch('{% url "products:add_to_cart" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({
+            product_id: productId,
+            quantity: 1
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            document.querySelector('.cart-count').textContent = data.cart_count;
+            // Optional: Show success message
+        }
+    });
+}
+</script>
+{% endblock %}

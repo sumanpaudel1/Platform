@@ -83,3 +83,73 @@ class ProductImage(models.Model):
     
 
 
+
+
+class Cart(models.Model):
+    customer = models.ForeignKey('accounts.Customer', on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    vendor = models.ForeignKey('accounts.Vendor', on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField(default=1)
+    color = models.ForeignKey(ColorVariant, on_delete=models.SET_NULL, null=True, blank=True)
+    size = models.ForeignKey(SizeVariant, on_delete=models.SET_NULL, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ['customer', 'product', 'color', 'size']
+
+    @property
+    def total_price(self):
+        base_price = self.product.price * self.quantity
+        # Add any additional calculations (e.g., size/color variants)
+        return base_price
+
+class Wishlist(models.Model):
+    customer = models.ForeignKey('accounts.Customer', on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    vendor = models.ForeignKey('accounts.Vendor', on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ['customer', 'product']
+        
+        
+
+class Order(models.Model):
+    customer = models.ForeignKey('accounts.Customer', on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    vendor = models.ForeignKey('accounts.Vendor', on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField(default=1)
+    color = models.ForeignKey(ColorVariant, on_delete=models.SET_NULL, null=True, blank=True)
+    size = models.ForeignKey(SizeVariant, on_delete=models.SET_NULL, null=True, blank=True)
+    total_price = models.DecimalField(max_digits=10, decimal_places=2)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ['customer', 'product', 'color', 'size']
+
+    def __str__(self):
+        return f"{self.customer} - {self.product}"
+    
+    @property
+    def total_price(self):
+        return self.quantity * self.product.price
+    
+
+# class Review(models.Model):
+#     customer = models.ForeignKey('accounts.Customer', on_delete=models.CASCADE)
+#     product = models.ForeignKey(Product, on_delete=models.CASCADE)
+#     vendor = models.ForeignKey('accounts.Vendor', on_delete=models.CASCADE)
+#     rating = models.PositiveIntegerField()
+#     review = models.TextField()
+#     created_at = models.DateTimeField(auto_now_add=True)
+#     updated_at = models.DateTimeField(auto_now=True)
+
+#     class Meta:
+#         unique_together = ['customer', 'product']
+
+#     def __str__(self):
+#         return f"{self.customer} - {self.product}"
+    
+    
