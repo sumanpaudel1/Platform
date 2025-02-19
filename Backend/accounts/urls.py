@@ -47,15 +47,15 @@ urlpatterns = [
     path('<str:subdomain>.platform/customer/login/', views.customer_login, name='customer_login'),
     # path('<str:subdomain>.platform/customer/forgot-password/', views.customer_forgot_password, name='customer_forgot_password'),
    
-    path('<str:subdomain>.platform/customer/forgot-password/', 
+     path('<str:subdomain>.platform/customer/forgot-password/', 
          views.customer_forgot_password, 
          name='customer_forgot_password'),
     
-    path('<str:subdomain>.platform/customer/verify-reset-otp/<str:email>/',
+     path('<str:subdomain>.platform/customer/verify-reset-otp/<str:email>/',
          views.verify_customer_reset_otp,
          name='verify_customer_reset_otp'),
     
-    path('<str:subdomain>.platform/customer/reset-password/<str:email>/',
+     path('<str:subdomain>.platform/customer/reset-password/<str:email>/',
          views.reset_customer_password,
          name='reset_customer_password'),
     
@@ -63,11 +63,18 @@ urlpatterns = [
          views.resend_customer_otp,
          name='resend_customer_otp'),
         
-    path('<str:subdomain>.platform/customer/logout/', 
+     path('<str:subdomain>.platform/customer/logout/', 
          views.customer_logout, 
          name='customer_logout'),  
    
-  
+     path('<str:subdomain>.platform/customer/customer-profile/', 
+          views.customer_profile, 
+          name='customer_profile'),
+     
+     
+     path('<str:subdomain>.platform/customer/dashboard/', 
+         views.customer_dashboard, 
+         name='customer_dashboard'),
     
 ]
 

@@ -78,6 +78,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'products.context_processors.cart_context',
             ],
         },
     },
@@ -207,10 +208,10 @@ DEBUG = True
 
 # Login URLs
 ACCOUNT_AUTHENTICATED_LOGIN_REDIRECTS = True
-LOGIN_URL = 'login'
-LOGIN_REDIRECT_URL = 'home'
-LOGOUT_URL = 'logout'
-LOGOUT_REDIRECT_URL = 'login'
+LOGIN_URL = 'accounts:login'
+LOGIN_REDIRECT_URL = 'accounts:home'
+LOGOUT_URL = 'accounts:logout'
+LOGOUT_REDIRECT_URL = 'accounts:login'
 
 
 
@@ -244,5 +245,5 @@ SOCIALACCOUNT_PROVIDERS = {
 
 
 SOCIALACCOUNT_LOGIN_ON_GET = True
-LOGIN_REDIRECT_URL = 'home'
-LOGOUT_REDIRECT_URL = 'login'
+LOGIN_REDIRECT_URL = 'accounts:home'
+LOGOUT_REDIRECT_URL = 'accounts:login'

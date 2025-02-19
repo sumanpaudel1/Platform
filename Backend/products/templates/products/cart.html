@@ -1,0 +1,295 @@
+{% extends 'accounts/customer_base.html' %}
+{% block title %}Shopping Cart{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="flex items-center justify-between mb-8">
+        <h1 class="text-2xl font-bold text-gray-900">Shopping Cart</h1>
+        <div class="flex items-center space-x-4">
+            <a href="/{{ vendor.subdomain }}.platform/home" 
+               class="text-sm text-[var(--primary)] hover:text-[var(--accent)]">
+                <i class="fas fa-arrow-left mr-2"></i>
+                Continue Shopping
+            </a>
+        </div>
+    </div>
+
+    {% if cart_items %}
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Cart Items -->
+        <div class="lg:col-span-2">
+            <div class="space-y-4">
+                {% for item in cart_items %}
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden" 
+                     data-item="{{ item.id }}">
+                    <div class="p-6">
+                        <div class="flex items-center space-x-6">
+                            <!-- Product Image -->
+                            <div class="w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden">
+                                {% if item.product.product_images.first %}
+                                <img src="{{ item.product.product_images.first.image.url }}" 
+                                     alt="{{ item.product.name }}"
+                                     class="w-full h-full object-cover">
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Product Details -->
+                            <div class="flex-1 min-w-0">
+                                <h3 class="text-lg font-medium text-gray-900 truncate">
+                                    {{ item.product.name }}
+                                </h3>
+                                {% if item.color or item.size %}
+                                <div class="mt-1 text-sm text-gray-500 space-x-4">
+                                    {% if item.color %}
+                                    <span>Color: {{ item.color.name }}</span>
+                                    {% endif %}
+                                    {% if item.size %}
+                                    <span>Size: {{ item.size.name }}</span>
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+                                
+                                <!-- Price and Controls -->
+                                <div class="mt-4 flex items-center justify-between">
+                                    <div class="flex items-center space-x-4">
+                                        <!-- Quantity Controls -->
+                                        <div class="flex items-center border border-gray-200 rounded-lg">
+                                            <button class="px-3 py-1 hover:bg-gray-50 update-quantity" 
+                                                    data-action="decrease">
+                                                <i class="fas fa-minus text-gray-500"></i>
+                                            </button>
+                                            <span class="px-4 py-1 border-x border-gray-200 quantity-display">
+                                                {{ item.quantity }}
+                                            </span>
+                                            <button class="px-3 py-1 hover:bg-gray-50 update-quantity" 
+                                                    data-action="increase">
+                                                <i class="fas fa-plus text-gray-500"></i>
+                                            </button>
+                                        </div>
+                                        
+                                        <!-- Price -->
+                                        <div class="text-right">
+                                            <p class="text-lg font-semibold text-[var(--primary)] item-price">
+                                                ${{ item.total_price }}
+                                            </p>
+                                            {% if item.product.cut_price %}
+                                            <p class="text-sm text-gray-500 line-through">
+                                                ${{ item.product.cut_price }}
+                                            </p>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Remove Button -->
+                                    <button onclick="removeFromCart({{ item.id }})"
+                                            class="text-gray-400 hover:text-red-500 transition-colors">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Order Summary -->
+<!-- Order Summary -->
+<div class="lg:col-span-1">
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 sticky top-8">
+        <div class="p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-6">Order Summary</h2>
+            
+            <div class="space-y-4">
+                <!-- Subtotal -->
+                <div class="flex justify-between text-base text-gray-500">
+                    <span>Subtotal</span>
+                    <span class="subtotal-display font-medium">${{ subtotal }}</span>
+                </div>
+                
+                <!-- Shipping -->
+                <div class="flex justify-between text-base text-gray-500">
+                    <span>Shipping</span>
+                    <span class="font-medium">Free</span>
+                </div>
+                
+                <!-- Discount (if applicable) -->
+                {% if discount %}
+                <div class="flex justify-between text-base text-green-600">
+                    <span>Discount</span>
+                    <span class="font-medium">-${{ discount }}</span>
+                </div>
+                {% endif %}
+                
+                <!-- Divider -->
+                <div class="border-t border-gray-200 my-4"></div>
+                
+                <!-- Total -->
+                <div class="flex justify-between text-lg">
+                    <span class="font-semibold text-gray-900">Total</span>
+                    <span class="total-display font-bold text-[var(--primary)]">${{ total }}</span>
+                </div>
+                
+                <!-- Additional Info -->
+                <p class="text-xs text-gray-500 mt-2">
+                    Taxes included if applicable
+                </p>
+            </div>
+            
+            <!-- Checkout Button -->
+            <button class="w-full mt-6 bg-[var(--primary)] text-black py-3 px-4  shadow-sm  border 
+                         rounded-lg font-medium hover:bg-opacity-90 
+                         transition-colors duration-200 flex items-center justify-center">
+                <span>Proceed to Checkout</span>
+                <i class="fas fa-arrow-right ml-2"></i>
+            </button>
+            
+            <!-- Payment Methods -->
+            {% comment %} <div class="mt-4 flex items-center justify-center space-x-2 text-gray-400">
+                <i class="fab fa-cc-visa text-xl"></i>
+                <i class="fab fa-cc-mastercard text-xl"></i>
+                <i class="fab fa-cc-amex text-xl"></i>
+                <i class="fab fa-cc-paypal text-xl"></i>
+            </div> {% endcomment %}
+        </div>
+    </div>
+</div>
+    </div>
+    {% else %}
+    <div class="text-center py-16">
+        <div class="text-gray-400 mb-4">
+            <i class="fas fa-shopping-cart text-6xl"></i>
+        </div>
+        <h2 class="text-2xl font-semibold text-gray-900 mb-4">Your cart is empty</h2>
+        <p class="text-gray-600 mb-8">Add items to your cart and they will appear here</p>
+        <a href="/{{ vendor.subdomain }}.platform/home" 
+           class="inline-block bg-[var(--primary)] text-white px-8 py-3 
+                  rounded-lg hover:bg-opacity-90 transition-colors">
+            Start Shopping
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    
+    function updateCartCount(count) {
+        const cartCount = document.querySelector('.cart-count');
+        if (cartCount) {
+            cartCount.textContent = count;
+            cartCount.classList.toggle('hidden', count === 0);
+        }
+    }
+    
+    function updateQuantity(itemId, action) {
+        fetch('{% url "products:update_cart" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                item_id: itemId,
+                action: action
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                const cartItem = document.querySelector(`[data-item="${itemId}"]`);
+                
+                if (data.quantity === 0) {
+                    cartItem.remove();
+                    if (data.cart_count === 0) {
+                        location.reload();
+                    }
+                } else {
+                    // Update quantity
+                    const quantityDisplay = cartItem.querySelector('.quantity-display');
+                    quantityDisplay.textContent = data.quantity;
+                    
+                    // Update item price
+                    const itemPrice = cartItem.querySelector('.item-price');
+                    itemPrice.textContent = `$${data.item_total.toFixed(2)}`;
+                }
+                
+                // Update cart count and totals
+                updateCartCount(data.cart_count);
+                document.querySelector('.subtotal-display').textContent = `$${data.subtotal.toFixed(2)}`;
+                document.querySelector('.total-display').textContent = `$${data.total.toFixed(2)}`;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    }
+    
+    function removeFromCart(itemId) {
+        if (!confirm('Remove this item from cart?')) return;
+        
+        fetch(`/api/cart/remove/${itemId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                // Remove the item from DOM
+                const itemElement = document.querySelector(`[data-item="${itemId}"]`);
+                itemElement.remove();
+                
+                // Update cart count in header
+                updateCartCount(data.cart_count);
+                
+                // Update totals with the new values from backend
+                const subtotalElement = document.querySelector('.subtotal-display');
+                const totalElement = document.querySelector('.total-display');
+                
+                if (subtotalElement && totalElement) {
+                    subtotalElement.textContent = `$${parseFloat(data.subtotal).toFixed(2)}`;
+                    totalElement.textContent = `$${parseFloat(data.total).toFixed(2)}`;
+                }
+                
+                // If cart is empty, reload the page to show empty cart message
+                if (data.cart_count === 0) {
+                    location.reload();
+                }
+            } else {
+                console.error('Failed to remove item:', data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error removing item:', error);
+        });
+    }
+    
+    // Initialize event listeners
+    document.addEventListener('DOMContentLoaded', function() {
+        // Quantity update buttons
+        document.querySelectorAll('.update-quantity').forEach(button => {
+            button.addEventListener('click', () => {
+                const itemId = button.closest('[data-item]').dataset.item;
+                const action = button.dataset.action;
+                updateQuantity(itemId, action);
+            });
+        });
+    });
+    </script>
+{% endblock %}

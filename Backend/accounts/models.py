@@ -379,6 +379,12 @@ class CustomerManager(BaseUserManager):
 
 # Customer Model
 class Customer(AbstractBaseUser, PermissionsMixin):
+    
+    profile_picture = models.ImageField(
+        upload_to='customer_profiles/',
+        null=True,
+        blank=True
+    )
     email = models.EmailField()
     phone_number = models.CharField(max_length=15, blank=True, null=True)
     first_name = models.CharField(max_length=30)
