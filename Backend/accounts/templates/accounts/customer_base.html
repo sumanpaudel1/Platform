@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     {% block extra_css %}{% endblock %}
 </head>
+
 <body class="bg-gray-50">
     <!-- Sidebar -->
     <div class="min-h-screen flex">
@@ -57,10 +58,18 @@
                             <i class="fas fa-shopping-bag mr-3 text-gray-400"></i>
                             Orders
                         </a>
-                        <a href="#" class="group flex items-center px-2 py-2 text-sm font-medium text-gray-600 rounded-md hover:bg-gray-50 hover:text-gray-900">
-                            <i class="fas fa-heart mr-3 text-gray-400"></i>
-                            Wishlist
-                        </a>
+                        <a href="{% url 'products:wishlist' subdomain=vendor.subdomain %}" 
+                        class="group flex items-center px-2 py-2 text-sm font-medium rounded-md 
+                               {% if request.resolver_match.url_name == 'wishlist' %}bg-gray-100 text-gray-900
+                               {% else %}text-gray-600 hover:bg-gray-50 hover:text-gray-900{% endif %}">
+                         <i class="fas fa-heart mr-3 text-gray-400"></i>
+                         Wishlist
+                         {% if wishlist_count > 0 %}
+                         <span class="ml-auto bg-[var(--primary)] text-white text-xs px-2 py-1 rounded-full">
+                             {{ wishlist_count }}
+                         </span>
+                         {% endif %}
+                     </a>
                     </nav>
                 </div>
                 <div class="flex-shrink-0 flex border-t border-gray-200 p-4">

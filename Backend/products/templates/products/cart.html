@@ -195,90 +195,174 @@
             cartCount.classList.toggle('hidden', count === 0);
         }
     }
+ // Add these notification functions at the start of your script section
+function showConfirmation(title, message, onConfirm) {
+    const confirmationEl = document.createElement('div');
+    confirmationEl.className = 'fixed inset-0 flex items-center justify-center z-50';
+    confirmationEl.innerHTML = `
+        <div class="fixed inset-0 bg-black bg-opacity-50"></div>
+        <div class="bg-white rounded-lg p-6 max-w-sm mx-4 relative z-10 transform transition-all">
+            <h3 class="text-lg font-semibold mb-2">${title}</h3>
+            <p class="text-gray-600 mb-6">${message}</p>
+            <div class="flex justify-end space-x-3">
+                <button class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors cancel-btn">
+                    Cancel
+                </button>
+                <button class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors confirm-btn">
+                    Remove
+                </button>
+            </div>
+        </div>
+    `;
     
-    function updateQuantity(itemId, action) {
-        fetch('{% url "products:update_cart" %}', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken')
-            },
-            body: JSON.stringify({
-                item_id: itemId,
-                action: action
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                const cartItem = document.querySelector(`[data-item="${itemId}"]`);
+    document.body.appendChild(confirmationEl);
+    
+    return new Promise((resolve) => {
+        confirmationEl.querySelector('.cancel-btn').onclick = () => {
+            confirmationEl.remove();
+            resolve(false);
+        };
+        
+        confirmationEl.querySelector('.confirm-btn').onclick = () => {
+            confirmationEl.remove();
+            resolve(true);
+        };
+    });
+}
+
+function showToast(title, message, type = 'success') {
+    const toast = document.createElement('div');
+    toast.className = `fixed top-4 right-4 bg-white rounded-lg shadow-lg p-4 z-50 transform transition-all duration-300
+                      border-l-4 ${type === 'success' ? 'border-green-500' : 'border-red-500'}`;
+    toast.innerHTML = `
+        <div class="flex items-center">
+            <div class="flex-shrink-0">
+                <i class="fas ${type === 'success' ? 'fa-check-circle text-green-500' : 'fa-exclamation-circle text-red-500'}"></i>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm font-medium text-gray-900">${title}</p>
+                <p class="text-sm text-gray-500">${message}</p>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(toast);
+    
+    // Fade in
+    setTimeout(() => {
+        toast.style.transform = 'translateY(10px)';
+    }, 100);
+    
+    // Fade out
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(-10px)';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
+// Update the removeFromCart function
+async function removeFromCart(itemId) {
+    const confirmed = await showConfirmation(
+        'Remove from Cart?', 
+        'Are you sure you want to remove this item?'
+    );
+    
+    if (!confirmed) return;
+    
+    fetch(`/api/cart/remove/${itemId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            const itemElement = document.querySelector(`[data-item="${itemId}"]`);
+            
+            // Animate removal
+            itemElement.style.transition = 'all 0.3s ease';
+            itemElement.style.transform = 'scale(0.95)';
+            itemElement.style.opacity = '0';
+            
+            setTimeout(() => {
+                itemElement.remove();
                 
-                if (data.quantity === 0) {
+                // Update totals
+                updateCartCount(data.cart_count);
+                document.querySelector('.subtotal-display').textContent = `$${parseFloat(data.subtotal).toFixed(2)}`;
+                document.querySelector('.total-display').textContent = `$${parseFloat(data.total).toFixed(2)}`;
+                
+                // Show success message
+                showToast('Success', 'Item removed from cart');
+                
+                // Reload if cart is empty
+                if (data.cart_count === 0) {
+                    location.reload();
+                }
+            }, 300);
+        } else {
+            showToast('Error', 'Failed to remove item', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('Error', 'Failed to remove item', 'error');
+    });
+}
+
+// Update the updateQuantity function to show notifications
+function updateQuantity(itemId, action) {
+    fetch('{% url "products:update_cart" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            item_id: itemId,
+            action: action
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            const cartItem = document.querySelector(`[data-item="${itemId}"]`);
+            
+            if (data.quantity === 0) {
+                // Animate removal
+                cartItem.style.transition = 'all 0.3s ease';
+                cartItem.style.transform = 'scale(0.95)';
+                cartItem.style.opacity = '0';
+                
+                setTimeout(() => {
                     cartItem.remove();
                     if (data.cart_count === 0) {
                         location.reload();
                     }
-                } else {
-                    // Update quantity
-                    const quantityDisplay = cartItem.querySelector('.quantity-display');
-                    quantityDisplay.textContent = data.quantity;
-                    
-                    // Update item price
-                    const itemPrice = cartItem.querySelector('.item-price');
-                    itemPrice.textContent = `$${data.item_total.toFixed(2)}`;
-                }
+                }, 300);
                 
-                // Update cart count and totals
-                updateCartCount(data.cart_count);
-                document.querySelector('.subtotal-display').textContent = `$${data.subtotal.toFixed(2)}`;
-                document.querySelector('.total-display').textContent = `$${data.total.toFixed(2)}`;
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-        });
-    }
-    
-    function removeFromCart(itemId) {
-        if (!confirm('Remove this item from cart?')) return;
-        
-        fetch(`/api/cart/remove/${itemId}/`, {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': getCookie('csrftoken'),
-            },
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                // Remove the item from DOM
-                const itemElement = document.querySelector(`[data-item="${itemId}"]`);
-                itemElement.remove();
-                
-                // Update cart count in header
-                updateCartCount(data.cart_count);
-                
-                // Update totals with the new values from backend
-                const subtotalElement = document.querySelector('.subtotal-display');
-                const totalElement = document.querySelector('.total-display');
-                
-                if (subtotalElement && totalElement) {
-                    subtotalElement.textContent = `$${parseFloat(data.subtotal).toFixed(2)}`;
-                    totalElement.textContent = `$${parseFloat(data.total).toFixed(2)}`;
-                }
-                
-                // If cart is empty, reload the page to show empty cart message
-                if (data.cart_count === 0) {
-                    location.reload();
-                }
+                showToast('Success', 'Item removed from cart');
             } else {
-                console.error('Failed to remove item:', data.message);
+                // Update quantity and price
+                cartItem.querySelector('.quantity-display').textContent = data.quantity;
+                cartItem.querySelector('.item-price').textContent = `$${data.item_total.toFixed(2)}`;
+                
+                showToast('Success', `Quantity updated to ${data.quantity}`);
             }
-        })
-        .catch(error => {
-            console.error('Error removing item:', error);
-        });
-    }
+            
+            // Update totals
+            updateCartCount(data.cart_count);
+            document.querySelector('.subtotal-display').textContent = `$${data.subtotal.toFixed(2)}`;
+            document.querySelector('.total-display').textContent = `$${data.total.toFixed(2)}`;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('Error', 'Failed to update quantity', 'error');
+    });
+}
     
     // Initialize event listeners
     document.addEventListener('DOMContentLoaded', function() {
