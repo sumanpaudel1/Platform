@@ -64,6 +64,13 @@ def vendor_home(request, subdomain):
     category_slug = request.GET.get('category')
     if category_slug:
         products = products.filter(category__slug=category_slug)
+        
+        
+    wishlisted_products = []
+    if request.session.get('customer_id'):
+        wishlisted_products = Wishlist.objects.filter(
+            customer_id=request.session['customer_id']
+        ).values_list('product_id', flat=True)
     
     context = {
         'vendor': vendor,
@@ -76,6 +83,7 @@ def vendor_home(request, subdomain):
         'show_popup': vendor.settings.show_popup,
         'popup_delay': vendor.settings.popup_delay,
         'debug': settings.DEBUG,
+        'wishlisted_products': list(wishlisted_products),
     }
     
     print(f"Session customer_id: {request.session.get('customer_id')}")  # Debug print
@@ -377,10 +385,9 @@ def remove_from_cart(request, item_id):
 
 
 
-from django.http import JsonResponse
-from django.shortcuts import get_object_or_404, redirect
-from .models import Wishlist
-from django.contrib import messages
+
+
+# wish list implementation
 
 def wishlist_view(request, subdomain):
     subdomain = subdomain.replace('.platform', '')
@@ -388,15 +395,17 @@ def wishlist_view(request, subdomain):
     vendor = subdomain_obj.vendor
     
     try:
-        customer = Customer.objects.get(id=request.session.get('customer_id'))
+        customer = get_object_or_404(Customer, id=request.session.get('customer_id'))
         wishlist_items = Wishlist.objects.filter(customer=customer, vendor=vendor)
         
         context = {
-            'vendor': vendor,
             'wishlist_items': wishlist_items,
+            'vendor': vendor,
             'customer': customer
         }
+        
         return render(request, 'products/wishlist.html', context)
+    
     except Customer.DoesNotExist:
         messages.error(request, "Please login to view your wishlist")
         return redirect('accounts:customer_login', subdomain=subdomain)
@@ -408,41 +417,132 @@ def add_to_wishlist(request):
             'message': 'Please login first'
         }, status=401)
 
-    if request.method == 'POST' and request.is_ajax():
-        product_id = request.POST.get('product_id')
-        customer = get_object_or_404(Customer, id=request.session['customer_id'])
-        product = get_object_or_404(Product, id=product_id)
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        product_id = data.get('product_id')
         
-        wishlist_item, created = Wishlist.objects.get_or_create(
-            customer=customer,
-            product=product,
-            vendor=product.vendor
-        )
-        
-        wishlist_count = Wishlist.objects.filter(customer=customer).count()
-        
-        return JsonResponse({
-            'status': 'success',
-            'created': created,
-            'wishlist_count': wishlist_count,
-            'message': 'Added to wishlist' if created else 'Already in wishlist'
-        })
+        try:
+            customer = get_object_or_404(Customer, id=request.session['customer_id'])
+            product = get_object_or_404(Product, id=product_id)
+            
+            wishlist_item, created = Wishlist.objects.get_or_create(
+                customer=customer,
+                product=product,
+                vendor=product.vendor
+            )
+            
+            wishlist_count = Wishlist.objects.filter(customer=customer).count()
+            
+            return JsonResponse({
+                'status': 'success',
+                'wishlist_count': wishlist_count,
+                'message': 'Added to wishlist' if created else 'Already in wishlist'
+            })
+            
+        except Exception as e:
+            return JsonResponse({
+                'status': 'error',
+                'message': str(e)
+            }, status=400)
     
     return JsonResponse({'status': 'error'}, status=400)
 
+
+
 def remove_from_wishlist(request, product_id):
     if not request.session.get('customer_id'):
-        messages.error(request, "Please login first")
-        return redirect('accounts:customer_login', subdomain=request.subdomain)
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Please login first'
+        }, status=401)
+        
+    if request.method == 'POST':
+        try:
+            customer = Customer.objects.get(id=request.session['customer_id'])
+            wishlist_item = Wishlist.objects.get(
+                customer=customer,
+                product_id=product_id
+            )
+            wishlist_item.delete()
+            
+            # Get updated wishlist count
+            wishlist_count = Wishlist.objects.filter(customer=customer).count()
+            
+            return JsonResponse({
+                'status': 'success',
+                'wishlist_count': wishlist_count,
+                'message': 'Item removed from wishlist'
+            })
+            
+        except (Customer.DoesNotExist, Wishlist.DoesNotExist) as e:
+            return JsonResponse({
+                'status': 'error',
+                'message': str(e)
+            }, status=404)
+            
+    return JsonResponse({
+        'status': 'error',
+        'message': 'Invalid request method'
+    }, status=400)
+
+
+
+from django.http import JsonResponse
+import json
+
+def toggle_wishlist(request):
+    if not request.session.get('customer_id'):
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Please login first'
+        }, status=401)
+
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        product_id = data.get('product_id')
+        
+        try:
+            customer = Customer.objects.get(id=request.session['customer_id'])
+            product = Product.objects.get(id=product_id)
+            
+            # Check if item exists in wishlist
+            wishlist_item = Wishlist.objects.filter(
+                customer=customer,
+                product=product
+            ).first()
+            
+            if wishlist_item:
+                # Remove from wishlist
+                wishlist_item.delete()
+                message = 'Removed from wishlist'
+            else:
+                # Add to wishlist
+                Wishlist.objects.create(
+                    customer=customer,
+                    product=product,
+                    vendor=product.vendor
+                )
+                message = 'Added to wishlist'
+            
+            # Get updated wishlist count
+            wishlist_count = Wishlist.objects.filter(customer=customer).count()
+            
+            return JsonResponse({
+                'status': 'success',
+                'wishlist_count': wishlist_count,
+                'message': message
+            })
+            
+        except (Customer.DoesNotExist, Product.DoesNotExist) as e:
+            return JsonResponse({
+                'status': 'error',
+                'message': str(e)
+            }, status=400)
     
-    customer = get_object_or_404(Customer, id=request.session['customer_id'])
-    Wishlist.objects.filter(
-        customer=customer,
-        product_id=product_id
-    ).delete()
-    
-    messages.success(request, "Item removed from wishlist")
-    return redirect('products:wishlist', subdomain=request.subdomain)
+    return JsonResponse({'status': 'error'}, status=400)
+
+
+
 
 
 
