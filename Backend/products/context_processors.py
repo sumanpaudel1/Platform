@@ -24,3 +24,15 @@ def cart_and_wishlist_counts(request):
         'cart_count': cart_count,
         'wishlist_count': wishlist_count
     }
+    
+
+from accounts.models import Customer
+
+def customer_context(request):
+    if request.session.get('customer_id'):
+        try:
+            customer = Customer.objects.get(id=request.session['customer_id'])
+            return {'customer': customer}
+        except Customer.DoesNotExist:
+            pass
+    return {'customer': None}

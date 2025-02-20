@@ -80,6 +80,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'products.context_processors.cart_context',
                 'products.context_processors.cart_and_wishlist_counts',
+                'products.context_processors.customer_context',
             ],
         },
     },
@@ -248,3 +249,13 @@ SOCIALACCOUNT_PROVIDERS = {
 SOCIALACCOUNT_LOGIN_ON_GET = True
 LOGIN_REDIRECT_URL = 'accounts:home'
 LOGOUT_REDIRECT_URL = 'accounts:login'
+
+
+# eSewa Settings
+ESEWA = {
+    'MERCHANT_ID': 'EPAYTEST',
+    'SECRET_KEY': '8gBm/:&EnhH.1/q',
+    'SUCCESS_URL': 'http://127.0.0.1:8080/esewa/success/',
+    'FAILURE_URL': 'http://127.0.0.1:8080/esewa/failure/',
+    'TEST_MODE': True,  # Set to False in production
+}

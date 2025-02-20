@@ -1,5 +1,6 @@
 from django.urls import path
 from .views import vendor_home, product_detail,  product_create, wishlist_view, add_to_wishlist, remove_from_wishlist, add_to_cart, update_cart, remove_from_cart, cart_view, toggle_wishlist
+from . import views
 app_name = 'products'
 
 
@@ -18,6 +19,36 @@ urlpatterns = [
     path('api/wishlist/add/', add_to_wishlist, name='add_to_wishlist'),
     path('api/wishlist/remove/<int:product_id>/', remove_from_wishlist, name='remove_from_wishlist'),
     path('api/wishlist/toggle/', toggle_wishlist, name='toggle_wishlist'),
+    
+    
+    path('<str:subdomain>.platform/checkout/', views.checkout_view, name='checkout'),
+    path('<str:subdomain>.platform/api/orders/place/', 
+         views.place_order, 
+         name='place_order'),
+    path('esewa/payment/<str:order_id>/', views.initiate_esewa_payment, name='esewa_payment'),
+    path('esewa/success/', views.esewa_payment_success, name='esewa_success'),
+    path('esewa/failure/', views.esewa_payment_failure, name='esewa_failure'),
+    path('<str:subdomain>.platform/order/confirmation/<str:order_id>/', 
+         views.order_confirmation, 
+         name='order_confirmation'),
+
+    
+    path('<str:subdomain>.platform/orders/', 
+         views.orders_list, 
+         name='orders'),
+    
+    path('<str:subdomain>.platform/order/<str:order_id>/', 
+         views.order_detail, 
+         name='order_detail'),
+    
+    path('api/orders/<str:order_id>/cancel/',
+         views.cancel_order,
+         name='cancel_order'),
+         
+    path('api/orders/<str:order_id>/delete/',
+         views.delete_order,
+         name='delete_order'),
+    
     
 
 ]

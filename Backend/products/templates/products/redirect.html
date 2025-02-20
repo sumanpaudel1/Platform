@@ -1,0 +1,26 @@
+{% block content %}
+<div class="flex items-center justify-center min-h-screen">
+    <div class="bg-white p-8 rounded-lg shadow-md max-w-md w-full">
+        <div class="text-center">
+            <h2 class="text-2xl font-semibold mb-4">Redirecting to eSewa...</h2>
+            <p class="text-gray-600 mb-6">Please do not close this window.</p>
+            
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--primary)] mx-auto"></div>
+        </div>
+
+        <form id="esewa-form" method="POST" action="{{ payment_url }}" class="hidden">
+            {% for key, value in params.items %}
+            <input type="hidden" name="{{ key }}" value="{{ value }}">
+            {% endfor %}
+        </form>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(() => {
+            document.getElementById('esewa-form').submit();
+        }, 1500);
+    });
+</script>
+{% endblock %}

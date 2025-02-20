@@ -8,6 +8,8 @@ from .models import Product, Category, Cart, Wishlist
 from accounts.models import Vendor,VendorSetting ,Subdomain
 from datetime import datetime
 from django.conf import settings
+from django.utils import timezone
+from django.core.mail import send_mail
 
 
 
@@ -168,6 +170,7 @@ def cart_count(request):
 
 from django.http import JsonResponse
 import json
+from django.template.loader import render_to_string
 
 def add_to_cart(request):
     if not request.session.get('customer_id'):
@@ -546,3 +549,542 @@ def toggle_wishlist(request):
 
 
 
+
+
+
+
+#place order and send email confirmation
+
+from .models import Order, OrderItem, DeliveryAddress, Cart
+from .utils import EsewaPayment
+from django.http import JsonResponse
+from django.urls import reverse
+from accounts.models import Customer
+import json
+import logging
+
+logger = logging.getLogger(__name__)
+
+from django.http import JsonResponse
+from django.db import transaction
+from django.shortcuts import get_object_or_404
+import json
+
+def place_order(request, subdomain):
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
+    
+    try:
+        # Get customer from session
+        customer_id = request.session.get('customer_id')
+        if not customer_id:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Please login to continue'
+            }, status=401)
+
+        # Get vendor from subdomain
+        subdomain_obj = get_object_or_404(Subdomain, subdomain=subdomain)
+        vendor = subdomain_obj.vendor
+        
+        # Parse request data
+        data = json.loads(request.body)
+        payment_method = data.get('payment_method')
+        address_id = data.get('address_id')
+        new_address = data.get('new_address')
+
+        with transaction.atomic():
+            # Handle delivery address
+            if address_id:
+                delivery_address = get_object_or_404(
+                    DeliveryAddress, 
+                    id=address_id, 
+                    customer_id=customer_id
+                )
+            else:
+                # Create new address
+                delivery_address = DeliveryAddress.objects.create(
+                    customer_id=customer_id,
+                    full_name=new_address['full_name'],
+                    phone_number=new_address['phone_number'],
+                    street_address=new_address['street_address'],
+                    city=new_address['city'],
+                    state=new_address['state'],
+                    postal_code=new_address['postal_code'],
+                    is_default=new_address.get('save_address', False)
+                )
+
+            # Get cart items
+            cart_items = Cart.objects.filter(
+                customer_id=customer_id,
+                vendor=vendor
+            ).select_related('product')
+
+            if not cart_items.exists():
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Your cart is empty'
+                })
+
+            # Calculate total
+            total_amount = sum(item.total_price for item in cart_items)
+
+            # Create order
+            order = Order.objects.create(
+                customer_id=customer_id,
+                vendor=vendor,
+                delivery_address=delivery_address,
+                payment_method=payment_method,
+                total_amount=total_amount
+            )
+
+            # Create order items
+            order_items = []
+            for cart_item in cart_items:
+                order_items.append(OrderItem(
+                    order=order,
+                    product=cart_item.product,
+                    quantity=cart_item.quantity,
+                    color=cart_item.color,
+                    size=cart_item.size,
+                    price=cart_item.product.price
+                ))
+            OrderItem.objects.bulk_create(order_items)
+
+            # Clear cart
+            cart_items.delete()
+
+            if payment_method == 'cod':
+                return JsonResponse({
+                    'status': 'success',
+                    'message': 'Order placed successfully',
+                    'payment_method': 'cod',
+                    'redirect_url': reverse('products:order_confirmation', kwargs={
+                        'subdomain': subdomain,
+                        'order_id': order.order_id
+                    })
+            })
+                
+            elif data['payment_method'] == 'esewa':
+                    esewa = EsewaPayment()
+                    payment_url, params = esewa.generate_payment_data(order)  # Changed from generate_payment_url
+                    return JsonResponse({
+                        'status': 'success',
+                        'payment_method': 'esewa',
+                        'redirect_url': payment_url,
+                        'params': params
+                    })
+            
+
+    except Exception as e:
+        logger.error(f"Order placement error: {str(e)}")
+        return JsonResponse({
+            'status': 'error',
+            'message': 'An error occurred while placing your order'
+        }, status=500)
+    
+    
+
+def send_order_confirmation(order):
+    subject = f'Order Confirmation - {order.order_id}'
+    html_message = render_to_string('emails/order_confirmation.html', {
+        'order': order
+    })
+    
+    send_mail(
+        subject=subject,
+        message='',
+        html_message=html_message,
+        from_email=settings.EMAIL_HOST_USER,
+        recipient_list=[order.customer.email]
+    )
+
+
+
+
+
+
+#esewa payment confirmation
+
+from django.shortcuts import render, redirect
+from django.views.decorators.csrf import csrf_exempt
+from .utils import EsewaPayment
+from .models import Order, Payment
+
+def initiate_esewa_payment(request, order_id):
+    try:
+        order = Order.objects.get(order_id=order_id)
+        esewa = EsewaPayment()
+        payment_url, params = esewa.generate_payment_data(order)  # Changed from generate_payment_url
+        
+        # Store payment attempt
+        Payment.objects.create(
+            order=order,
+            payment_method='esewa',
+            amount=order.total_amount,
+            status='pending'
+        )
+        
+        context = {
+            'payment_url': payment_url,
+            'params': params
+        }
+        
+        return render(request, 'products/esewa_redirect.html', context)
+        
+    except Order.DoesNotExist:
+        messages.error(request, "Order not found")
+        return redirect('products:cart', subdomain=request.subdomain)
+
+
+
+import json
+import base64
+from django.shortcuts import redirect
+from django.contrib import messages
+from django.views.decorators.csrf import csrf_exempt
+from .models import Order, Payment
+from accounts.models import Vendor
+
+@csrf_exempt
+def esewa_payment_success(request):
+    try:
+        # Get and decode the response data
+        encoded_data = request.GET.get('data', '')
+        decoded_data = json.loads(base64.b64decode(encoded_data))
+        
+        # Extract required fields
+        transaction_uuid = decoded_data.get('transaction_uuid')
+        status = decoded_data.get('status')
+        transaction_code = decoded_data.get('transaction_code')
+        
+        if status == 'COMPLETE':
+            try:
+                # Get order by transaction UUID
+                order = Order.objects.get(order_id=transaction_uuid)
+                vendor = order.vendor
+                subdomain = vendor.subdomain
+                
+                # Create payment record
+                Payment.objects.create(
+                    order=order,
+                    payment_method='esewa',
+                    amount=order.total_amount,
+                    status='completed',
+                    transaction_id=transaction_code,
+                    payment_response=decoded_data
+                )
+                
+                # Update order status
+                order.payment_status = True
+                order.status = 'processing'
+                order.save()
+                
+                messages.success(request, "Payment successful!")
+                return redirect(
+                    f'/{subdomain}.platform/order/confirmation/{order.order_id}/'
+                )
+                
+            except Order.DoesNotExist:
+                messages.error(request, "Order not found")
+                return redirect('products:vendor_home', subdomain=request.subdomain)
+                
+        else:
+            messages.error(request, "Payment was not completed")
+            return redirect('products:vendor_home', subdomain=request.subdomain)
+            
+    except Exception as e:
+        logger.error(f"eSewa payment error: {str(e)}")
+        messages.error(request, "An error occurred processing the payment")
+        return redirect('products:vendor_home', subdomain=request.subdomain)
+    
+    
+
+@csrf_exempt
+def esewa_payment_failure(request):
+    messages.error(request, "Payment failed or was cancelled")
+    return redirect('products:vendor_home', subdomain=request.subdomain)
+
+
+
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from .models import Cart, Order
+
+
+
+@vendor_login_required
+def checkout_view(request, subdomain):
+    # Remove .platform from subdomain if present
+    subdomain = subdomain.replace('.platform', '')
+    
+    # Check if customer is logged in
+    customer_id = request.session.get('customer_id')
+    if not customer_id:
+        messages.error(request, "Please login to checkout")
+        return redirect('accounts:customer_login', subdomain=subdomain)
+    
+    try:
+        # Get vendor by subdomain using the Subdomain model
+        subdomain_obj = get_object_or_404(Subdomain, subdomain=subdomain)
+        vendor = subdomain_obj.vendor
+        customer = Customer.objects.get(id=customer_id)
+        cart_items = Cart.objects.filter(customer=customer)
+        
+        if not cart_items.exists():
+            messages.warning(request, "Your cart is empty")
+            return redirect('products:cart', subdomain=subdomain)
+        
+        context = {
+            'cart_items': cart_items,
+            'subtotal': sum(item.total_price for item in cart_items),
+            'total': sum(item.total_price for item in cart_items),  # Add shipping if needed
+            'vendor': vendor,
+            'saved_addresses': DeliveryAddress.objects.filter(customer=customer)
+        }
+        
+        return render(request, 'products/checkout.html', context)
+        
+    except (Subdomain.DoesNotExist, Customer.DoesNotExist) as e:
+        messages.error(request, "An error occurred")
+        return redirect('products:cart', subdomain=subdomain)
+    
+    
+    
+    
+def order_confirmation(request, subdomain, order_id):
+    try:
+        # Clean subdomain
+        subdomain = subdomain.replace('.platform', '')
+        
+        # Get vendor through Subdomain model
+        subdomain_obj = get_object_or_404(Subdomain, subdomain=subdomain)
+        vendor = subdomain_obj.vendor
+        
+        # Get order
+        order = get_object_or_404(Order, order_id=order_id)
+        
+        # Verify order belongs to vendor
+        if order.vendor != vendor:
+            messages.error(request, "Invalid order")
+            return redirect('products:cart', subdomain=subdomain)
+        
+        context = {
+            'order': order,
+            'vendor': vendor,
+            'items': order.items.all()
+        }
+        
+        return render(request, 'products/order_confirmation.html', context)
+        
+    except Exception as e:
+        logger.error(f"Order confirmation error: {str(e)}")
+        messages.error(request, "Order not found")
+        return redirect('products:cart', subdomain=subdomain)
+
+
+
+
+
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib import messages
+from accounts.models import Customer, Subdomain
+from .models import Order
+
+@vendor_login_required 
+def orders_list(request, subdomain):
+    try:
+        # Clean subdomain
+        subdomain = subdomain.replace('.platform', '')
+        subdomain_obj = get_object_or_404(Subdomain, subdomain=subdomain)
+        vendor = subdomain_obj.vendor
+        
+        # Get customer from session
+        customer_id = request.session.get('customer_id')
+        if not customer_id:
+            messages.error(request, "Please login to view your orders")
+            return redirect('accounts:customer_login', subdomain=subdomain)
+            
+        customer = get_object_or_404(Customer, id=customer_id)
+        
+        # Get all orders
+        orders = Order.objects.filter(
+            customer=customer,
+            vendor=vendor
+        ).order_by('-created_at').prefetch_related('items', 'items__product', 'items__product__product_images')
+        
+        context = {
+            'orders': orders,
+            'vendor': vendor,
+            'customer': customer,
+            'recent_order': orders.first() if orders.exists() else None
+        }
+        
+        return render(request, 'products/orders.html', context)
+        
+    except Exception as e:
+        messages.error(request, "An error occurred while loading your orders")
+        return redirect('products:vendor_home', subdomain=subdomain)
+    
+    
+    
+
+
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib import messages
+from django.http import JsonResponse
+from django.utils import timezone
+from datetime import timedelta
+from .models import Order
+from accounts.models import Customer
+
+
+def order_detail(request, subdomain, order_id):
+    try:
+        # Clean subdomain and get vendor
+        subdomain = subdomain.replace('.platform', '')
+        subdomain_obj = get_object_or_404(Subdomain, subdomain=subdomain)
+        vendor = subdomain_obj.vendor
+        
+        # Check if customer is logged in
+        customer_id = request.session.get('customer_id')
+        if not customer_id:
+            messages.error(request, "Please login to view order details")
+            return redirect('accounts:customer_login', subdomain=subdomain)
+        
+        # Get customer
+        customer = get_object_or_404(Customer, id=customer_id)
+        
+        # Get order with related data
+        order = Order.objects.select_related(
+            'delivery_address', 'customer', 'vendor'
+        ).prefetch_related(
+            'items',
+            'items__product',
+            'items__product__product_images'
+        ).get(
+            order_id=order_id,
+            customer=customer,
+            vendor=vendor
+        )
+        
+        # Set cancel_deadline if it's not set
+        if not order.cancel_deadline:
+            order.cancel_deadline = order.created_at + timedelta(hours=24)
+            order.save()
+        
+        # Check if order can be cancelled
+        can_cancel = (
+            order.status in ['pending', 'processing'] 
+            and not order.shipping_started 
+            and timezone.now() < order.cancel_deadline
+        )
+        
+        context = {
+            'order': order,
+            'vendor': vendor,
+            'customer': customer,
+            'can_cancel': can_cancel,
+            'items': order.items.all(),
+            'time_left_for_cancel': order.time_left_for_cancel
+        }
+        
+        return render(request, 'products/order_details.html', context)
+        
+    except Order.DoesNotExist:
+        messages.error(request, "Order not found")
+        return redirect('products:orders', subdomain=subdomain)
+    except Exception as e:
+        logger.error(f"Order detail error: {str(e)}")
+        messages.error(request, "An error occurred while loading order details")
+        return redirect('products:orders', subdomain=subdomain)
+
+
+
+def cancel_order(request, order_id):
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
+    
+    try:
+        # Get customer from session
+        customer_id = request.session.get('customer_id')
+        if not customer_id:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Please login to continue'
+            }, status=401)
+        
+        # Get order and verify ownership
+        order = get_object_or_404(Order, 
+            order_id=order_id, 
+            customer_id=customer_id
+        )
+        
+        # Check if order can be cancelled
+        if not order.can_cancel():
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Order cannot be cancelled'
+            })
+        
+        # Process cancellation
+        order.status = 'cancelled'
+        order.cancelled_at = timezone.now()
+        order.save()
+        
+        messages.success(request, 'Order cancelled successfully')
+        return JsonResponse({
+            'status': 'success',
+            'message': 'Order cancelled successfully'
+        })
+        
+    except Order.DoesNotExist:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Order not found'
+        })
+    except Exception as e:
+        logger.error(f"Cancel order error: {str(e)}")
+        return JsonResponse({
+            'status': 'error',
+            'message': 'An error occurred while cancelling the order'
+        })
+
+
+def delete_order(request, order_id):
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
+    
+    try:
+        customer_id = request.session.get('customer_id')
+        if not customer_id:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Please login to continue'
+            }, status=401)
+        
+        order = get_object_or_404(Order, 
+            order_id=order_id, 
+            customer_id=customer_id,
+            status='cancelled'
+        )
+        
+        order.delete()
+        
+        return JsonResponse({
+            'status': 'success',
+            'message': 'Order deleted successfully'
+        })
+        
+    except Order.DoesNotExist:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Order not found'
+        })
+    except Exception as e:
+        logger.error(f"Delete order error: {str(e)}")
+        return JsonResponse({
+            'status': 'error',
+            'message': 'An error occurred while deleting the order'
+        })

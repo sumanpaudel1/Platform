@@ -14,7 +14,7 @@
     <!-- Sidebar -->
     <div class="min-h-screen flex">
         <div class="hidden md:flex md:flex-shrink-0">
-            <div class="flex flex-col w-64 border-r border-gray-200 bg-white">
+            <div class="flex flex-col w-64 border-r border-gray-200 bg-white fixed h-full">
                 <div class="flex flex-col flex-grow pt-5 pb-4 overflow-y-auto">
 
                     <div class="px-4 mb-4">
@@ -54,10 +54,7 @@
                          </span>
                          {% endif %}
                         </a>
-                        <a href="#" class="group flex items-center px-2 py-2 text-sm font-medium text-gray-600 rounded-md hover:bg-gray-50 hover:text-gray-900">
-                            <i class="fas fa-shopping-bag mr-3 text-gray-400"></i>
-                            Orders
-                        </a>
+
                         <a href="{% url 'products:wishlist' subdomain=vendor.subdomain %}" 
                         class="group flex items-center px-2 py-2 text-sm font-medium rounded-md 
                                {% if request.resolver_match.url_name == 'wishlist' %}bg-gray-100 text-gray-900
@@ -70,6 +67,14 @@
                          </span>
                          {% endif %}
                      </a>
+
+                     <a href="{% url 'products:orders' subdomain=vendor.subdomain %}" 
+                        class="group flex items-center px-2 py-2 text-sm font-medium rounded-md 
+                        {% if request.resolver_match.url_name == 'orders' %}bg-gray-100 text-gray-900
+                        {% else %}text-gray-600 hover:bg-gray-50 hover:text-gray-900{% endif %}">
+                        <i class="fas fa-shopping-bag mr-3 text-gray-400"></i>
+                        Orders
+                    </a>
                     </nav>
                 </div>
                 <div class="flex-shrink-0 flex border-t border-gray-200 p-4">
@@ -90,17 +95,11 @@
         </div>
 
         <!-- Main Content -->
-        <div class="flex flex-col w-0 flex-1 overflow-hidden">
-            <main class="flex-1 relative z-0 overflow-y-auto focus:outline-none">
-                <div class="py-6">
-                    <div class="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-                        {% block content %}{% endblock %}
-                    </div>
-                </div>
-            </main>
+        <div class="flex-1 ml-64">
+            <div class="min-h-screen bg-gray-50 overflow-y-auto">
+                {% block content %}{% endblock %}
+            </div>
         </div>
     </div>
-
-    {% block extra_js %}{% endblock %}
 </body>
 </html>
