@@ -138,12 +138,13 @@
             </div>
             
             <!-- Checkout Button -->
-            <button class="w-full mt-6 bg-[var(--primary)] text-black py-3 px-4  shadow-sm  border 
-                         rounded-lg font-medium hover:bg-opacity-90 
-                         transition-colors duration-200 flex items-center justify-center">
-                <span>Proceed to Checkout</span>
-                <i class="fas fa-arrow-right ml-2"></i>
-            </button>
+            <a href="{% url 'products:checkout' subdomain=vendor.subdomain %}" 
+                    class="w-full mt-6 bg-[var(--primary)] text-black py-3 px-4 shadow-sm border 
+                    rounded-lg font-medium hover:bg-opacity-90 transition-colors duration-200 
+                    flex items-center justify-center">
+                    <span>Proceed to Checkout</span>
+                    <i class="fas fa-arrow-right ml-2"></i>
+            </a>
             
             <!-- Payment Methods -->
             {% comment %} <div class="mt-4 flex items-center justify-center space-x-2 text-gray-400">
@@ -173,6 +174,7 @@
 </div>
 
 <script>
+
     function getCookie(name) {
         let cookieValue = null;
         if (document.cookie && document.cookie !== '') {

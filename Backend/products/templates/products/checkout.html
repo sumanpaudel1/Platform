@@ -1,0 +1,336 @@
+{% extends 'accounts/customer_base.html' %}
+{% block title %}Checkout{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Delivery Information -->
+        <div class="bg-white rounded-lg shadow-sm p-6">
+            <h2 class="text-lg font-semibold mb-6">Delivery Information</h2>
+            
+            <!-- Saved Addresses -->
+            {% if saved_addresses %}
+            <div class="mb-6">
+                <h3 class="text-sm font-medium text-gray-700 mb-3">Saved Addresses</h3>
+                <div class="space-y-3">
+                    {% for address in saved_addresses %}
+                    <div class="border rounded-lg p-4 {% if address.is_default %}border-[var(--primary)]{% else %}border-gray-200{% endif %}">
+                        <label class="flex items-start">
+                            <input type="radio" name="address" value="{{ address.id }}" 
+                                   class="mt-1 text-[var(--primary)]" 
+                                   {% if address.is_default %}checked{% endif %}>
+                            <div class="ml-3">
+                                <p class="font-medium">{{ address.full_name }}</p>
+                                <p class="text-sm text-gray-600">{{ address.street_address }}</p>
+                                <p class="text-sm text-gray-600">{{ address.city }}, {{ address.state }} {{ address.postal_code }}</p>
+                                <p class="text-sm text-gray-600">{{ address.phone_number }}</p>
+                            </div>
+                        </label>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- New Address Form -->
+            <form id="delivery-form" class="space-y-4">
+                {% csrf_token %}
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Full Name</label>
+                        <input type="text" name="full_name" required
+                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Phone Number</label>
+                        <input type="tel" name="phone_number" required
+                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Street Address</label>
+                    <input type="text" name="street_address" required
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                </div>
+                
+                <div class="grid grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">City</label>
+                        <input type="text" name="city" required
+                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">State</label>
+                        <input type="text" name="state" required
+                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Postal Code</label>
+                        <input type="text" name="postal_code" required
+                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                    </div>
+                </div>
+                
+                <div class="flex items-center">
+                    <input type="checkbox" name="save_address" id="save_address"
+                           class="text-[var(--primary)] rounded">
+                    <label for="save_address" class="ml-2 text-sm text-gray-700">
+                        Save this address for future orders
+                    </label>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Order Summary -->
+        <div class="bg-white rounded-lg shadow-sm p-6">
+            <h2 class="text-lg font-semibold mb-6">Order Summary</h2>
+            
+            <!-- Order Items -->
+            <div class="space-y-4 mb-6">
+                {% for item in cart_items %}
+                <div class="flex items-center">
+                    <img src="{{ item.product.product_images.first.image.url }}" 
+                         class="w-16 h-16 object-cover rounded-lg">
+                    <div class="ml-4 flex-1">
+                        <h3 class="text-sm font-medium">{{ item.product.name }}</h3>
+                        <p class="text-sm text-gray-500">
+                            Qty: {{ item.quantity }}
+                            {% if item.color %}| Color: {{ item.color.color_name }}{% endif %}
+                            {% if item.size %}| Size: {{ item.size.size_name }}{% endif %}
+                        </p>
+                    </div>
+                    <p class="text-sm font-medium">${{ item.total_price }}</p>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <!-- Payment Method -->
+            <div class="mb-6">
+                <h3 class="text-sm font-medium text-gray-700 mb-3">Payment Method</h3>
+                <div class="space-y-3">
+                    <div class="border rounded-lg p-4">
+                        <label class="flex items-center">
+                            <input type="radio" name="payment_method" value="esewa"
+                                   class="text-[var(--primary)]">
+                            <span class="ml-3">Pay with eSewa</span>
+                        </label>
+                    </div>
+                    <div class="border rounded-lg p-4">
+                        <label class="flex items-center">
+                            <input type="radio" name="payment_method" value="cod"
+                                   class="text-[var(--primary)]" checked>
+                            <span class="ml-3">Cash on Delivery</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Order Totals -->
+            <div class="border-t border-gray-200 pt-4 space-y-2">
+                <div class="flex justify-between text-sm">
+                    <span class="text-gray-600">Subtotal</span>
+                    <span>${{ subtotal }}</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                    <span class="text-gray-600">Shipping</span>
+                    <span>Free</span>
+                </div>
+                {% if discount %}
+                <div class="flex justify-between text-sm text-green-600">
+                    <span>Discount</span>
+                    <span>-${{ discount }}</span>
+                </div>
+                {% endif %}
+                <div class="flex justify-between text-base font-semibold pt-2">
+                    <span>Total</span>
+                    <span class="text-[var(--primary)]">${{ total }}</span>
+                </div>
+            </div>
+            
+            <!-- Place Order Button -->
+            <button id="place-order-btn" 
+                    class="w-full mt-6 bg-black text-white py-3 px-4 rounded-lg  border shadow-sm
+                           font-medium hover:bg-opacity-90 transition-colors flex items-center justify-center">
+                <span>Place Order</span>
+                <i class="fas fa-arrow-right ml-2"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Add this modal HTML before your existing script tag -->
+<div id="codConfirmModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full mx-4">
+        <div class="text-center">
+            <i class="fas fa-shopping-bag text-gray-600 text-4xl mb-4"></i>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">Confirm Your Order</h3>
+            <p class="text-sm text-gray-500 mb-6">Are you sure you want to place this order with Cash on Delivery?</p>
+            <div class="flex justify-center space-x-4">
+                <button id="confirmCodOrder" 
+                        class="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors text-sm">
+                    Yes, Place Order
+                </button>
+                <button onclick="closeCodModal()" 
+                        class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors text-sm">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+  
+        let orderData = null;
+        
+        function showCodModal() {
+            const modal = document.getElementById('codConfirmModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+        
+        function closeCodModal() {
+            const modal = document.getElementById('codConfirmModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+        
+        function processOrder(data) {
+            const button = document.getElementById('place-order-btn');
+            button.disabled = true;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Processing...';
+        
+            // Update the fetch URL to include subdomain
+            fetch('{% url "products:place_order" subdomain=vendor.subdomain %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.status === 'success') {
+                    if (data.payment_method === 'esewa') {
+                        // Create and submit eSewa form
+                        const form = document.createElement('form');
+                        form.method = 'POST';
+                        form.action = data.redirect_url;
+                        
+                        Object.entries(data.params).forEach(([key, value]) => {
+                            const input = document.createElement('input');
+                            input.type = 'hidden';
+                            input.name = key;
+                            input.value = value;
+                            form.appendChild(input);
+                        });
+                        
+                        document.body.appendChild(form);
+                        form.submit();
+                    } else {
+                        showToast('Success', 'Order placed successfully!', 'success');
+                        setTimeout(() => {
+                            window.location.href = data.redirect_url;
+                        }, 1500);
+                    }
+                } else {
+                    throw new Error(data.message || 'Failed to place order');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('Error', error.message || 'Failed to place order', 'error');
+                button.disabled = false;
+                button.innerHTML = '<span>Place Order</span><i class="fas fa-arrow-right ml-2"></i>';
+            });
+        }
+        
+        document.getElementById('place-order-btn').addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // Validate form
+            const form = document.getElementById('delivery-form');
+            const formData = new FormData(form);
+            const selectedAddress = document.querySelector('input[name="address"]:checked');
+            const selectedPayment = document.querySelector('input[name="payment_method"]:checked');
+            
+            if (!selectedPayment) {
+                showToast('Error', 'Please select a payment method', 'error');
+                return;
+            }
+        
+            // Validate address
+            if (!selectedAddress && !formData.get('full_name')) {
+                showToast('Error', 'Please provide delivery address', 'error');
+                return;
+            }
+            
+            orderData = {
+                address_id: selectedAddress ? selectedAddress.value : null,
+                payment_method: selectedPayment.value,
+                new_address: {
+                    full_name: formData.get('full_name'),
+                    phone_number: formData.get('phone_number'),
+                    street_address: formData.get('street_address'),
+                    city: formData.get('city'),
+                    state: formData.get('state'),
+                    postal_code: formData.get('postal_code'),
+                    save_address: formData.get('save_address') === 'on'
+                }
+            };
+            
+            // Show confirmation for COD
+            if (selectedPayment.value === 'cod') {
+                showCodModal();
+            } else {
+                processOrder(orderData);
+            }
+        });
+        
+        // Confirm COD Order
+        document.getElementById('confirmCodOrder').addEventListener('click', function() {
+            closeCodModal();
+            if (orderData) {
+                processOrder(orderData);
+            }
+        });
+        
+        // Close modal when clicking outside
+        document.getElementById('codConfirmModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeCodModal();
+            }
+        });
+        
+function showToast(title, message, type = 'success') {
+    const toast = document.createElement('div');
+    toast.className = `fixed top-4 right-4 bg-white rounded-lg shadow-lg p-4 z-50 transform transition-all duration-300
+                      border-l-4 ${type === 'success' ? 'border-green-500' : 'border-red-500'}`;
+    toast.innerHTML = `
+        <div class="flex items-center">
+            <div class="flex-shrink-0">
+                <i class="fas ${type === 'success' ? 'fa-check-circle text-green-500' : 'fa-exclamation-circle text-red-500'}"></i>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm font-medium text-gray-900">${title}</p>
+                <p class="text-sm text-gray-500">${message}</p>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(-10px)';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+</script>
+{% endblock %}
