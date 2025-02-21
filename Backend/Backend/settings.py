@@ -81,6 +81,7 @@ TEMPLATES = [
                 'products.context_processors.cart_context',
                 'products.context_processors.cart_and_wishlist_counts',
                 'products.context_processors.customer_context',
+                'accounts.views.get_notifications_context',
             ],
         },
     },
@@ -211,7 +212,7 @@ DEBUG = True
 # Login URLs
 ACCOUNT_AUTHENTICATED_LOGIN_REDIRECTS = True
 LOGIN_URL = 'accounts:login'
-LOGIN_REDIRECT_URL = 'accounts:home'
+LOGIN_REDIRECT_URL = 'accounts:vendor_dashboard'
 LOGOUT_URL = 'accounts:logout'
 LOGOUT_REDIRECT_URL = 'accounts:login'
 
@@ -247,7 +248,7 @@ SOCIALACCOUNT_PROVIDERS = {
 
 
 SOCIALACCOUNT_LOGIN_ON_GET = True
-LOGIN_REDIRECT_URL = 'accounts:home'
+LOGIN_REDIRECT_URL = 'accounts:vendor_dashboard'
 LOGOUT_REDIRECT_URL = 'accounts:login'
 
 

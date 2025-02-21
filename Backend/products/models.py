@@ -193,6 +193,8 @@ class Order(models.Model):
     cancel_deadline = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    is_active = models.BooleanField(default=True)
+    
 
     def save(self, *args, **kwargs):
         if not self.order_id:
@@ -215,6 +217,8 @@ class Order(models.Model):
             return 0
         time_left = self.cancel_deadline - timezone.now()
         return max(time_left.total_seconds(), 0)
+    
+    
     
 
     def __str__(self):

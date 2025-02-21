@@ -64,10 +64,14 @@
                     </div>
                     {% endif %}
                     
-                    <button class="absolute top-4 right-4 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full shadow-lg 
+                    <!-- Update the wishlist button HTML -->
+                    <button id="wishlistBtn" 
+                            onclick="toggleWishlist({{ product.id }})"
+                            class="absolute top-4 right-4 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full shadow-lg 
                                 flex items-center justify-center hover:bg-[var(--primary)] hover:text-white 
-                                transition-all duration-300">
-                        <i class="far fa-heart text-lg"></i>
+                                transition-all duration-300"
+                            data-product-id="{{ product.id }}">
+                        <i class="{% if product.id in wishlisted_products %}fas{% else %}far{% endif %} fa-heart"></i>
                     </button>
                 </div>
 
@@ -125,9 +129,10 @@
                     <div class="flex flex-wrap gap-3">
                         {% for color in product.color_variant.all %}
                         <button class="color-swatch relative group w-14 h-14 rounded-full border-2 border-gray-200 hover:scale-105 
-                                    transition-transform {% if forloop.first %}ring-2 ring-[var(--primary)]{% endif %}"
-                                data-image="{{ color.image.url }}"
+                                    transition-transform"
+                                data-color-id="{{ color.id }}"
                                 data-color="{{ color.color_name }}"
+                                data-image="{{ color.image.url }}"
                                 onclick="selectColor(this)">
                             {% if color.image %}
                             <img src="{{ color.image.url }}" class="w-full h-full rounded-full object-cover">
@@ -135,7 +140,7 @@
                             <span class="w-full h-full rounded-full block" style="background-color: {{ color.color_code }}"></span>
                             {% endif %}
                             <span class="absolute -bottom-6 left-1/2 -translate-x-1/2 text-xs font-medium text-gray-700 opacity-0 
-                                      group-hover:opacity-100 transition-opacity">
+                                    group-hover:opacity-100 transition-opacity">
                                 {{ color.color_name }}
                             </span>
                         </button>
@@ -154,10 +159,10 @@
                     <div class="grid grid-cols-3 gap-3">
                         {% for size in product.size_variant.all %}
                         <button class="size-option h-14 rounded-lg border-2 font-medium transition-all relative
-                                    hover:border-[var(--primary)] hover:text-[var(--primary)] text-gray-700
-                                    {% if forloop.first %}border-[var(--primary)] text-[var(--primary)]{% endif %}"
-                                data-price="{{ size.price }}"
+                                    hover:border-[var(--primary)] hover:text-[var(--primary)] text-gray-700"
+                                data-size-id="{{ size.id }}"
                                 data-size="{{ size.size_name }}"
+                                data-price="{{ size.price }}"
                                 onclick="selectSize(this)">
                             {{ size.size_name }}
                             {% if size.price != product.price %}
@@ -174,18 +179,19 @@
                     <h3 class="text-lg font-medium text-gray-900">Quantity</h3>
                     <div class="flex items-center gap-4">
                         <div class="flex items-center border-2 rounded-lg bg-white w-fit">
-                            <button class="w-12 h-12 flex items-center justify-center hover:text-[var(--primary)]"
-                                    onclick="updateQuantity(-1)">
+                            <button onclick="updateQuantity(-1)" 
+                                    class="w-12 h-12 flex items-center justify-center hover:text-[var(--primary)]">
                                 <i class="fas fa-minus"></i>
                             </button>
-                            <input type="number" id="quantity" value="1" min="1" 
-                                   class="w-16 text-center border-x-2 h-12 focus:outline-none font-medium">
-                            <button class="w-12 h-12 flex items-center justify-center hover:text-[var(--primary)]"
-                                    onclick="updateQuantity(1)">
+                            <input type="number" id="quantity" value="1" min="1" max="{{ product.stock }}"
+                                   class="w-16 text-center border-x-2 h-12 focus:outline-none font-medium"
+                                   onchange="updatePrice()">
+                            <button onclick="updateQuantity(1)"
+                                    class="w-12 h-12 flex items-center justify-center hover:text-[var(--primary)]">
                                 <i class="fas fa-plus"></i>
                             </button>
                         </div>
-                        <span class="text-sm text-gray-500">Only 12 items left</span>
+                        <span class="text-sm text-gray-500">{{ product.stock }} items left</span>
                     </div>
                 </div>
 
@@ -199,9 +205,10 @@
                         <i class="fas fa-shopping-cart"></i>
                         Add to Cart
                     </button>
-                    <button class="w-full h-14 border-2 border-[var(--primary)] text-[var(--primary)] 
-                                 rounded-xl hover:bg-[var(--primary)] hover:text-white transition-all duration-300
-                                 font-medium shadow-sm">
+                    <button id="buyNowBtn"
+                            class="w-full h-14 border-2 border-[var(--primary)] text-[var(--primary)] 
+                                   rounded-xl hover:bg-[var(--primary)] hover:text-white transition-all duration-300
+                                   font-medium shadow-sm">
                         Buy Now
                     </button>
                 </div>
@@ -325,13 +332,61 @@
 ::view-transition-group(main-image) {
     animation-duration: 0.3s;
 }
-</style>
 
+.animate-bounce {
+    animation: bounce 0.5s ease-in-out;
+}
+
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+}
+
+.wishlist-btn i {
+    transition: transform 0.3s ease;
+}
+
+.wishlist-btn:hover i {
+    transform: scale(1.1);
+}
+
+.wishlist-btn .fas {
+    color: #ff4b4b;
+}
+</style>
 <script>
+    // Global variables
+    let basePrice = {{ product.price }};
+    let currentPrice = basePrice;
     let selectedColor = null;
     let selectedSize = null;
     
-    // Image Change Function
+    // Utility Functions
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    
+    function showNotification(message, type = 'success') {
+        const notification = document.createElement('div');
+        notification.className = `fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 
+                                ${type === 'success' ? 'bg-green-500' : 'bg-red-500'} text-white`;
+        notification.textContent = message;
+        document.body.appendChild(notification);
+        setTimeout(() => notification.remove(), 3000);
+    }
+    
+    // Image Handling
     function changeImage(url, btn) {
         const mainImage = document.getElementById('mainImage');
         document.querySelectorAll('.thumbnail-btn').forEach(b => 
@@ -345,180 +400,93 @@
         }, 200);
     }
     
-    // Color Selection with Image Change
-    function selectColor(btn) {
-        const colorName = btn.dataset.color;
-        const imageUrl = btn.dataset.image;
+
+// Color Selection
+function selectColor(btn) {
+    const colorId = btn.dataset.colorId;
+    const colorName = btn.dataset.color;
+    const imageUrl = btn.dataset.image;
+    
+    // Check if this color is already selected
+    if (selectedColor === colorId) {
+        // Unselect the color
+        btn.classList.remove('selected');
+        btn.classList.remove('ring-2', 'ring-[var(--primary)]');
+        document.getElementById('selectedColorName').querySelector('span').textContent = 'None';
+        selectedColor = null;
+    } else {
+        // Select the new color
+        document.querySelectorAll('.color-swatch').forEach(b => {
+            b.classList.remove('selected');
+            b.classList.remove('ring-2', 'ring-[var(--primary)]');
+        });
         
-        if (selectedColor === colorName) {
-            // Deselect color
-            btn.classList.remove('ring-2', 'ring-[var(--primary)]');
-            document.getElementById('selectedColorName').querySelector('span').textContent = 'None';
-            selectedColor = null;
-        } else {
-            // Select new color
-            document.querySelectorAll('.color-swatch').forEach(b => 
-                b.classList.remove('ring-2', 'ring-[var(--primary)]'));
-            btn.classList.add('ring-2', 'ring-[var(--primary)]');
-            document.getElementById('selectedColorName').querySelector('span').textContent = colorName;
-            selectedColor = colorName;
-            
-            // Change main image
-            if (imageUrl) {
-                changeImage(imageUrl, btn);
-            }
+        btn.classList.add('selected');
+        btn.classList.add('ring-2', 'ring-[var(--primary)]');
+        document.getElementById('selectedColorName').querySelector('span').textContent = colorName;
+        selectedColor = colorId;
+        
+        if (imageUrl) {
+            changeImage(imageUrl, btn);
         }
-        updateButtonStates();
     }
+}
+
+// Size Selection
+function selectSize(btn) {
+    const sizeId = btn.dataset.sizeId;
+    const sizeName = btn.dataset.size;
     
-    // Size Selection with Deselection
-    function selectSize(btn) {
-        const sizeName = btn.dataset.size;
+    // Check if this size is already selected
+    if (selectedSize === sizeId) {
+        // Unselect the size
+        btn.classList.remove('selected');
+        btn.classList.remove('border-[var(--primary)]', 'text-[var(--primary)]');
+        document.getElementById('selectedSize').querySelector('span').textContent = 'None';
+        selectedSize = null;
+    } else {
+        // Select the new size
+        document.querySelectorAll('.size-option').forEach(b => {
+            b.classList.remove('selected');
+            b.classList.remove('border-[var(--primary)]', 'text-[var(--primary)]');
+        });
         
-        if (selectedSize === sizeName) {
-            // Deselect size
-            btn.classList.remove('selected', 'border-[var(--primary)]', 'text-[var(--primary)]');
-            document.getElementById('selectedSize').querySelector('span').textContent = 'None';
-            selectedSize = null;
-            // Reset price to base price
-            document.getElementById('priceDisplay').textContent = `${{ product.price }}`;
-        } else {
-            // Select new size
-            document.querySelectorAll('.size-option').forEach(b => 
-                b.classList.remove('selected', 'border-[var(--primary)]', 'text-[var(--primary)]'));
-            btn.classList.add('selected', 'border-[var(--primary)]', 'text-[var(--primary)]');
-            document.getElementById('selectedSize').querySelector('span').textContent = sizeName;
-            selectedSize = sizeName;
-            // Update price with size variant price
-            const newPrice = parseFloat({{ product.price }}) + parseFloat(btn.dataset.price || 0);
-            document.getElementById('priceDisplay').textContent = `$${newPrice.toFixed(2)}`;
-        }
-        updateButtonStates();
+        btn.classList.add('selected');
+        btn.classList.add('border-[var(--primary)]', 'text-[var(--primary)]');
+        document.getElementById('selectedSize').querySelector('span').textContent = sizeName;
+        selectedSize = sizeId;
     }
     
-    // Improved Information Accordion
-    document.querySelectorAll('.info-accordion').forEach(accordion => {
-        const header = accordion.querySelector('.accordion-header');
-        const content = accordion.querySelector('.accordion-content');
-        const icon = accordion.querySelector('.accordion-icon');
-        
-        header.addEventListener('click', () => {
-            const isOpen = content.style.maxHeight;
-            
-            // Close all other accordions
-            document.querySelectorAll('.info-accordion').forEach(other => {
-                if (other !== accordion) {
-                    other.querySelector('.accordion-content').style.maxHeight = null;
-                    other.querySelector('.accordion-icon').style.transform = 'rotate(0deg)';
-                }
-            });
-            
-            // Toggle current accordion
-            if (isOpen) {
-                content.style.maxHeight = null;
-                icon.style.transform = 'rotate(0deg)';
-            } else {
-                content.style.maxHeight = content.scrollHeight + 'px';
-                icon.style.transform = 'rotate(180deg)';
-            }
-        });
-    });
-    
-    // Image Zoom Effect
-    const mainImageContainer = document.getElementById('mainImageContainer');
-    const mainImage = document.getElementById('mainImage');
-    
-    mainImageContainer.addEventListener('mousemove', (e) => {
-        const rect = mainImageContainer.getBoundingClientRect();
-        const x = (e.clientX - rect.left) / rect.width * 100;
-        const y = (e.clientY - rect.top) / rect.height * 100;
-        mainImage.style.transformOrigin = `${x}% ${y}%`;
-        mainImage.style.transform = 'scale(1.5)';
-    });
-    
-    mainImageContainer.addEventListener('mouseleave', () => {
-        mainImage.style.transform = 'scale(1)';
-    });
-    
-    // Add smooth transitions
-    document.documentElement.style.setProperty('--transition-speed', '0.3s');
+    updatePrice();
+}
 
-
-    
-    // Update Add to Cart Button State
-
-    // Add this to your existing script section
-
-    function updateQuantity(itemId, action) {
-        fetch('{% url "products:update_cart" %}', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken')
-            },
-            body: JSON.stringify({
-                item_id: itemId,
-                action: action
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                const itemElement = document.querySelector(`[data-item="${itemId}"]`);
-                
-                if (data.quantity === 0) {
-                    // Remove item if quantity is 0
-                    itemElement.remove();
-                    if (data.cart_count === 0) {
-                        location.reload();
-                    }
-                } else {
-                    // Update quantity display
-                    const quantityEl = itemElement.querySelector('.quantity-value');
-                    quantityEl.textContent = data.quantity;
-                    
-                    // Update item price
-                    const priceEl = itemElement.querySelector('.item-price');
-                    priceEl.textContent = `$${data.item_total.toFixed(2)}`;
-                }
-                
-                // Update cart count and totals
-                updateCartCount(data.cart_count);
-                document.querySelector('.subtotal').textContent = `$${data.subtotal.toFixed(2)}`;
-                document.querySelector('.total').textContent = `$${data.total.toFixed(2)}`;
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-        });
-    }
-    
-    document.querySelectorAll('.update-quantity').forEach(button => {
-        button.addEventListener('click', () => {
-            const itemId = button.closest('[data-item]').dataset.item;
-            const action = button.dataset.action;
-            updateQuantity(itemId, action);
-        });
-    });
-    
-
-document.getElementById('addToCartBtn').addEventListener('click', function() {
+// Add to Cart Function
+// Replace the existing addToCart function with this:
+function addToCart() {
+    const button = document.getElementById('addToCartBtn');
     const quantity = parseInt(document.getElementById('quantity').value);
-    const colorId = selectedColor ? document.querySelector('.color-swatch.selected').dataset.colorId : null;
-    const sizeId = selectedSize ? document.querySelector('.size-option.selected').dataset.sizeId : null;
     
-    fetch('{% url "products:add_to_cart" %}', {
+    if (button) {
+        button.disabled = true;
+        const originalText = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Processing...';
+    }
+
+    const data = {
+        product_id: {{ product.id }},
+        quantity: quantity,
+        color_id: selectedColor,
+        size_id: selectedSize,
+        price: currentPrice
+    };
+
+    fetch('/add-to-cart/', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'X-CSRFToken': getCookie('csrftoken')
         },
-        body: JSON.stringify({
-            product_id: {{ product.id }},
-            quantity: quantity,
-            color_id: colorId,
-            size_id: sizeId
-        })
+        body: JSON.stringify(data)
     })
     .then(response => {
         if (response.status === 401) {
@@ -531,9 +499,165 @@ document.getElementById('addToCartBtn').addEventListener('click', function() {
         if (data.status === 'success') {
             updateCartCount(data.cart_count);
             showNotification('Added to cart successfully');
+            
+            // Animate cart icon
+            const cartIcon = button.querySelector('.fa-shopping-cart');
+            if (cartIcon) {
+                cartIcon.classList.add('animate-bounce');
+                setTimeout(() => {
+                    cartIcon.classList.remove('animate-bounce');
+                }, 1000);
+            }
+        } else {
+            throw new Error(data.message || 'Failed to add to cart');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('Failed to add to cart', 'error');
+    })
+    .finally(() => {
+        if (button) {
+            button.disabled = false;
+            button.innerHTML = '<i class="fas fa-shopping-cart"></i> Add to Cart';
         }
     });
+}
+
+// Update the event listener
+document.addEventListener('DOMContentLoaded', function() {
+    const addToCartBtn = document.getElementById('addToCartBtn');
+    if (addToCartBtn) {
+        addToCartBtn.addEventListener('click', addToCart);
+    }
+    
+    const buyNowBtn = document.getElementById('buyNowBtn');
+    if (buyNowBtn) {
+        buyNowBtn.addEventListener('click', buyNow);
+    }
+    
+    const quantityInput = document.getElementById('quantity');
+    if (quantityInput) {
+        quantityInput.addEventListener('change', updatePrice);
+    }
 });
-</script>
+    
+    // Quantity Handling
+    function updateQuantity(change) {
+        const quantityInput = document.getElementById('quantity');
+        let newValue = parseInt(quantityInput.value) + change;
+        newValue = Math.max(1, Math.min(newValue, {{ product.stock }}));
+        quantityInput.value = newValue;
+        updatePrice();
+    }
+    
+    function updatePrice() {
+        const quantity = parseInt(document.getElementById('quantity').value);
+        const selectedSizeBtn = document.querySelector('.size-option.selected');
+        let totalPrice = basePrice;
+        
+        if (selectedSizeBtn && selectedSizeBtn.dataset.price) {
+            totalPrice += parseFloat(selectedSizeBtn.dataset.price);
+        }
+        
+        totalPrice *= quantity;
+        document.getElementById('priceDisplay').textContent = `$${totalPrice.toFixed(2)}`;
+        currentPrice = totalPrice;
+    }
+    
+    
+    // Buy Now Function
+    function buyNow() {
+        const quantity = parseInt(document.getElementById('quantity').value);
+        
+        // Validate selections
+        if (document.querySelector('.color-swatch') && !selectedColor) {
+            showNotification('Please select a color', 'error');
+            return;
+        }
+        
+        if (document.querySelector('.size-option') && !selectedSize) {
+            showNotification('Please select a size', 'error');
+            return;
+        }
+        
+        const data = {
+            product_id: {{ product.id }},
+            quantity: quantity,
+            color_id: selectedColor,
+            size_id: selectedSize,
+            price: currentPrice,
+            buy_now: true
+        };
+        
+        fetch('{% url "products:add_to_cart" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => {
+            if (response.status === 401) {
+                window.location.href = "{% url 'accounts:customer_login' subdomain=vendor.subdomain %}";
+                return;
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.status === 'success') {
+                window.location.href = "{% url 'products:checkout' subdomain=vendor.subdomain %}";
+            } else {
+                throw new Error(data.message);
+            }
+        })
+        .catch(error => {
+            showNotification(error.message || 'Failed to process', 'error');
+        });
+    }
+    
+    // Wishlist Function
+    function toggleWishlist(productId) {
+        const btn = document.getElementById('wishlistBtn');
+        const icon = btn.querySelector('i');
+        
+        fetch('{% url "products:toggle_wishlist" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({ product_id: productId })
+        })
+        .then(response => {
+            if (response.status === 401) {
+                window.location.href = "{% url 'accounts:customer_login' subdomain=vendor.subdomain %}";
+                return;
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.status === 'success') {
+                icon.classList.toggle('far');
+                icon.classList.toggle('fas');
+                showNotification(data.message);
+            }
+        })
+        .catch(error => {
+            showNotification('Failed to update wishlist', 'error');
+        });
+    }
+    
+    
+    // Update Counters
+    function updateCartCount(count) {
+        const cartCount = document.querySelector('.cart-count');
+        if (cartCount) {
+            cartCount.textContent = count;
+            cartCount.classList.toggle('hidden', count === 0);
+        }
+    }
+    </script>
     
 {% endblock %}

@@ -583,7 +583,7 @@ function addToCart(productId) {
         button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
     }
 
-    fetch('{% url "products:add_to_cart" %}', {
+    fetch('{% url "products:add_to_cart"  %}', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',

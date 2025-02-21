@@ -40,11 +40,11 @@
                                 </h3>
                                 {% if item.color or item.size %}
                                 <div class="mt-1 text-sm text-gray-500 space-x-4">
-                                    {% if item.color %}
-                                    <span>Color: {{ item.color.name }}</span>
+                                    {% if item.color_id %}
+                                    <span>Color: {{ item.color.color_name }}</span>
                                     {% endif %}
-                                    {% if item.size %}
-                                    <span>Size: {{ item.size.name }}</span>
+                                    {% if item.size_id %}
+                                    <span>Size: {{ item.size.size_name }}</span>
                                     {% endif %}
                                 </div>
                                 {% endif %}

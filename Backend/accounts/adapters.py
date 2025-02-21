@@ -24,7 +24,7 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
 
 class CustomAccountAdapter(DefaultAccountAdapter):
     def get_login_redirect_url(self, request):
-        return '/home/'
+        return '/dashboard/'
     
     def get_signup_redirect_url(self, request):
-        return '/home/'
+        return '/dashboard/'

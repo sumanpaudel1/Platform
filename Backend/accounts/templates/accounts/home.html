@@ -24,7 +24,7 @@
 
             <!-- Navigation -->
             <nav class="flex-1 p-4 space-y-2">
-                <a href="{% url 'accounts:home' %}" class="flex items-center p-3 text-gray-700 rounded-lg hover:bg-gray-100">
+                <a href="{% url 'accounts:vendor_dashboard' %}" class="flex items-center p-3 text-gray-700 rounded-lg hover:bg-gray-100">
                     <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
                     </svg>
@@ -51,6 +51,13 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
                     </svg>
                     Products
+                </a>
+
+                <a href="{% url 'accounts:vendor_orders' %}" class="flex items-center p-3 text-gray-700 rounded-lg hover:bg-gray-100">
+                    <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
+                    </svg>
+                    Orders
                 </a>
                 
 
@@ -84,39 +91,74 @@
                     </div>
 
                     <!-- Right side -->
-                    <div class="flex items-center space-x-4">
-                        <!-- Notifications -->
+                    <div class="flex items-center space-x-6">
+                        <!-- Notification Icon -->
                         <div class="relative">
-                            <button onclick="toggleNotifications()" class="p-2 text-gray-600 hover:text-gray-900 focus:outline-none">
+                            <button onclick="toggleNotifications(); markNotificationsAsRead();" 
+                                    class="relative p-2 text-gray-600 hover:text-gray-900 focus:outline-none">
                                 <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                          d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
                                 </svg>
-                                <span class="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500"></span>
+                                {% if unread_notifications_count > 0 %}
+                                <span id="notificationCount" 
+                                      class="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                                    {{ unread_notifications_count }}
+                                </span>
+                                {% endif %}
                             </button>
+                    
                             <!-- Notifications Dropdown -->
-                            <div id="notificationsDropdown" class="hidden absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg py-2 z-10">
-                                <div class="px-4 py-2 border-b">
-                                    <h3 class="text-sm font-semibold">Notifications</h3>
+                            <div id="notificationsDropdown" 
+                                 class="hidden absolute right-0 mt-3 w-96 bg-white rounded-lg shadow-xl py-2 z-50">
+                                <div class="px-4 py-3 border-b border-gray-200 flex justify-between items-center">
+                                    <h3 class="text-sm font-semibold text-gray-700">Notifications</h3>
+                                    {% if notifications %}
+                                    <button onclick="markAllAsRead()" 
+                                            class="text-xs text-indigo-600 hover:text-indigo-800 font-medium">
+                                        Mark all as read
+                                    </button>
+                                    {% endif %}
                                 </div>
-                                <!-- Add notification items here -->
-                                <div class="max-h-64 overflow-y-auto">
-                                    <!-- Sample notification -->
-                                    <a href="#" class="block px-4 py-3 hover:bg-gray-50">
-                                        <p class="text-sm text-gray-600">New order received</p>
-                                        <p class="text-xs text-gray-400 mt-1">2 minutes ago</p>
-                                    </a>
+                                <div class="max-h-96 overflow-y-auto" id="notificationsList">
+                                    {% if notifications %}
+                                        {% for notification in notifications %}
+                                        <div class="notification-item {% if not notification.is_read %}bg-blue-50{% endif %} 
+                                                    hover:bg-gray-50 transition-colors duration-150">
+                                            <div class="block px-4 py-3">
+                                                <div class="flex justify-between items-start">
+                                                    <p class="text-sm text-gray-600 {% if not notification.is_read %}font-semibold{% endif %}">
+                                                        {{ notification.message }}
+                                                    </p>
+                                                    {% if not notification.is_read %}
+                                                    <span class="h-2 w-2 bg-blue-600 rounded-full flex-shrink-0 ml-2"></span>
+                                                    {% endif %}
+                                                </div>
+                                                <p class="text-xs text-gray-400 mt-1">{{ notification.created_at|timesince }} ago</p>
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    {% else %}
+                                        <div class="px-4 py-3 text-sm text-gray-500">
+                                            No new notifications
+                                        </div>
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Profile Dropdown -->
-                        <div class="relative">
-                            <button onclick="toggleProfile()" class="flex items-center space-x-3 focus:outline-none">
+                                <!-- Profile Dropdown -->
+                                <div class="relative">
+                                    <button onclick="toggleProfile()" 
+                                    class="flex items-center space-x-3 focus:outline-none">
                                 {% if request.user.profile.profile_photo %}
-                                    <img src="{{ request.user.profile.profile_photo.url }}" class="h-8 w-8 rounded-full">
+                                    <img src="{{ request.user.profile.profile_photo.url }}" 
+                                        class="h-8 w-8 rounded-full object-cover">
                                 {% else %}
                                     <div class="h-8 w-8 rounded-full bg-gray-300 flex items-center justify-center">
-                                        <span class="text-sm text-gray-600">{{ request.user.first_name|first }}</span>
+                                        <span class="text-sm font-medium text-gray-600">
+                                            {{ request.user.first_name|first }}
+                                        </span>
                                     </div>
                                 {% endif %}
                                 <span class="text-sm font-medium text-gray-700">{{ request.user.first_name }}</span>
@@ -171,12 +213,56 @@
         </main>
     </div>
 </div>
-
+<style>
+    .notification-item {
+        border-bottom: 1px solid #f3f4f6;
+    }
+    .notification-item:last-child {
+        border-bottom: none;
+    }
+    #notificationsDropdown {
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 
+                    0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+</style>
 <!-- Add this JavaScript at the bottom of your file -->
 <script>
     function toggleNotifications() {
-        document.getElementById('notificationsDropdown').classList.toggle('hidden');
-        document.getElementById('profileDropdown').classList.add('hidden');
+        const dropdown = document.getElementById('notificationsDropdown');
+        dropdown.classList.toggle('hidden');
+    }
+
+
+    function handleNotificationClick(notificationId, link) {
+        // Mark single notification as read
+        fetch(`/api/notifications/${notificationId}/mark-read/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                // Update UI for this specific notification
+                const notificationItem = document.querySelector(`[data-notification-id="${notificationId}"]`);
+                notificationItem.classList.remove('bg-blue-50');
+                notificationItem.querySelector('.bg-blue-600')?.remove();
+                
+                // Update notification count
+                const countElement = document.getElementById('notificationCount');
+                const currentCount = parseInt(countElement.textContent);
+                if (currentCount > 1) {
+                    countElement.textContent = currentCount - 1;
+                } else {
+                    countElement.remove();
+                }
+                
+                // Navigate to the link
+                window.location.href = link;
+            }
+        });
     }
 
     function toggleProfile() {
@@ -191,5 +277,158 @@
             document.getElementById('profileDropdown').classList.add('hidden');
         }
     });
+
+
+
+    // Add this to your existing script section
+function markNotificationsAsRead() {
+    const unreadCount = document.getElementById('notificationCount');
+    if (!unreadCount) return;
+
+    fetch('/api/notifications/mark-as-read/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            // Remove unread indicators
+            unreadCount.remove();
+            document.querySelectorAll('.notification-item').forEach(item => {
+                item.classList.remove('bg-blue-50');
+                item.querySelector('.bg-blue-600')?.remove();
+            });
+        }
+    });
+}
+
+
+
+// Add this helper function if not already present
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+
+
+// Add this to your existing script section
+function refreshNotifications() {
+    fetch('/api/notifications/')
+        .then(response => response.json())
+        .then(data => {
+            const notificationsList = document.getElementById('notificationsList');
+            const notificationCount = document.getElementById('notificationCount');
+            
+            // Update notification count
+            if (data.unread_count > 0) {
+                notificationCount.textContent = data.unread_count;
+                notificationCount.classList.remove('hidden');
+            } else {
+                notificationCount.classList.add('hidden');
+            }
+            
+            // Update notifications list
+            if (data.notifications.length > 0) {
+                notificationsList.innerHTML = data.notifications.map(notification => `
+                    <div class="notification-item ${!notification.is_read ? 'bg-blue-50' : ''} hover:bg-gray-50">
+                        <a href="${notification.link}" class="block px-4 py-3">
+                            <div class="flex justify-between items-start">
+                                <p class="text-sm text-gray-600 ${!notification.is_read ? 'font-semibold' : ''}">
+                                    ${notification.message}
+                                </p>
+                                ${!notification.is_read ? '<span class="h-2 w-2 bg-blue-600 rounded-full"></span>' : ''}
+                            </div>
+                            <p class="text-xs text-gray-400 mt-1">${notification.created_at}</p>
+                        </a>
+                    </div>
+                `).join('');
+            } else {
+                notificationsList.innerHTML = `
+                    <div class="px-4 py-3 text-sm text-gray-500">
+                        No new notifications
+                    </div>
+                `;
+            }
+        });
+}
+
+// Refresh notifications every 30 seconds
+setInterval(refreshNotifications, 30000);
+
+// Initial load
+document.addEventListener('DOMContentLoaded', refreshNotifications);
+
+
+
+
+// Add this to your existing script section
+function refreshNotifications() {
+    fetch('/api/notifications/', {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            const notificationsList = document.getElementById('notificationsList');
+            const notificationCount = document.getElementById('notificationCount');
+            
+            // Update notification count
+            if (data.unread_count > 0) {
+                if (notificationCount) {
+                    notificationCount.textContent = data.unread_count;
+                    notificationCount.classList.remove('hidden');
+                } else {
+                    const countBadge = document.createElement('span');
+                    countBadge.id = 'notificationCount';
+                    countBadge.className = 'absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center';
+                    countBadge.textContent = data.unread_count;
+                    document.querySelector('.notification-button').appendChild(countBadge);
+                }
+            } else if (notificationCount) {
+                notificationCount.classList.add('hidden');
+            }
+            
+            // Update notifications list
+            if (data.notifications.length > 0) {
+                notificationsList.innerHTML = data.notifications.map(notification => `
+                    <div class="notification-item ${!notification.is_read ? 'bg-blue-50' : ''} hover:bg-gray-50">
+                        <div class="block px-4 py-3">
+                            <div class="flex justify-between items-start">
+                                <p class="text-sm text-gray-600 ${!notification.is_read ? 'font-semibold' : ''}">
+                                    ${notification.message}
+                                </p>
+                                ${!notification.is_read ? '<span class="h-2 w-2 bg-blue-600 rounded-full"></span>' : ''}
+                            </div>
+                            <p class="text-xs text-gray-400 mt-1">${notification.created_at}</p>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                notificationsList.innerHTML = `
+                    <div class="px-4 py-3 text-sm text-gray-500">
+                        No new notifications
+                    </div>
+                `;
+            }
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
 </script>
 {% endblock %}

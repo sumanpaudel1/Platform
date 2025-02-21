@@ -33,10 +33,15 @@
                     </div>
                     <nav class="mt-5 flex-1 px-2 space-y-1">
                         <a href="{% url 'accounts:customer_dashboard' subdomain=vendor.subdomain %}" 
-                           class="group flex items-center px-2 py-2 text-sm font-medium rounded-md {% if request.resolver_match.url_name == 'customer_dashboard' %}bg-gray-100 text-gray-900{% else %}text-gray-600 hover:bg-gray-50 hover:text-gray-900{% endif %}">
-                            <i class="fas fa-home mr-3 text-gray-400"></i>
-                            Dashboard
-                        </a>
+                            class="group flex items-center px-2 py-2 text-sm font-medium rounded-md 
+                               {% if request.resolver_match.url_name == 'customer_dashboard' %}
+                                 bg-gray-100 text-gray-900
+                               {% else %}
+                                 text-gray-600 hover:bg-gray-50 hover:text-gray-900
+                               {% endif %}">
+                         <i class="fas fa-home mr-3 text-gray-400"></i>
+                         Dashboard
+                     </a>
 
                         <a href="{% url 'accounts:customer_profile' subdomain=vendor.subdomain %}"
                            class="group flex items-center px-2 py-2 text-sm font-medium rounded-md {% if request.resolver_match.url_name == 'customer_profile' %}bg-gray-100 text-gray-900{% else %}text-gray-600 hover:bg-gray-50 hover:text-gray-900{% endif %}">
