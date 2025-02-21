@@ -1,0 +1,274 @@
+{% extends 'accounts/home.html' %}
+{% block dashboard_content %}
+<div class="space-y-6">
+    <!-- Welcome Section -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">Welcome back, {{ request.user.first_name }}!</h1>
+                <p class="mt-1 text-sm text-gray-500">Here's what's happening with your store today.</p>
+            </div>
+            <div class="text-right">
+                <p class="text-sm text-gray-600">{{ current_date|date:"l, F j, Y" }}</p>
+                <p class="text-xs text-gray-500">Last login: {{ request.user.last_login|timesince }} ago</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analytics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <!-- Total Sales Card -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-green-100">
+                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-500">Total Sales</p>
+                    <p class="text-lg font-semibold text-gray-900">Rs. {{ total_revenue|floatformat:2 }}</p>
+                    <p class="text-xs text-{% if revenue_growth >= 0 %}green{% else %}red{% endif %}-600">
+                        {{ revenue_growth|floatformat:1 }}% from last month
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Total Orders Card -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-blue-100">
+                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
+                    </svg>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-500">Total Orders</p>
+                    <p class="text-lg font-semibold text-gray-900">{{ total_orders }}</p>
+                    <p class="text-xs text-{% if orders_growth >= 0 %}green{% else %}red{% endif %}-600">
+                        {{ orders_growth|floatformat:1 }}% from last month
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Products Card -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-purple-100">
+                    <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                    </svg>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-500">Total Products</p>
+                    <p class="text-lg font-semibold text-gray-900">{{ total_products }}</p>
+                    <p class="text-xs text-gray-600">{{ active_products }} active</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Low Stock Alert Card -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-yellow-100">
+                    <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                    </svg>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-500">Low Stock Items</p>
+                    <p class="text-lg font-semibold text-gray-900">{{ low_stock_count }}</p>
+                    <a href="{% url 'accounts:vendor_products' %}?filter=low_stock" class="text-xs text-blue-600 hover:underline">
+                        View all
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Orders and Analytics Section -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Recent Orders -->
+        <div class="bg-white rounded-lg shadow">
+            <div class="p-6 border-b border-gray-200">
+                <h2 class="text-lg font-medium text-gray-900">Recent Orders</h2>
+            </div>
+            <div class="divide-y divide-gray-200">
+                {% for order in recent_orders %}
+                <div class="p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-900">#{{ order.order_id }}</p>
+                            <p class="text-sm text-gray-500">{{ order.customer.first_name }}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-sm font-medium text-gray-900">Rs. {{ order.total_amount }}</p>
+                            <p class="text-xs text-gray-500">{{ order.created_at|timesince }} ago</p>
+                        </div>
+                        <div>
+                            <span class="px-3 py-1 text-xs font-medium rounded-full 
+                                {% if order.status == 'pending' %}bg-yellow-100 text-yellow-800
+                                {% elif order.status == 'processing' %}bg-blue-100 text-blue-800
+                                {% elif order.status == 'shipped' %}bg-indigo-100 text-indigo-800
+                                {% elif order.status == 'delivered' %}bg-green-100 text-green-800
+                                {% else %}bg-red-100 text-red-800{% endif %}">
+                                {{ order.get_status_display }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="p-6 text-center text-gray-500">No recent orders</div>
+                {% endfor %}
+            </div>
+            <div class="p-6 border-t border-gray-200">
+                <a href="{% url 'accounts:vendor_orders' %}" class="text-sm text-blue-600 hover:underline">View all orders</a>
+            </div>
+        </div>
+
+        <!-- Sales Analytics -->
+        <div class="bg-white rounded-lg shadow">
+            <div class="p-6 border-b border-gray-200">
+                <h2 class="text-lg font-medium text-gray-900">Sales Analytics</h2>
+            </div>
+            <div class="p-6">
+                <!-- Monthly Sales Chart -->
+                <canvas id="monthlySalesChart" class="w-full h-64"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Performance Metrics -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Top Products -->
+        <div class="bg-white rounded-lg shadow">
+            <div class="p-6 border-b border-gray-200">
+                <h2 class="text-lg font-medium text-gray-900">Top Products</h2>
+            </div>
+            <div class="divide-y divide-gray-200">
+                {% for product in top_products %}
+                <div class="p-4 flex items-center space-x-4">
+                    {% if product.product_images.first %}
+                        <img src="{{ product.product_images.first.image.url }}" 
+                             class="w-12 h-12 rounded-lg object-cover">
+                    {% endif %}
+                    <div class="flex-1">
+                        <p class="text-sm font-medium text-gray-900">{{ product.name }}</p>
+                        <p class="text-xs text-gray-500">{{ product.total_sales }} sales</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-sm font-medium text-gray-900">Rs. {{ product.revenue }}</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Order Status -->
+        <div class="bg-white rounded-lg shadow">
+            <div class="p-6 border-b border-gray-200">
+                <h2 class="text-lg font-medium text-gray-900">Order Status</h2>
+            </div>
+            <div class="p-6">
+                <canvas id="orderStatusChart" class="w-full h-64"></canvas>
+            </div>
+        </div>
+
+        <!-- Recent Activities -->
+        <div class="bg-white rounded-lg shadow">
+            <div class="p-6 border-b border-gray-200">
+                <h2 class="text-lg font-medium text-gray-900">Recent Activities</h2>
+            </div>
+            <div class="divide-y divide-gray-200">
+                {% for activity in recent_activities %}
+                <div class="p-4">
+                    <div class="flex items-start space-x-3">
+                        <div class="flex-shrink-0">
+                            <span class="inline-flex items-center justify-center h-8 w-8 rounded-full 
+                                {% if activity.type == 'order' %}bg-blue-100
+                                {% elif activity.type == 'product' %}bg-green-100
+                                {% else %}bg-gray-100{% endif %}">
+                                <span class="text-sm font-medium leading-none 
+                                    {% if activity.type == 'order' %}text-blue-800
+                                    {% elif activity.type == 'product' %}text-green-800
+                                    {% else %}text-gray-800{% endif %}">
+                                    {{ activity.type|first|upper }}
+                                </span>
+                            </span>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <p class="text-sm text-gray-900">{{ activity.message }}</p>
+                            <p class="text-xs text-gray-500">{{ activity.created_at|timesince }} ago</p>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Include Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+// Monthly Sales Chart
+const monthlySalesCtx = document.getElementById('monthlySalesChart').getContext('2d');
+new Chart(monthlySalesCtx, {
+    type: 'line',
+    data: {
+        labels: {{ monthly_sales_labels|safe }},
+        datasets: [{
+            label: 'Monthly Sales',
+            data: {{ monthly_sales_data }},
+            borderColor: '#4F46E5',
+            tension: 0.3
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false
+    }
+});
+
+
+const orderStatusCtx = document.getElementById('orderStatusChart').getContext('2d');
+new Chart(orderStatusCtx, {
+    type: 'doughnut',
+    data: {
+        labels: {{ order_status_labels|safe }},
+        datasets: [{
+            data: {{ order_status_data }},
+            backgroundColor: [
+                '#FCD34D',  // Yellow for Pending
+                '#60A5FA',  // Blue for Processing
+                '#818CF8',  // Indigo for Shipped
+                '#34D399',  // Green for Delivered
+                '#F87171'   // Red for Cancelled
+            ]
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        const label = context.label || '';
+                        const value = context.formattedValue;
+                        return `${label}: ${value} orders`;
+                    }
+                }
+            }
+        }
+    }
+});
+
+</script>
+{% endblock %}

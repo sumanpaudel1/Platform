@@ -427,3 +427,16 @@ class Customer(AbstractBaseUser, PermissionsMixin):
                 name='unique_customer_email_per_vendor'
             )
         ]
+        
+
+class Notification(models.Model):
+    vendor = models.ForeignKey('Vendor', on_delete=models.CASCADE)
+    message = models.CharField(max_length=255)
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.vendor} - {self.message[:50]}"

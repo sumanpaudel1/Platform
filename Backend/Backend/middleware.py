@@ -1,5 +1,7 @@
 from django.utils.deprecation import MiddlewareMixin
 from accounts.models import Subdomain
+from django.shortcuts import redirect
+from django.contrib import messages
 
 class VendorMiddleware(MiddlewareMixin):
     def process_request(self, request):
@@ -14,3 +16,5 @@ class VendorMiddleware(MiddlewareMixin):
                 request.vendor = None
         else:
             request.vendor = None
+            
+            

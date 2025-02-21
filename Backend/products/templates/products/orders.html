@@ -58,8 +58,12 @@
                                     </h3>
                                     <p class="text-sm text-gray-500">
                                         Qty: {{ item.quantity }}
-                                        {% if item.color %}• {{ item.color }}{% endif %}
-                                        {% if item.size %}• {{ item.size }}{% endif %}
+                                        {% if item.color_id %}
+                                            • Color: {{ item.color.color_name }}
+                                        {% endif %}
+                                        {% if item.size_id %}
+                                            • Size: {{ item.size.size_name }}
+                                        {% endif %}
                                     </p>
                                 </div>
                                 <p class="text-sm font-medium text-gray-900">

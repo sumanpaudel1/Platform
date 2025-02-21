@@ -172,50 +172,53 @@ from django.http import JsonResponse
 import json
 from django.template.loader import render_to_string
 
-def add_to_cart(request):
-    if not request.session.get('customer_id'):
-        return JsonResponse({
-            'status': 'error',
-            'message': 'Please login first'
-        }, status=401)
+from django.views.decorators.http import require_http_methods
 
-    if request.method == 'POST':
+@require_http_methods(["POST"])
+def add_to_cart(request):
+    try:
         data = json.loads(request.body)
-        product_id = data.get('product_id')
-        quantity = data.get('quantity', 1)
+        customer_id = request.session.get('customer_id')
         
-        try:
-            customer = Customer.objects.get(id=request.session['customer_id'])
-            product = Product.objects.get(id=product_id)
-            
-            cart_item, created = Cart.objects.get_or_create(
-                customer=customer,
-                product=product,
-                vendor=product.vendor,
-                defaults={'quantity': quantity}
-            )
-            
-            if not created:
-                cart_item.quantity += int(quantity)
-                cart_item.save()
-            
-            # Get updated cart count
-            cart_count = Cart.objects.filter(customer=customer).count()
-            
-            return JsonResponse({
-                'status': 'success',
-                'cart_count': cart_count,
-                'message': 'Added to cart successfully'
-            })
-            
-        except (Customer.DoesNotExist, Product.DoesNotExist):
+        if not customer_id:
             return JsonResponse({
                 'status': 'error',
-                'message': 'Invalid request'
-            }, status=400)
+                'message': 'Please login to continue'
+            }, status=401)
+        
+        # Get product
+        product = get_object_or_404(Product, id=data.get('product_id'))
+        
+        # Get or create cart item
+        cart_item, created = Cart.objects.get_or_create(
+            customer_id=customer_id,
+            product=product,
+            vendor=product.vendor,
+            defaults={
+                'quantity': int(data.get('quantity', 1)),
+                'color_id': data.get('color_id'),
+                'size_id': data.get('size_id')
+            }
+        )
+        
+        if not created:
+            cart_item.quantity += int(data.get('quantity', 1))
+            cart_item.save()
             
-    return JsonResponse({'status': 'error'}, status=400)
-
+        # Get updated cart count
+        cart_count = Cart.objects.filter(customer_id=customer_id).count()
+        
+        return JsonResponse({
+            'status': 'success',
+            'message': 'Added to cart successfully',
+            'cart_count': cart_count
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'An error occurred while adding to cart'
+        }, status=500)
 
 
 
@@ -562,7 +565,7 @@ from django.urls import reverse
 from accounts.models import Customer
 import json
 import logging
-
+from accounts.views import create_order_notification
 logger = logging.getLogger(__name__)
 
 from django.http import JsonResponse
@@ -653,6 +656,9 @@ def place_order(request, subdomain):
 
             # Clear cart
             cart_items.delete()
+            
+            create_order_notification(request, order)
+
 
             if payment_method == 'cod':
                 return JsonResponse({
@@ -1088,3 +1094,51 @@ def delete_order(request, order_id):
             'status': 'error',
             'message': 'An error occurred while deleting the order'
         })
+        
+  
+        
+
+def customer_dashboard(request, subdomain):
+    customer_id = request.session.get('customer_id')
+    if not customer_id:
+        return redirect('accounts:customer_login', subdomain=subdomain)
+    
+    customer = get_object_or_404(Customer, id=customer_id)
+    
+    # Get vendor from subdomain
+    subdomain = subdomain.replace('.platform', '')
+    subdomain_obj = get_object_or_404(Subdomain, subdomain=subdomain)
+    vendor = subdomain_obj.vendor
+
+    # Get order statistics
+    total_orders = Order.objects.filter(customer_id=customer_id).count()
+    completed_orders = Order.objects.filter(customer_id=customer_id, status='delivered').count()
+    active_orders = Order.objects.filter(customer_id=customer_id, status__in=['pending', 'processing', 'shipped']).count()
+    
+    # Get recent orders
+    recent_orders = Order.objects.filter(customer_id=customer_id).order_by('-created_at')[:5]
+    
+    # Get wishlist count
+    wishlist_count = Wishlist.objects.filter(customer_id=customer_id).count()
+    
+    # Get total spent
+    total_spent = Order.objects.filter(
+        customer_id=customer_id, 
+        status='delivered'
+    ).aggregate(total=Sum('total_amount'))['total'] or 0
+    
+    context = {
+        'customer': customer,
+        'total_orders': total_orders,
+        'completed_orders': completed_orders,
+        'active_orders': active_orders,
+        'recent_orders': recent_orders,
+        'wishlist_count': wishlist_count,
+        'total_spent': total_spent,
+        'vendor': vendor,
+    }
+    
+    return render(request, 'accounts/customer_dashboard.html', context)
+
+
+

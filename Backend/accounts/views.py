@@ -1,9 +1,12 @@
+import json
 from django.http import HttpResponse
 from django.shortcuts import render, redirect
 from django.contrib.auth import login, authenticate
+from django.utils import timezone
 from .forms import RegistrationForm, LoginForm, VendorProfileForm, VendorSettingForm
 from .models import Vendor, OTP, VendorProfile, StorePhoto, VendorSetting, CoverPhoto, Subdomain
 from .utils import generate_otp, send_otp_to_email
+
 
 def register(request):
     if request.method == "POST":
@@ -76,7 +79,7 @@ def login_vendor(request):
                 if vendor is not None:
                     if vendor.is_verified:
                         login(request, vendor)
-                        return redirect('accounts:home')
+                        return redirect('accounts:vendor_dashboard')
                     else:
                         return render(request, 'accounts/login.html', 
                                     {'form': form, 'error': "Please verify your email first"})
@@ -1196,22 +1199,398 @@ def customer_profile(request, subdomain):
     
 
 
+
+from django.shortcuts import render, get_object_or_404, redirect
+from django.db.models import Sum
+from products.models import Order, Wishlist
+from .models import Customer, Subdomain
+
 @vendor_login_required
 def customer_dashboard(request, subdomain):
+    customer_id = request.session.get('customer_id')
+    if not customer_id:
+        return redirect('accounts:customer_login', subdomain=subdomain)
+    
+    customer = get_object_or_404(Customer, id=customer_id)
+    
+    # Get vendor from subdomain
     subdomain = subdomain.replace('.platform', '')
     subdomain_obj = get_object_or_404(Subdomain, subdomain=subdomain)
     vendor = subdomain_obj.vendor
+
+    # Get order statistics
+    total_orders = Order.objects.filter(customer_id=customer_id).count()
+    completed_orders = Order.objects.filter(customer_id=customer_id, status='delivered').count()
+    active_orders = Order.objects.filter(customer_id=customer_id, status__in=['pending', 'processing', 'shipped']).count()
     
-    try:
-        customer = Customer.objects.get(id=request.session.get('customer_id'), vendor=vendor)
-    except Customer.DoesNotExist:
-        messages.error(request, "Please login to access your dashboard")
-        return redirect('accounts:customer_login', subdomain=subdomain)
+    # Get recent orders
+    recent_orders = Order.objects.filter(customer_id=customer_id).order_by('-created_at')[:5]
+    
+    # Get wishlist count
+    wishlist_count = Wishlist.objects.filter(customer_id=customer_id).count()
+    
+    # Get total spent
+    total_spent = Order.objects.filter(
+        customer_id=customer_id, 
+        status='delivered'
+    ).aggregate(total=Sum('total_amount'))['total'] or 0
     
     context = {
         'customer': customer,
+        'total_orders': total_orders,
+        'completed_orders': completed_orders,
+        'active_orders': active_orders,
+        'recent_orders': recent_orders,
+        'wishlist_count': wishlist_count,
+        'total_spent': total_spent,
         'vendor': vendor,
-        # Add other context data for dashboard
     }
     
     return render(request, 'accounts/customer_dashboard.html', context)
+
+
+
+
+
+def vendor_orders(request):
+    # Get filter parameters
+    status_filter = request.GET.get('status', 'all')
+    
+    # Base queryset
+    orders = Order.objects.filter(vendor=request.user)
+    
+    # Apply status filter
+    if status_filter != 'all':
+        orders = orders.filter(status=status_filter)
+    
+    # Get statistics
+    total_orders = orders.count()
+    pending_orders = orders.filter(status='pending').count()
+    processing_orders = orders.filter(status='processing').count()
+    total_revenue = orders.filter(status='delivered').aggregate(
+        total=Sum('total_amount')
+    )['total'] or 0
+    
+    context = {
+        'orders': orders.order_by('-created_at'),
+        'total_orders': total_orders,
+        'pending_orders': pending_orders,
+        'processing_orders': processing_orders,
+        'total_revenue': total_revenue,
+        'active_tab': 'orders'
+    }
+    
+    return render(request, 'accounts/vendor_orders.html', context)
+
+
+from django.views.decorators.http import require_http_methods
+from django.http import JsonResponse
+import json
+
+
+@require_http_methods(["POST"])
+def update_order_status(request, order_id):
+    try:
+        data = json.loads(request.body)
+        order = Order.objects.get(id=order_id, vendor=request.user)
+        
+        old_status = order.status
+        new_status = data.get('status')
+        
+        if new_status not in ['pending', 'processing', 'shipped', 'delivered', 'cancelled']:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Invalid status'
+            }, status=400)
+        
+        # Update order status
+        order.status = new_status
+        order.save()
+        
+        # Handle stock updates
+        if new_status in ['cancelled', 'delivered'] and old_status not in ['cancelled', 'delivered']:
+            for item in order.items.all():
+                if new_status == 'delivered':
+                    item.product.stock -= item.quantity
+                else:  # cancelled
+                    item.product.stock += item.quantity
+                item.product.save()
+        
+        return JsonResponse({
+            'status': 'success',
+            'message': 'Order status updated successfully'
+        })
+        
+    except Order.DoesNotExist:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Order not found'
+        }, status=404)
+        
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        }, status=500)
+
+
+
+
+def order_detail(request, order_id):
+    order = get_object_or_404(Order.objects.select_related(
+        'customer',
+        'delivery_address'
+    ).prefetch_related(
+        'items',
+        'items__product',
+        'items__product__product_images',
+        'items__color',
+        'items__size'
+    ), id=order_id, vendor=request.user)
+    
+    context = {
+        'order': order,
+        'active_tab': 'orders'
+    }
+    
+    return render(request, 'accounts/order_details.html', context)
+
+
+
+
+
+
+from django.http import JsonResponse
+from .models import Notification
+
+from django.http import JsonResponse
+
+def get_notifications_context(request):
+    """
+    Return notifications as JSON response for API calls,
+    or context data for template rendering
+    """
+    if 'HTTP_X_REQUESTED_WITH' in request.META and request.META['HTTP_X_REQUESTED_WITH'] == 'XMLHttpRequest':
+        # This is an AJAX request
+        if request.user.is_authenticated:
+            try:
+                # Get unread count
+                unread_count = Notification.objects.filter(
+                    vendor=request.user,
+                    is_read=False
+                ).count()
+
+                # Get recent notifications
+                notifications = Notification.objects.filter(
+                    vendor=request.user
+                ).order_by('-created_at')[:15]
+
+                # Format notifications for JSON response
+                notifications_data = [{
+                    'id': n.id,
+                    'message': n.message,
+                    'is_read': n.is_read,
+                    'created_at': n.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                } for n in notifications]
+
+                return JsonResponse({
+                    'status': 'success',
+                    'notifications': notifications_data,
+                    'unread_count': unread_count
+                })
+            except Exception as e:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': str(e)
+                }, status=500)
+        return JsonResponse({
+            'status': 'error',
+            'message': 'User not authenticated'
+        }, status=401)
+
+    # This is a regular template context request
+    if request.user.is_authenticated:
+        try:
+            notifications = Notification.objects.filter(
+                vendor=request.user
+            ).order_by('-created_at')[:15]
+            unread_count = Notification.objects.filter(
+                vendor=request.user,
+                is_read=False
+            ).count()
+            return {
+                'notifications': notifications,
+                'unread_notifications_count': unread_count
+            }
+        except Exception as e:
+            print(f"Error in notifications context: {str(e)}")
+    
+    return {
+        'notifications': [],
+        'unread_notifications_count': 0
+    }
+
+
+def mark_notifications_as_read(request):
+    if request.method == 'POST':
+        try:
+            # Update all unread notifications for this vendor
+            Notification.objects.filter(
+                vendor=request.user,
+                is_read=False
+            ).update(is_read=True)
+            
+            return JsonResponse({'status': 'success'})
+        except Exception as e:
+            return JsonResponse({
+                'status': 'error',
+                'message': str(e)
+            }, status=500)
+    
+    return JsonResponse({
+        'status': 'error',
+        'message': 'Invalid request method'
+    }, status=400)
+    
+
+
+
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from products.models import Order
+from accounts.models import Notification
+
+def create_order_notification(request, order):
+    """Create a notification when a new order is placed"""
+    try:
+        Notification.objects.create(
+            vendor=order.vendor,
+            message=f"New order #{order.order_id} received",
+            is_read=False
+        )
+    except Exception as e:
+        print(f"Error creating notification: {str(e)}")
+        
+        
+
+@login_required
+def mark_single_notification_as_read(request, notification_id):
+    if request.method == 'POST':
+        try:
+            notification = Notification.objects.get(
+                id=notification_id,
+                vendor=request.user,
+                is_read=False
+            )
+            notification.is_read = True
+            notification.save()
+            
+            return JsonResponse({'status': 'success'})
+        except Notification.DoesNotExist:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Notification not found'
+            }, status=404)
+    
+    return JsonResponse({
+        'status': 'error',
+        'message': 'Invalid request method'
+    }, status=400)
+    
+    
+    
+
+
+from django.db.models import Sum, Count
+from django.db.models.functions import TruncMonth
+from datetime import datetime, timedelta
+import json
+from products.models import Product, Order
+
+
+@login_required
+def vendor_dashboard(request):
+    try:
+        # Basic statistics
+        total_products = Product.objects.filter(vendor=request.user).count()
+        active_products = Product.objects.filter(vendor=request.user, stock__gt=0).count()
+        low_stock_count = Product.objects.filter(vendor=request.user, stock__lte=10).count()
+        
+        # Orders statistics
+        orders = Order.objects.filter(vendor=request.user)
+        total_orders = orders.count()
+        recent_orders = orders.select_related('customer').order_by('-created_at')[:5]
+        
+        # Revenue calculations
+        total_revenue = orders.filter(status='delivered').aggregate(
+            total=Sum('total_amount')
+        )['total'] or 0
+        
+        # Get last month's data
+        last_month = timezone.now() - timezone.timedelta(days=30)
+        last_month_revenue = orders.filter(
+            status='delivered',
+            created_at__gte=last_month
+        ).aggregate(total=Sum('total_amount'))['total'] or 0
+        
+        # Calculate growth rates
+        revenue_growth = ((total_revenue - last_month_revenue) / last_month_revenue * 100) if last_month_revenue else 0
+        
+        # Get top products
+        top_products = Product.objects.filter(vendor=request.user)\
+            .annotate(
+                total_sales=Count('orderitem'),
+                revenue=Sum('orderitem__price')
+            ).order_by('-total_sales')[:5]
+        
+        # Order status counts - Fixed this part
+        status_counts = {
+            'pending': orders.filter(status='pending').count(),
+            'processing': orders.filter(status='processing').count(),
+            'shipped': orders.filter(status='shipped').count(),
+            'delivered': orders.filter(status='delivered').count(),
+            'cancelled': orders.filter(status='cancelled').count()
+        }
+        
+        # Create ordered list for chart
+        order_status_data = [
+            status_counts['pending'],
+            status_counts['processing'],
+            status_counts['shipped'],
+            status_counts['delivered'],
+            status_counts['cancelled']
+        ]
+        
+        # Monthly sales data
+        monthly_sales = orders.filter(status='delivered')\
+            .annotate(month=TruncMonth('created_at'))\
+            .values('month')\
+            .annotate(total=Sum('total_amount'))\
+            .order_by('month')
+        
+        monthly_sales_labels = [item['month'].strftime('%B %Y') for item in monthly_sales]
+        monthly_sales_data = [float(item['total']) for item in monthly_sales]
+        
+        context = {
+            'total_revenue': total_revenue,
+            'revenue_growth': revenue_growth,
+            'total_orders': total_orders,
+            'total_products': total_products,
+            'active_products': active_products,
+            'low_stock_count': low_stock_count,
+            'recent_orders': recent_orders,
+            'top_products': top_products,
+            'monthly_sales_labels': json.dumps(monthly_sales_labels),
+            'monthly_sales_data': monthly_sales_data,
+            'order_status_data': order_status_data,
+            'order_status_labels': ['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'],
+            'current_date': timezone.now(),
+            'active_tab': 'dashboard'  # Add this to highlight dashboard tab
+        }
+        
+        return render(request, 'accounts/vendor_dashboard.html', context)
+        
+    except Exception as e:
+        print(f"Dashboard Error: {str(e)}")  # Add debug print
+        messages.error(request, f"Error loading dashboard: {str(e)}")
+        return redirect('accounts:home')

@@ -75,7 +75,20 @@ urlpatterns = [
      path('<str:subdomain>.platform/customer/dashboard/', 
          views.customer_dashboard, 
          name='customer_dashboard'),
+     
+     path('vendor/orders/', views.vendor_orders, name='vendor_orders'),
+     path('api/orders/<str:order_id>/update-status/', 
+         views.update_order_status, 
+         name='update_order_status'),
+     path('vendor/orders/<int:order_id>/', views.order_detail, name='order_detail'),
+     
+    path('api/notifications/mark-as-read/', views.mark_notifications_as_read, name='mark_notifications_as_read'),
+    path('api/notifications/', views.get_notifications_context, name='get_notifications_api'),
+    path('api/notifications/<int:notification_id>/mark-read/', 
+         views.mark_single_notification_as_read, 
+         name='mark_single_notification_as_read'),
     
+    path('dashboard/', views.vendor_dashboard, name='vendor_dashboard'),
 ]
 
     # path('home/products/<int:product_id>/add-color/', views.add_product_color, name='add_product_color'),
