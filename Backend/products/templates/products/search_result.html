@@ -1,0 +1,159 @@
+{% extends 'products/base.html' %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Search Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold mb-2">Search Results</h1>
+        <p class="text-gray-600">
+            Found {{ products|length }} result{{ products|length|pluralize }} for "{{ query }}"
+        </p>
+    </div>
+
+    <!-- Filter Sidebar and Results Grid -->
+    <div class="flex flex-col md:flex-row gap-8">
+        <!-- Filters Sidebar -->
+        <div class="w-full md:w-64 bg-white rounded-lg shadow-sm p-6">
+            <h2 class="font-semibold mb-4">Filters</h2>
+            
+            <!-- Category Filter -->
+            <div class="mb-6">
+                <h3 class="text-sm font-medium mb-2">Categories</h3>
+                <div class="space-y-2">
+                    {% for category in categories %}
+                    <label class="flex items-center">
+                        <input type="checkbox" name="category" value="{{ category.id }}"
+                               class="form-checkbox text-[var(--primary)]"
+                               {% if category.id|stringformat:"i" in selected_categories %}checked{% endif %}>
+                        <span class="ml-2 text-sm">{{ category.category_name }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Price Range Filter -->
+            <div class="mb-6">
+                <h3 class="text-sm font-medium mb-2">Price Range</h3>
+                <div class="space-y-2">
+                    <input type="range" min="0" max="{{ max_price }}" 
+                           value="{{ selected_price|default:max_price }}"
+                           class="w-full accent-[var(--primary)]"
+                           id="priceRange">
+                    <div class="flex justify-between text-sm text-gray-600">
+                        <span>$0</span>
+                        <span id="priceValue">${{ selected_price|default:max_price }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sort Options -->
+            <div>
+                <h3 class="text-sm font-medium mb-2">Sort By</h3>
+                <select class="w-full border rounded-lg p-2" id="sortOption">
+                    <option value="relevance" {% if sort == 'relevance' %}selected{% endif %}>Relevance</option>
+                    <option value="price_asc" {% if sort == 'price_asc' %}selected{% endif %}>Price: Low to High</option>
+                    <option value="price_desc" {% if sort == 'price_desc' %}selected{% endif %}>Price: High to Low</option>
+                    <option value="newest" {% if sort == 'newest' %}selected{% endif %}>Newest First</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Results Grid -->
+        <div class="flex-1">
+            {% if products %}
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {% for product in products %}
+                    <div class="bg-white rounded-lg shadow-sm overflow-hidden group">
+                        <a href="{% url 'products:product_detail' subdomain=vendor.subdomain.subdomain slug=product.slug %}"
+                           class="block relative">
+                            <div class="aspect-w-1 aspect-h-1 overflow-hidden">
+                                {% if product.product_images.first %}
+                                <img src="{{ product.product_images.first.image.url }}"
+                                     class="w-full h-full object-cover transform group-hover:scale-105 transition duration-300">
+                                {% endif %}
+                            </div>
+                            {% if product.cut_price %}
+                            <div class="absolute top-2 left-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                                SAVE {{ product.discount_percentage }}%
+                            </div>
+                            {% endif %}
+                        </a>
+                        <div class="p-4">
+                            <h3 class="font-medium">{{ product.name }}</h3>
+                            <div class="mt-2 flex justify-between items-center">
+                                <div>
+                                    <span class="text-lg font-bold text-[var(--primary)]">${{ product.price }}</span>
+                                    {% if product.cut_price %}
+                                    <span class="text-sm text-gray-500 line-through ml-2">${{ product.cut_price }}</span>
+                                    {% endif %}
+                                </div>
+                                <button onclick="addToCart({{ product.id }})"
+                                        class="text-[var(--primary)] hover:bg-[var(--primary)] hover:text-white
+                                               p-2 rounded-full transition-colors duration-300">
+                                    <i class="fas fa-shopping-cart"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-12">
+                    <i class="fas fa-search text-gray-400 text-5xl mb-4"></i>
+                    <h2 class="text-2xl font-medium text-gray-600">No products found</h2>
+                    <p class="text-gray-500 mt-2">Try adjusting your search or filters</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const filterForm = document.getElementById('filterForm');
+    const priceRange = document.getElementById('priceRange');
+    const priceValue = document.getElementById('priceValue');
+    const sortOption = document.getElementById('sortOption');
+    const categoryCheckboxes = document.querySelectorAll('input[name="category"]');
+
+    // Update price display
+    priceRange.addEventListener('input', function() {
+        priceValue.textContent = `$${this.value}`;
+    });
+
+    // Handle filter changes
+    function applyFilters() {
+        const searchParams = new URLSearchParams(window.location.search);
+        
+        // Add price filter
+        searchParams.set('price', priceRange.value);
+        
+        // Add sort option
+        searchParams.set('sort', sortOption.value);
+        
+        // Add categories
+        const selectedCategories = [];
+        categoryCheckboxes.forEach(checkbox => {
+            if (checkbox.checked) {
+                selectedCategories.push(checkbox.value);
+            }
+        });
+        if (selectedCategories.length) {
+            searchParams.set('categories', selectedCategories.join(','));
+        } else {
+            searchParams.delete('categories');
+        }
+        
+        // Redirect with new filters
+        window.location.href = `${window.location.pathname}?${searchParams.toString()}`;
+    }
+
+    // Add event listeners
+    priceRange.addEventListener('change', applyFilters);
+    sortOption.addEventListener('change', applyFilters);
+    categoryCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', applyFilters);
+    });
+});
+</script>
+{% endblock %}

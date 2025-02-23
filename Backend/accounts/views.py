@@ -96,9 +96,6 @@ def login_vendor(request):
 
 from django.contrib.auth.decorators import login_required
 
-@login_required(login_url='accounts:login')
-def home(request):
-    return render(request, 'accounts/home.html')
 
 from django.contrib.auth import logout
 from django.shortcuts import redirect
@@ -259,7 +256,7 @@ def vendor_profile(request):
                 
             profile.save()
             messages.success(request, 'Profile updated successfully!')
-            return redirect('vendor_profile')
+            return redirect('accounts:vendor_profile')
         else:
             for field, errors in form.errors.items():
                 for error in errors:
@@ -349,7 +346,7 @@ def store_settings(request):
         except Exception as e:
             messages.error(request, f'Error saving settings: {str(e)}')
         
-        return redirect('vendor_settings')
+        return redirect('accounts:vendor_settings')
 
     context = {
         'settings': settings,
@@ -367,7 +364,7 @@ def delete_cover_photo(request, photo_id):
             messages.success(request, 'Cover photo deleted successfully!')
         except CoverPhoto.DoesNotExist:
             messages.error(request, 'Cover photo not found!')
-    return redirect('vendor_settings')
+    return redirect('accounts:vendor_settings')
 
 
 
@@ -1508,7 +1505,7 @@ import json
 from products.models import Product, Order
 
 
-@login_required
+@login_required(login_url='accounts:login')
 def vendor_dashboard(request):
     try:
         # Basic statistics
