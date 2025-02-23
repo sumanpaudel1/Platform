@@ -1,3 +1,4 @@
+{% extends 'products/base.html' %}
 <head>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
@@ -618,36 +619,43 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Wishlist Function
-    function toggleWishlist(productId) {
-        const btn = document.getElementById('wishlistBtn');
-        const icon = btn.querySelector('i');
-        
-        fetch('{% url "products:toggle_wishlist" %}', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken')
-            },
-            body: JSON.stringify({ product_id: productId })
-        })
-        .then(response => {
-            if (response.status === 401) {
-                window.location.href = "{% url 'accounts:customer_login' subdomain=vendor.subdomain %}";
-                return;
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (data.status === 'success') {
-                icon.classList.toggle('far');
-                icon.classList.toggle('fas');
-                showNotification(data.message);
-            }
-        })
-        .catch(error => {
-            showNotification('Failed to update wishlist', 'error');
-        });
-    }
+function toggleWishlist(productId) {
+    const wishlistBtn = document.getElementById('wishlistBtn');
+    const icon = wishlistBtn.querySelector('i');
+    const wishlistCountElements = document.querySelectorAll('.wishlist-count'); // Add this line
+    
+    fetch('{% url "products:toggle_wishlist" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({ product_id: productId })
+    })
+    .then(response => {
+        if (response.status === 401) {
+            window.location.href = "{% url 'accounts:customer_login' subdomain=vendor.subdomain %}";
+            return;
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.status === 'success') {
+            icon.classList.toggle('far');
+            icon.classList.toggle('fas');
+            showNotification(data.message);
+            
+            // Update all wishlist count elements
+            wishlistCountElements.forEach(element => {
+                element.textContent = data.wishlist_count;
+                element.classList.toggle('hidden', data.wishlist_count === 0);
+            });
+        }
+    })
+    .catch(error => {
+        showNotification('Failed to update wishlist', 'error');
+    });
+}
     
     
     // Update Counters

@@ -29,7 +29,7 @@
                     <a href="/" class="text-2xl font-bold text-blue-600">Clothy</a>
                 </div>
                 <div class="flex items-center space-x-4">
-                    <a href="{% url 'login' %}" class="text-gray-600 hover:text-gray-900">Sign In</a>
+                    <a href="{% url 'accounts:login' %}" class="text-gray-600 hover:text-gray-900">Sign In</a>
                 </div>
             </div>
         </div>
@@ -47,7 +47,7 @@
                     <h2 class="text-3xl font-extrabold text-gray-900 mb-1">Create Account</h2>
                     <p class="text-sm text-gray-600">
                         Already have an account?
-                        <a href="{% url 'login' %}" class="font-medium text-blue-600 hover:text-blue-500 transition-colors">
+                        <a href="{% url 'accounts:login' %}" class="font-medium text-blue-600 hover:text-blue-500 transition-colors">
                             Sign in
                         </a>
                     </p>

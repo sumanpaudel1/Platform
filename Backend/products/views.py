@@ -27,7 +27,7 @@ from django.shortcuts import redirect
 from django.urls import reverse
 from .models import Vendor
 from accounts.views import vendor_login_required
-
+from accounts.models import StorePhoto
 
 
 
@@ -66,7 +66,10 @@ def vendor_home(request, subdomain):
     category_slug = request.GET.get('category')
     if category_slug:
         products = products.filter(category__slug=category_slug)
-        
+     
+    total_customers = Customer.objects.filter(
+        id__in=Order.objects.filter(vendor=vendor).values('customer_id')
+        ).distinct().count()   
         
     wishlisted_products = []
     if request.session.get('customer_id'):
@@ -86,6 +89,10 @@ def vendor_home(request, subdomain):
         'popup_delay': vendor.settings.popup_delay,
         'debug': settings.DEBUG,
         'wishlisted_products': list(wishlisted_products),
+        'total_products': Product.objects.filter(vendor=vendor).count(),
+        'total_customers': total_customers,
+        'years_in_business': (timezone.now().year - vendor.date_joined.year),
+        'store_photos': StorePhoto.objects.filter(vendor=vendor).order_by('-is_primary', '-uploaded_at')[0],
     }
     
     print(f"Session customer_id: {request.session.get('customer_id')}")  # Debug print
@@ -1142,3 +1149,61 @@ def customer_dashboard(request, subdomain):
 
 
 
+
+#search products
+from django.db.models import Q
+from django.core.paginator import Paginator
+
+def search_products(request, subdomain):
+    subdomain = subdomain.replace('.platform', '')
+    subdomain_obj = get_object_or_404(Subdomain, subdomain=subdomain)
+    vendor = subdomain_obj.vendor
+    
+    query = request.GET.get('q', '')
+    categories = request.GET.getlist('categories')
+    price_max = request.GET.get('price')
+    sort = request.GET.get('sort', 'relevance')
+    
+    # Base queryset
+    products = Product.objects.filter(vendor=vendor)
+    
+    # Apply search query
+    if query:
+        products = products.filter(
+            Q(name__icontains=query) |
+            Q(description__icontains=query) |
+            Q(category__category_name__icontains=query)
+        ).distinct()
+    
+    # Apply category filter
+    if categories:
+        products = products.filter(category__id__in=categories)
+    
+    # Apply price filter
+    if price_max:
+        products = products.filter(price__lte=price_max)
+    
+    # Apply sorting
+    if sort == 'price_asc':
+        products = products.order_by('price')
+    elif sort == 'price_desc':
+        products = products.order_by('-price')
+    elif sort == 'newest':
+        products = products.order_by('-created_at')
+    
+    # Get max price for filter
+    max_price = Product.objects.filter(vendor=vendor).order_by('-price').first()
+    max_price = max_price.price if max_price else 1000
+    
+    context = {
+        'products': products,
+        'query': query,
+        'categories': Category.objects.filter(vendor=vendor),
+        'selected_categories': categories,
+        'max_price': max_price,
+        'selected_price': price_max,
+        'sort': sort,
+        'vendor': vendor
+    }
+    
+    return render(request, 'products/search_result.html', context)

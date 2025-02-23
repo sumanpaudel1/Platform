@@ -49,6 +49,9 @@ urlpatterns = [
          views.delete_order,
          name='delete_order'),
     
-    
+   
+     path('<str:subdomain>.platform/search/',
+          views.search_products,
+           name='search'),
 
 ]
