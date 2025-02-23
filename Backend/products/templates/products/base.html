@@ -55,20 +55,81 @@
                 </div>
 
                 <!-- Search -->
-                <div class="hidden md:flex items-center flex-1 max-w-lg mx-8">
-                    <form action="{% url 'products:search' subdomain=vendor.subdomain %}" method="GET" class="w-full">
-                        <div class="relative">
-                            <input type="text" 
-                                   name="q" 
-                                   placeholder="Search products..." 
-                                   value="{{ request.GET.q }}"
-                                   class="w-full pl-10 pr-4 py-2 rounded-lg border focus:outline-none focus:border-[var(--accent)]">
-                            <button type="submit" class="absolute left-3 top-3 text-gray-400 hover:text-gray-600">
-                                <i class="fas fa-search"></i>
-                            </button>
-                        </div>
-                    </form>
-                </div>
+<!-- Update the search section in base.html -->
+<div class="hidden md:flex items-center flex-1 max-w-lg mx-8">
+    <form action="{% url 'products:search' subdomain=vendor.subdomain %}" 
+          method="GET" 
+          class="w-full"
+          enctype="multipart/form-data"
+          id="searchForm">
+        <div class="flex items-center gap-2">
+            <!-- Text Search -->
+            <div class="relative flex-1">
+                <input type="text" 
+                       name="q" 
+                       id="searchQuery"
+                       placeholder="Search products..." 
+                       value="{{ request.GET.q }}"
+                       class="w-full pl-10 pr-4 py-2 rounded-lg border focus:outline-none focus:border-[var(--accent)]">
+                <button type="submit" class="absolute left-3 top-3 text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+            
+            <!-- Image Search Button -->
+            <div class="relative">
+                <button type="button" 
+                        onclick="document.getElementById('imageSearch').click()"
+                        class="p-2 text-gray-600 hover:text-[var(--primary)] transition-colors rounded-lg border border-gray-300 hover:border-[var(--primary)]">
+                    <i class="fas fa-camera"></i>
+                </button>
+                <input type="file" 
+                       id="imageSearch" 
+                       name="image_query" 
+                       accept="image/*"
+                       class="hidden"
+                       onchange="handleImageSearch(this)">
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Add Image Search Modal -->
+<div id="imageSearchModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+    <div class="bg-white rounded-lg p-6 max-w-lg w-full mx-4">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-semibold">Image Search</h3>
+            <button onclick="closeImageModal()" class="text-gray-500 hover:text-gray-700">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <div class="space-y-4">
+            <!-- Image Preview -->
+            <div id="imagePreview" class="hidden">
+                <img src="" alt="Preview" class="w-full h-48 object-contain rounded-lg border">
+                <button onclick="removeImage()" 
+                        class="mt-2 text-red-500 text-sm hover:text-red-700">
+                    Remove Image
+                </button>
+            </div>
+            
+            <!-- Upload Area -->
+            <div id="uploadArea" class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-3"></i>
+                <p class="text-gray-600">Drag and drop an image here or click to upload</p>
+                <p class="text-sm text-gray-500 mt-2">Supported formats: JPG, PNG, JPEG</p>
+            </div>
+            
+            <!-- Search Button -->
+            <button onclick="submitImageSearch()" 
+                    class="w-full bg-[var(--primary)] text-white py-2 rounded-lg hover:bg-opacity-90 transition-colors">
+                Search with Image
+            </button>
+        </div>
+    </div>
+</div>
+
              <div class="flex items-center">
                 <!-- Add this in the customer_base.html header section -->
                 <div class="flex items-center space-x-4 mr-4">
@@ -380,8 +441,90 @@
             }
             
             </script>
+<script>
+// Image search handling
+function handleImageSearch(input) {
+    const file = input.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('imageSearchModal').classList.remove('hidden');
+            document.getElementById('imagePreview').classList.remove('hidden');
+            document.getElementById('imagePreview').querySelector('img').src = e.target.result;
+            document.getElementById('uploadArea').classList.add('hidden');
+        };
+        reader.readAsDataURL(file);
+    }
+}
 
+function closeImageModal() {
+    document.getElementById('imageSearchModal').classList.add('hidden');
+    resetImageSearch();
+}
 
+function removeImage() {
+    document.getElementById('imageSearch').value = '';
+    document.getElementById('imagePreview').classList.add('hidden');
+    document.getElementById('uploadArea').classList.remove('hidden');
+}
+
+function resetImageSearch() {
+    removeImage();
+    document.getElementById('imageSearchModal').classList.add('hidden');
+}
+
+function submitImageSearch() {
+    const formData = new FormData();
+    const imageFile = document.getElementById('imageSearch').files[0];
+    
+    if (imageFile) {
+        formData.append('image_query', imageFile);
+        
+        fetch(`{% url 'products:image_search' subdomain=vendor.subdomain %}`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                window.location.href = data.redirect_url;
+            } else {
+                showNotification(data.message, 'error');
+            }
+        })
+        .catch(error => {
+            showNotification('Error processing image search', 'error');
+        });
+    }
+}
+
+// Add drag and drop support
+const uploadArea = document.getElementById('uploadArea');
+
+uploadArea.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    uploadArea.classList.add('border-[var(--primary)]');
+});
+
+uploadArea.addEventListener('dragleave', () => {
+    uploadArea.classList.remove('border-[var(--primary)]');
+});
+
+uploadArea.addEventListener('drop', (e) => {
+    e.preventDefault();
+    uploadArea.classList.remove('border-[var(--primary)]');
+    
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) {
+        const input = document.getElementById('imageSearch');
+        input.files = e.dataTransfer.files;
+        handleImageSearch(input);
+    }
+});
+</script>
 
 
     {% block content %}{% endblock %}

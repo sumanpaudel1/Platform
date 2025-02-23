@@ -54,4 +54,9 @@ urlpatterns = [
           views.search_products,
            name='search'),
 
+
+
+     path('<str:subdomain>.platform/image-search/', 
+         views.image_search_view, 
+         name='image_search'),
 ]

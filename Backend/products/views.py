@@ -1160,7 +1160,8 @@ def search_products(request, subdomain):
     vendor = subdomain_obj.vendor
     
     query = request.GET.get('q', '')
-    categories = request.GET.getlist('categories')
+    selected_categories = request.GET.get('categories', '').split(',')
+    selected_categories = [cat for cat in selected_categories if cat.strip()]
     price_max = request.GET.get('price')
     sort = request.GET.get('sort', 'relevance')
     
@@ -1171,13 +1172,13 @@ def search_products(request, subdomain):
     if query:
         products = products.filter(
             Q(name__icontains=query) |
-            Q(description__icontains=query) |
-            Q(category__category_name__icontains=query)
+            Q(description__icontains=query) 
         ).distinct()
     
     # Apply category filter
-    if categories:
-        products = products.filter(category__id__in=categories)
+    if selected_categories:
+        category_ids = [int(cat) for cat in selected_categories]
+        products = products.filter(category__id__in=category_ids)
     
     # Apply price filter
     if price_max:
@@ -1195,15 +1196,157 @@ def search_products(request, subdomain):
     max_price = Product.objects.filter(vendor=vendor).order_by('-price').first()
     max_price = max_price.price if max_price else 1000
     
+    
+    if request.GET.get('type') == 'image':
+        search_results = request.session.get('image_search_results', [])
+        if search_results:
+            # Extract just the product IDs from the search results
+            product_ids = [result['product_id'] for result in search_results]
+            products = products.filter(id__in=product_ids)
+            
+            # Convert queryset to list and sort by search result order
+            products_dict = {p.id: p for p in products}
+            sorted_products = [products_dict[pid] for pid in product_ids if pid in products_dict]
+            
+            # Add similarity scores to products
+            scores_dict = {result['product_id']: result['similarity_score'] for result in search_results}
+            for product in sorted_products:
+                product.similarity_score = scores_dict.get(product.id, 0)
+            
+            products = sorted_products
+    
     context = {
         'products': products,
         'query': query,
         'categories': Category.objects.filter(vendor=vendor),
-        'selected_categories': categories,
+        'selected_categories': selected_categories,
         'max_price': max_price,
         'selected_price': price_max,
         'sort': sort,
-        'vendor': vendor
+        'vendor': vendor,
+        'is_image_search': request.GET.get('type') == 'image'
     }
     
     return render(request, 'products/search_result.html', context)
+
+
+
+
+
+
+
+from PIL import Image
+import numpy as np
+from tensorflow.keras.applications.resnet50 import ResNet50, preprocess_input
+from tensorflow.keras.preprocessing import image
+from sklearn.metrics.pairwise import cosine_similarity
+import io
+
+class ImageSearch:
+    def __init__(self):
+        self.model = ResNet50(weights='imagenet', include_top=False, pooling='avg')
+        print("ImageSearch initialized with ResNet50 model")  # Debug print
+        
+    def extract_features(self, img):
+        """Extract features from image using ResNet50"""
+        img = img.resize((224, 224))
+        x = image.img_to_array(img)
+        x = np.expand_dims(x, axis=0)
+        x = preprocess_input(x)
+        features = self.model.predict(x)
+        return features
+
+    def find_similar_products(self, query_features, product_features, k=12):
+        """Find similar products with similarity scores"""
+        similarities = cosine_similarity(query_features, product_features)
+        similar_indices = np.argsort(similarities[0])[::-1][:k]
+        similarity_scores = similarities[0][similar_indices] * 100
+        return similar_indices, similarity_scores
+
+# Create a global instance of ImageSearch
+try:
+    image_search = ImageSearch()
+    print("Successfully created ImageSearch instance")  # Debug print
+except Exception as e:
+    print(f"Error creating ImageSearch instance: {str(e)}")  # Debug print
+
+
+
+def image_search_view(request, subdomain):
+    try:
+        if 'image_query' not in request.FILES:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'No image file provided'
+            })
+            
+        image_file = request.FILES['image_query']
+        img = Image.open(io.BytesIO(image_file.read())).convert('RGB')
+        query_features = image_search.extract_features(img)
+        
+        subdomain_obj = get_object_or_404(Subdomain, subdomain=subdomain)
+        vendor = subdomain_obj.vendor
+        products = Product.objects.filter(vendor=vendor).prefetch_related('product_images')
+        
+        product_features_dict = {}
+        product_scores_dict = {}
+        
+        for product in products:
+            best_similarity = 0
+            product_feature = None
+            
+            for product_image in product.product_images.all():
+                try:
+                    img_path = product_image.image.path
+                    img = Image.open(img_path).convert('RGB')
+                    features = image_search.extract_features(img)
+                    # Convert to Python float
+                    similarity = float(cosine_similarity(query_features, features.reshape(1, -1))[0][0] * 100)
+                    
+                    if similarity > best_similarity:
+                        best_similarity = similarity
+                        product_feature = features.tolist()  # Convert numpy array to list
+                        
+                except Exception as e:
+                    continue
+                    
+            if product_feature is not None:
+                product_features_dict[str(product.id)] = product_feature  # Convert key to string
+                product_scores_dict[str(product.id)] = best_similarity
+        
+        if not product_features_dict:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'No products found to compare'
+            })
+        
+        # Sort products by similarity score
+        sorted_products = sorted(
+            product_scores_dict.items(), 
+            key=lambda x: x[1], 
+            reverse=True
+        )[:12]
+        
+        # Create results with converted types
+        search_results = [
+            {
+                'product_id': int(product_id),  # Convert back to int
+                'similarity_score': float(score)  # Ensure float type
+            }
+            for product_id, score in sorted_products
+        ]
+        
+        # Store results in session
+        request.session['image_search_results'] = search_results
+        
+        return JsonResponse({
+            'status': 'success',
+            'redirect_url': reverse('products:search', kwargs={'subdomain': subdomain}) + '?type=image'
+        })
+        
+    except Exception as e:
+        print(f"Image search error: {str(e)}")  # Debug print
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        })
