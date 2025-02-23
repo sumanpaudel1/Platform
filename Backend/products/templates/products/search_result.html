@@ -22,7 +22,9 @@
                 <div class="space-y-2">
                     {% for category in categories %}
                     <label class="flex items-center">
-                        <input type="checkbox" name="category" value="{{ category.id }}"
+                        <input type="checkbox" 
+                               name="category" 
+                               value="{{ category.id }}"
                                class="form-checkbox text-[var(--primary)]"
                                {% if category.id|stringformat:"i" in selected_categories %}checked{% endif %}>
                         <span class="ml-2 text-sm">{{ category.category_name }}</span>
@@ -63,41 +65,67 @@
             {% if products %}
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {% for product in products %}
-                    <div class="bg-white rounded-lg shadow-sm overflow-hidden group">
+                    <div class="bg-white rounded-lg shadow-sm overflow-hidden group h-[400px] flex flex-col">
+                        <!-- Image Container with Fixed Height -->
                         <a href="{% url 'products:product_detail' subdomain=vendor.subdomain.subdomain slug=product.slug %}"
-                           class="block relative">
-                            <div class="aspect-w-1 aspect-h-1 overflow-hidden">
+                        class="block relative h-[250px]"> <!-- Fixed height for image container -->
+                            <div class="w-full h-full overflow-hidden">
                                 {% if product.product_images.first %}
                                 <img src="{{ product.product_images.first.image.url }}"
-                                     class="w-full h-full object-cover transform group-hover:scale-105 transition duration-300">
+                                    alt="{{ product.name }}"
+                                    class="w-full h-full object-cover transform group-hover:scale-105 transition duration-300">
                                 {% endif %}
                             </div>
+                            
                             {% if product.cut_price %}
                             <div class="absolute top-2 left-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full">
                                 SAVE {{ product.discount_percentage }}%
                             </div>
                             {% endif %}
+                            
+                            {% if is_image_search %}
+                            <div class="absolute top-2 right-2 bg-black bg-opacity-75 text-white px-2 py-1 rounded-full text-sm">
+                                {{ product.similarity_score|floatformat:1 }}% Match
+                            </div>
+                            {% endif %}
                         </a>
-                        <div class="p-4">
-                            <h3 class="font-medium">{{ product.name }}</h3>
-                            <div class="mt-2 flex justify-between items-center">
-                                <div>
-                                    <span class="text-lg font-bold text-[var(--primary)]">${{ product.price }}</span>
-                                    {% if product.cut_price %}
-                                    <span class="text-sm text-gray-500 line-through ml-2">${{ product.cut_price }}</span>
-                                    {% endif %}
+
+                        <!-- Product Details with Flex Grow -->
+                        <div class="p-4 flex flex-col flex-grow justify-between">
+                            <!-- Product Name -->
+                            <h3 class="font-medium text-gray-900 line-clamp-2">{{ product.name }}</h3>
+                            
+                            <!-- Price and Actions -->
+                            <div class="mt-auto">
+                                <div class="flex justify-between items-center">
+                                    <div class="flex flex-col">
+                                        <span class="text-lg font-bold text-[var(--primary)]">${{ product.price }}</span>
+                                        {% if product.cut_price %}
+                                        <span class="text-sm text-gray-500 line-through">${{ product.cut_price }}</span>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div class="flex items-center gap-2">
+                                        {% if is_image_search %}
+                                        <div class="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                                            {{ product.similarity_score|floatformat:1 }}%
+                                        </div>
+                                        {% endif %}
+                                        
+                                        <button onclick="addToCart({{ product.id }})"
+                                                class="text-[var(--primary)] hover:bg-[var(--primary)] hover:text-white
+                                                    p-2 rounded-full transition-colors duration-300">
+                                            <i class="fas fa-shopping-cart"></i>
+                                        </button>
+                                    </div>
                                 </div>
-                                <button onclick="addToCart({{ product.id }})"
-                                        class="text-[var(--primary)] hover:bg-[var(--primary)] hover:text-white
-                                               p-2 rounded-full transition-colors duration-300">
-                                    <i class="fas fa-shopping-cart"></i>
-                                </button>
                             </div>
                         </div>
                     </div>
                     {% endfor %}
                 </div>
             {% else %}
+
                 <div class="text-center py-12">
                     <i class="fas fa-search text-gray-400 text-5xl mb-4"></i>
                     <h2 class="text-2xl font-medium text-gray-600">No products found</h2>
@@ -108,52 +136,66 @@
     </div>
 </div>
 
+
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const filterForm = document.getElementById('filterForm');
-    const priceRange = document.getElementById('priceRange');
-    const priceValue = document.getElementById('priceValue');
-    const sortOption = document.getElementById('sortOption');
-    const categoryCheckboxes = document.querySelectorAll('input[name="category"]');
-
-    // Update price display
-    priceRange.addEventListener('input', function() {
-        priceValue.textContent = `$${this.value}`;
-    });
-
-    // Handle filter changes
-    function applyFilters() {
-        const searchParams = new URLSearchParams(window.location.search);
-        
-        // Add price filter
-        searchParams.set('price', priceRange.value);
-        
-        // Add sort option
-        searchParams.set('sort', sortOption.value);
-        
-        // Add categories
-        const selectedCategories = [];
-        categoryCheckboxes.forEach(checkbox => {
-            if (checkbox.checked) {
-                selectedCategories.push(checkbox.value);
-            }
+    document.addEventListener('DOMContentLoaded', function() {
+        const filterForm = document.getElementById('filterForm');
+        const priceRange = document.getElementById('priceRange');
+        const priceValue = document.getElementById('priceValue');
+        const sortOption = document.getElementById('sortOption');
+        const categoryCheckboxes = document.querySelectorAll('input[name="category"]');
+    
+        // Update price display
+        priceRange.addEventListener('input', function() {
+            priceValue.textContent = `$${this.value}`;
         });
-        if (selectedCategories.length) {
-            searchParams.set('categories', selectedCategories.join(','));
-        } else {
-            searchParams.delete('categories');
+    
+        // Handle filter changes
+        function applyFilters() {
+            const searchParams = new URLSearchParams(window.location.search);
+            
+            // Add price filter
+            searchParams.set('price', priceRange.value);
+            
+            // Add sort option
+            searchParams.set('sort', sortOption.value);
+            
+            // Add categories
+            const selectedCategories = Array.from(categoryCheckboxes)
+                .filter(cb => cb.checked)
+                .map(cb => cb.value);
+                
+            if (selectedCategories.length) {
+                searchParams.set('categories', selectedCategories.join(','));
+            } else {
+                searchParams.delete('categories');
+            }
+    
+            // Preserve search query if exists
+            const searchQuery = searchParams.get('q');
+            if (searchQuery) {
+                searchParams.set('q', searchQuery);
+            }
+            
+            // Redirect with new filters
+            window.location.href = `${window.location.pathname}?${searchParams.toString()}`;
         }
-        
-        // Redirect with new filters
-        window.location.href = `${window.location.pathname}?${searchParams.toString()}`;
-    }
-
-    // Add event listeners
-    priceRange.addEventListener('change', applyFilters);
-    sortOption.addEventListener('change', applyFilters);
-    categoryCheckboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', applyFilters);
+    
+        // Add event listeners
+        priceRange.addEventListener('change', applyFilters);
+        sortOption.addEventListener('change', applyFilters);
+        categoryCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', applyFilters);
+        });
     });
-});
-</script>
+    </script>
+
+<style>
+    .line-clamp-2 {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+</style>
 {% endblock %}
