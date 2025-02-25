@@ -153,7 +153,7 @@ def product_create(request):
             product = form.save(commit=False)
             product.vendor = request.user
             product.save()
-            return redirect('product_list')
+            return redirect('products:product_list')
     else:
         form = ProductForm()
     return render(request, 'products/product_form.html', {'form': form})
@@ -178,6 +178,7 @@ def cart_count(request):
 from django.http import JsonResponse
 import json
 from django.template.loader import render_to_string
+import io
 
 from django.views.decorators.http import require_http_methods
 
@@ -1200,20 +1201,32 @@ def search_products(request, subdomain):
     if request.GET.get('type') == 'image':
         search_results = request.session.get('image_search_results', [])
         if search_results:
-            # Extract just the product IDs from the search results
-            product_ids = [result['product_id'] for result in search_results]
-            products = products.filter(id__in=product_ids)
+            # Filter results with similarity score >= 80%
+            product_ids = [
+                result['product_id'] 
+                for result in search_results 
+                if result['similarity_score'] >= 80
+            ]
             
-            # Convert queryset to list and sort by search result order
-            products_dict = {p.id: p for p in products}
-            sorted_products = [products_dict[pid] for pid in product_ids if pid in products_dict]
+            if not product_ids:
+                products = Product.objects.none()  # Return empty queryset if no matches
+            else:
+                # Get products and preserve search order
+                product_id_to_score = {
+                    result['product_id']: result['similarity_score']
+                    for result in search_results
+                    if result['similarity_score'] >= 80
+                }
+                
+                products = products.filter(id__in=product_ids)
+                
+                # Add similarity scores to products
+                for product in products:
+                    product.similarity_score = product_id_to_score.get(product.id, 0)
+                
+                # Sort by similarity score
+                products = sorted(products, key=lambda p: p.similarity_score, reverse=True)
             
-            # Add similarity scores to products
-            scores_dict = {result['product_id']: result['similarity_score'] for result in search_results}
-            for product in sorted_products:
-                product.similarity_score = scores_dict.get(product.id, 0)
-            
-            products = sorted_products
     
     context = {
         'products': products,
@@ -1233,110 +1246,64 @@ def search_products(request, subdomain):
 
 
 
+#image search
 
 
+from .vector_database import VectorDatabase
 from PIL import Image
-import numpy as np
-from tensorflow.keras.applications.resnet50 import ResNet50, preprocess_input
-from tensorflow.keras.preprocessing import image
-from sklearn.metrics.pairwise import cosine_similarity
 import io
 
-class ImageSearch:
-    def __init__(self):
-        self.model = ResNet50(weights='imagenet', include_top=False, pooling='avg')
-        print("ImageSearch initialized with ResNet50 model")  # Debug print
-        
-    def extract_features(self, img):
-        """Extract features from image using ResNet50"""
-        img = img.resize((224, 224))
-        x = image.img_to_array(img)
-        x = np.expand_dims(x, axis=0)
-        x = preprocess_input(x)
-        features = self.model.predict(x)
-        return features
+# Create global instance
+from .vector_database import VectorDatabase
 
-    def find_similar_products(self, query_features, product_features, k=12):
-        """Find similar products with similarity scores"""
-        similarities = cosine_similarity(query_features, product_features)
-        similar_indices = np.argsort(similarities[0])[::-1][:k]
-        similarity_scores = similarities[0][similar_indices] * 100
-        return similar_indices, similarity_scores
-
-# Create a global instance of ImageSearch
+# Create global instance with proper initialization
 try:
-    image_search = ImageSearch()
-    print("Successfully created ImageSearch instance")  # Debug print
+    vector_db = VectorDatabase()
+    print("Vector database initialized successfully")
 except Exception as e:
-    print(f"Error creating ImageSearch instance: {str(e)}")  # Debug print
+    print(f"Error initializing vector database: {str(e)}")
+    vector_db = None
 
-
-
+@require_http_methods(["POST"])
 def image_search_view(request, subdomain):
     try:
         if 'image_query' not in request.FILES:
             return JsonResponse({
-                'status': 'error',
+                'status': 'error', 
                 'message': 'No image file provided'
             })
             
-        image_file = request.FILES['image_query']
-        img = Image.open(io.BytesIO(image_file.read())).convert('RGB')
-        query_features = image_search.extract_features(img)
-        
         subdomain_obj = get_object_or_404(Subdomain, subdomain=subdomain)
         vendor = subdomain_obj.vendor
-        products = Product.objects.filter(vendor=vendor).prefetch_related('product_images')
         
-        product_features_dict = {}
-        product_scores_dict = {}
+        # Process query image
+        image_file = request.FILES['image_query']
+        img = Image.open(io.BytesIO(image_file.read())).convert('RGB')
         
-        for product in products:
-            best_similarity = 0
-            product_feature = None
+        # Debug print
+        print(f"Processing image search for vendor {vendor.id}")
+        
+        # Get search results
+        search_results = vector_db.search_by_image(vendor.id, img)
+        print(f"Search results: {search_results}")  # Debug print
+        
+        if not search_results:
+            # Index all products first if no results found
+            products = Product.objects.filter(vendor=vendor)
+            for product in products:
+                if product.product_images.exists():
+                    vector_db.index_product_images(vendor.id, [product])
             
-            for product_image in product.product_images.all():
-                try:
-                    img_path = product_image.image.path
-                    img = Image.open(img_path).convert('RGB')
-                    features = image_search.extract_features(img)
-                    # Convert to Python float
-                    similarity = float(cosine_similarity(query_features, features.reshape(1, -1))[0][0] * 100)
-                    
-                    if similarity > best_similarity:
-                        best_similarity = similarity
-                        product_feature = features.tolist()  # Convert numpy array to list
-                        
-                except Exception as e:
-                    continue
-                    
-            if product_feature is not None:
-                product_features_dict[str(product.id)] = product_feature  # Convert key to string
-                product_scores_dict[str(product.id)] = best_similarity
+            # Try search again
+            search_results = vector_db.search_by_image(vendor.id, img)
         
-        if not product_features_dict:
+        if not search_results:
             return JsonResponse({
                 'status': 'error',
-                'message': 'No products found to compare'
+                'message': 'No similar products found'
             })
         
-        # Sort products by similarity score
-        sorted_products = sorted(
-            product_scores_dict.items(), 
-            key=lambda x: x[1], 
-            reverse=True
-        )[:12]
-        
-        # Create results with converted types
-        search_results = [
-            {
-                'product_id': int(product_id),  # Convert back to int
-                'similarity_score': float(score)  # Ensure float type
-            }
-            for product_id, score in sorted_products
-        ]
-        
-        # Store results in session
+        # Store in session
         request.session['image_search_results'] = search_results
         
         return JsonResponse({
@@ -1345,8 +1312,11 @@ def image_search_view(request, subdomain):
         })
         
     except Exception as e:
-        print(f"Image search error: {str(e)}")  # Debug print
+        print(f"Image search error: {str(e)}")
         return JsonResponse({
             'status': 'error',
             'message': str(e)
         })
+  
+  
+
