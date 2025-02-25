@@ -260,3 +260,11 @@ ESEWA = {
     'FAILURE_URL': 'http://127.0.0.1:8080/esewa/failure/',
     'TEST_MODE': True,  # Set to False in production
 }
+
+
+
+
+PINECONE_API_KEY = "pcsk_5toyDy_F6mkKSjGqaKyx9zmvxYrsaXoyhjBPr7A6otLiRBUWzwYFQh6YjHZy4WnQTmCFbC"
+PINECONE_INDEX_NAME = "product-search"
+PINECONE_HOST = "https://product-search-vjwf63f.svc.aped-4627-b74a.pinecone.io"
+PINECONE_DIMENSION = 2048  # Match your existing index dimension

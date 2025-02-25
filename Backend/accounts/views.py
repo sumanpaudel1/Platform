@@ -370,7 +370,15 @@ def delete_cover_photo(request, photo_id):
 
 #Product views
 
+from products.vector_database import VectorDatabase
 
+# Create global instance with proper initialization
+try:
+    vector_db = VectorDatabase()
+    print("Vector database initialized successfully")
+except Exception as e:
+    print(f"Error initializing vector database: {str(e)}")
+    vector_db = None
 
 
 
@@ -412,14 +420,17 @@ def vendor_product_edit(request, pk):
         if form.is_valid():
             product = form.save()
             
-            
-
-            
             # Handle product images
             if request.FILES.getlist('product_images'):
                 for image in request.FILES.getlist('product_images'):
                     ProductImage.objects.create(product=product, image=image)
 
+                try:
+                    vector_db.index_product_images(request.user.id, [product])
+                    print(f"Vector index updated for product {product.id}")
+                except Exception as e:
+                    print(f"Error updating index: {str(e)}")
+                    
             # Handle color variants
             product.color_variant.set(request.POST.getlist('color_variants'))
             
@@ -455,7 +466,16 @@ def delete_product_image(request, image_id):
             image = get_object_or_404(ProductImage, 
                                     id=image_id, 
                                     product__vendor=request.user)
+            
+            product = image.product
             image.delete()
+            
+            if product.product_images.exists():
+                try:
+                    vector_db.index_product_images(request.user.id, [product])
+                    print(f"Vector index updated after image deletion for product {product.id}")
+                except Exception as e:
+                    print(f"Error updating index: {str(e)}")
             return JsonResponse({
                 'status': 'success',
                 'message': 'Image deleted successfully!'
@@ -598,6 +618,12 @@ def vendor_product_create(request):
             for img in images:
                 ProductImage.objects.create(product=product, image=img)
 
+            try:
+                vector_db.index_product_images(request.user.id, [product])
+                print(f"Vector index created for new product {product.id}")
+            except Exception as e:
+                print(f"Error indexing new product: {str(e)}")
+                
             # Handle new color variants
             new_colors = []
             for key in request.POST:
@@ -637,7 +663,7 @@ def vendor_product_create(request):
                 SizeVariant.objects.filter(id=size_id, product=product).delete()
 
             messages.success(request, 'Product created successfully!')
-            return redirect('vendor_products')
+            return redirect('accounts:vendor_products')
         else:
             print(form.errors)  # Debug
             messages.error(request, f"Form errors: {form.errors}")
