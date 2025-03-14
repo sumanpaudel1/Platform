@@ -1,6 +1,8 @@
 import hmac
 import hashlib
 import base64
+import uuid
+import time
 
 class EsewaPayment:
     def __init__(self):
@@ -26,7 +28,11 @@ class EsewaPayment:
     def generate_payment_data(self, order):
         # Format amount to 2 decimal places
         amount = "{:.2f}".format(float(order.total_amount))
-        transaction_uuid = f"{order.order_id}"  # Simplified UUID
+        
+        # Generate a unique transaction UUID that includes the order ID
+        # but is guaranteed to be unique for each payment attempt
+        unique_id = f"{order.order_id}-{int(time.time())}-{uuid.uuid4().hex[:8]}"
+        transaction_uuid = unique_id
         
         params = {
             'amount': amount,
@@ -48,4 +54,5 @@ class EsewaPayment:
             product_code=self.merchant_id
         )
         
+        # Store original order ID in session or somewhere to retrieve after payment
         return self.test_url, params

@@ -94,6 +94,8 @@ def login_vendor(request):
 
     return render(request, 'accounts/login.html', {'form': form})
 
+
+
 from django.contrib.auth.decorators import login_required
 
 

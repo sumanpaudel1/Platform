@@ -134,15 +134,17 @@ class PaymentMethod(models.TextChoices):
     COD = 'cod', 'Cash on Delivery'
 
 class OrderStatus(models.TextChoices):
+    PENDING_PAYMENT = 'pending_payment', 'Pending Payment'
     PENDING = 'pending', 'Pending'
     PROCESSING = 'processing', 'Processing'
     SHIPPED = 'shipped', 'Shipped'
     DELIVERED = 'delivered', 'Delivered'
     CANCELLED = 'cancelled', 'Cancelled'
+    PAYMENT_FAILED = 'payment_failed', 'Payment Failed'
 
 # Add this new model for delivery addresses
 class DeliveryAddress(models.Model):
-    customer = models.ForeignKey('accounts.Customer', on_delete=models.CASCADE)
+    customer = models.ForeignKey('accounts.Customer', on_delete=models.CASCADE, related_name='addresses')
     full_name = models.CharField(max_length=100)
     phone_regex = RegexValidator(regex=r'^\+?1?\d{9,15}$')
     phone_number = models.CharField(validators=[phone_regex], max_length=16)
@@ -273,10 +275,20 @@ class Payment(models.Model):
 
 
 
-
-
-
-
+# Add this function to the models.py file
+from products.models import Order
+def cleanup_abandoned_payments():
+    # Find pending payment orders older than 1 hour
+    expiry_time = timezone.now() - timedelta(hours=1)
+    abandoned_orders = Order.objects.filter(
+        status='pending_payment',
+        created_at__lt=expiry_time
+    )
+    
+    # Update status to payment_failed
+    abandoned_orders.update(status='payment_failed')
+    
+    return abandoned_orders.count()
 
 
 

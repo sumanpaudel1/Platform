@@ -54,9 +54,15 @@ urlpatterns = [
           views.search_products,
            name='search'),
 
-
+     path('<str:subdomain>/products/', views.product_list, name='product_list'),
 
      path('<str:subdomain>.platform/image-search/', 
          views.image_search_view, 
          name='image_search'),
+     
+     path('<str:subdomain>.platform/buy-now-checkout/', views.buy_now_checkout, name='buy_now_checkout'),
+     
+     path('api/store-buy-now/', views.store_buy_now_data, name='store_buy_now_data'),
+     
+     path('api/orders/<str:order_id>/payment-details/', views.get_payment_details, name='order_payment_details'),
 ]

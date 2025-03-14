@@ -1,4 +1,7 @@
+{% extends 'accounts/home.html' %}
+{% block title %}Vendor Profile{% endblock %}
 
+{% block dashboard_content %}
 
 {% load static %}
 <!DOCTYPE html>
@@ -6,7 +9,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vendor Profile</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <style>
         .form-input {
@@ -559,3 +561,5 @@
     </script>
 </body> 
 </html>
+
+{% endblock %}
