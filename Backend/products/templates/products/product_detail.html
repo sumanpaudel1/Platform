@@ -568,55 +568,49 @@ document.addEventListener('DOMContentLoaded', function() {
     
     
     // Buy Now Function
-    function buyNow() {
-        const quantity = parseInt(document.getElementById('quantity').value);
-        
-        // Validate selections
-        if (document.querySelector('.color-swatch') && !selectedColor) {
-            showNotification('Please select a color', 'error');
-            return;
-        }
-        
-        if (document.querySelector('.size-option') && !selectedSize) {
-            showNotification('Please select a size', 'error');
-            return;
-        }
-        
-        const data = {
+// In product_detail.html
+function buyNow() {
+    const quantity = parseInt(document.getElementById('quantity').value || 1);
+    
+    // Validate selections if needed
+    if (document.querySelector('.color-swatch') && !selectedColor) {
+        showNotification('Please select a color', 'error');
+        return;
+    }
+    
+    if (document.querySelector('.size-option') && !selectedSize) {
+        showNotification('Please select a size', 'error');
+        return;
+    }
+    
+    // Send data to backend to store in session
+    fetch('/api/store-buy-now/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
             product_id: {{ product.id }},
             quantity: quantity,
             color_id: selectedColor,
-            size_id: selectedSize,
-            price: currentPrice,
-            buy_now: true
-        };
-        
-        fetch('{% url "products:add_to_cart" %}', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken')
-            },
-            body: JSON.stringify(data)
+            size_id: selectedSize
         })
-        .then(response => {
-            if (response.status === 401) {
-                window.location.href = "{% url 'accounts:customer_login' subdomain=vendor.subdomain %}";
-                return;
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (data.status === 'success') {
-                window.location.href = "{% url 'products:checkout' subdomain=vendor.subdomain %}";
-            } else {
-                throw new Error(data.message);
-            }
-        })
-        .catch(error => {
-            showNotification(error.message || 'Failed to process', 'error');
-        });
-    }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            window.location.href = "{% url 'products:buy_now_checkout' subdomain=vendor.subdomain.subdomain %}";
+        } else {
+            showNotification('Error: ' + data.message, 'error');
+        }
+    })
+    .catch(error => {
+        showNotification('Error: ' + error.message, 'error');
+    });
+}
+    
+
     
     // Wishlist Function
 function toggleWishlist(productId) {

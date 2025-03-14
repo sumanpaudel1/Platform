@@ -88,6 +88,27 @@
             
             <!-- Order Items -->
             <div class="space-y-4 mb-6">
+                {% if is_buy_now %}
+                <div class="flex items-center">
+                    <img src="{{ product.product_images.first.image.url }}" 
+                         class="w-16 h-16 object-cover rounded-lg">
+                    <div class="ml-4 flex-1">
+                        <h3 class="text-sm font-medium">{{ product.name }}</h3>
+                        <p class="text-sm text-gray-500">
+                            Qty: {{ buy_now_data.quantity }}
+                            {% if selected_color %}
+                                | Color: {{ selected_color.color_name }}
+                            {% endif %}
+                           
+                                {% if selected_size %}
+                                | Size: {{ selected_size.size_name }}
+                                {% endif %}
+                        
+                        </p>
+                    </div>
+                    <p class="text-sm font-medium">${{ total }}</p>
+                </div>
+                {% else %}
                 {% for item in cart_items %}
                 <div class="flex items-center">
                     <img src="{{ item.product.product_images.first.image.url }}" 
@@ -103,6 +124,7 @@
                     <p class="text-sm font-medium">${{ item.total_price }}</p>
                 </div>
                 {% endfor %}
+                {% endif %}
             </div>
             
             <!-- Payment Method -->
@@ -282,7 +304,8 @@
                     state: formData.get('state'),
                     postal_code: formData.get('postal_code'),
                     save_address: formData.get('save_address') === 'on'
-                }
+                },
+                is_buy_now: {% if is_buy_now %}true{% else %}false{% endif %}
             };
             
             // Show confirmation for COD
@@ -332,5 +355,9 @@ function showToast(title, message, type = 'success') {
         setTimeout(() => toast.remove(), 300);
     }, 3000);
 }
+
+
+
+
 </script>
 {% endblock %}

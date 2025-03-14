@@ -21,7 +21,8 @@
             <div class="space-y-4">
                 {% for item in cart_items %}
                 <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden" 
-                     data-item="{{ item.id }}">
+                     data-item="{{ item.id }}"
+                     data-stock="{{ item.product.stock }}"> 
                     <div class="p-6">
                         <div class="flex items-center space-x-6">
                             <!-- Product Image -->
@@ -316,6 +317,17 @@ async function removeFromCart(itemId) {
 
 // Update the updateQuantity function to show notifications
 function updateQuantity(itemId, action) {
+    // Get the stock limit from the data attribute
+    const cartItem = document.querySelector(`[data-item="${itemId}"]`);
+    const stockLimit = parseInt(cartItem.dataset.stock);
+    const currentQuantity = parseInt(cartItem.querySelector('.quantity-display').textContent);
+    
+    // Check if increase action would exceed stock
+    if (action === 'increase' && currentQuantity >= stockLimit) {
+        showToast('Stock Limit', `Only ${stockLimit} items available in stock`, 'error');
+        return;
+    }
+    
     fetch('{% url "products:update_cart" %}', {
         method: 'POST',
         headers: {
@@ -324,12 +336,14 @@ function updateQuantity(itemId, action) {
         },
         body: JSON.stringify({
             item_id: itemId,
-            action: action
+            action: action,
+            stock_limit: stockLimit // Send stock limit to backend
         })
     })
     .then(response => response.json())
     .then(data => {
         if (data.status === 'success') {
+            // Rest of your code remains the same
             const cartItem = document.querySelector(`[data-item="${itemId}"]`);
             
             if (data.quantity === 0) {
@@ -358,6 +372,8 @@ function updateQuantity(itemId, action) {
             updateCartCount(data.cart_count);
             document.querySelector('.subtotal-display').textContent = `$${data.subtotal.toFixed(2)}`;
             document.querySelector('.total-display').textContent = `$${data.total.toFixed(2)}`;
+        } else {
+            showToast('Error', data.message || 'Failed to update quantity', 'error');
         }
     })
     .catch(error => {
