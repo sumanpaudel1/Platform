@@ -16,8 +16,6 @@ urlpatterns = [
     path('api/cart/remove/<int:item_id>/',remove_from_cart, name='remove_from_cart'),
     
     path('<str:subdomain>.platform/wishlist/', wishlist_view, name='wishlist'),
-#     path('api/wishlist/add/', add_to_wishlist, name='add_to_wishlist'),
-#     path('api/wishlist/remove/<int:product_id>/', remove_from_wishlist, name='remove_from_wishlist'),
     path('api/wishlist/toggle/', toggle_wishlist, name='toggle_wishlist'),
     
     

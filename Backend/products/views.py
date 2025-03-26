@@ -12,7 +12,11 @@ from django.conf import settings
 from django.utils import timezone
 from django.core.mail import send_mail
 
-
+from django.http import JsonResponse
+import json
+from django.template.loader import render_to_string
+import io
+from django.views.decorators.http import require_http_methods
 
 from django.shortcuts import redirect
 from django.contrib import messages
@@ -41,12 +45,6 @@ def vendor_home(request, subdomain):
         vendor = subdomain_obj.vendor
         
         customer = request.customer
-        
-        # Debug prints
-        # print("Debug Info:")
-        # print(f"Session Data: {dict(request.session)}")
-        # print(f"User Auth: {request.user.is_authenticated}")
-        # print(f"Customer ID in session: {request.session.get('customer_id')}")
         
         customer = None
         if request.session.get('customer_id'):
@@ -98,12 +96,6 @@ def vendor_home(request, subdomain):
         if vendor.settings.instagram:
             instagram_posts = fetch_instagram_posts(vendor.settings.instagram)
             context['instagram_posts'] = instagram_posts
-        #     print(f"Instagram posts found: {len(instagram_posts)}")
-        #     print(f"First post: {instagram_posts[0] if instagram_posts else 'None'}")
-            
-        # print(f"Session customer_id: {request.session.get('customer_id')}")
-        # print(f"Customer in context: {context['customer']}")
-        # print(f"Context customer before render: {context['customer']}")
         
         return render(request, 'products/vendor_home.html', context)
         
@@ -260,66 +252,7 @@ def cart_count(request):
     return {'cart_count': 0, 'wishlist_count': 0}
 
 
-
-
-
-
-    
-
-from django.http import JsonResponse
-import json
-from django.template.loader import render_to_string
-import io
-
-from django.views.decorators.http import require_http_methods
-
-# @require_http_methods(["POST"])
-# def add_to_cart(request):
-#     try:
-#         data = json.loads(request.body)
-#         customer_id = request.session.get('customer_id')
-        
-#         if not customer_id:
-#             return JsonResponse({
-#                 'status': 'error',
-#                 'message': 'Please login to continue'
-#             }, status=401)
-        
-#         # Get product
-#         product = get_object_or_404(Product, id=data.get('product_id'))
-        
-#         # Get or create cart item
-#         cart_item, created = Cart.objects.get_or_create(
-#             customer_id=customer_id,
-#             product=product,
-#             vendor=product.vendor,
-#             defaults={
-#                 'quantity': int(data.get('quantity', 1)),
-#                 'color_id': data.get('color_id'),
-#                 'size_id': data.get('size_id')
-#             }
-#         )
-        
-#         if not created:
-#             cart_item.quantity += int(data.get('quantity', 1))
-#             cart_item.save()
-            
-#         # Get updated cart count
-#         cart_count = Cart.objects.filter(customer_id=customer_id).count()
-        
-#         return JsonResponse({
-#             'status': 'success',
-#             'message': 'Added to cart successfully',
-#             'cart_count': cart_count
-#         })
-        
-#     except Exception as e:
-#         return JsonResponse({
-#             'status': 'error',
-#             'message': 'An error occurred while adding to cart'
-#         }, status=500)
-
-
+ 
 
 # Add this import at the top with other imports
 from django.db.models import Sum, F
@@ -528,81 +461,6 @@ def wishlist_view(request, subdomain):
     except Customer.DoesNotExist:
         messages.error(request, "Please login to view your wishlist")
         return redirect('accounts:customer_login', subdomain=subdomain)
-
-# def add_to_wishlist(request):
-#     if not request.session.get('customer_id'):
-#         return JsonResponse({
-#             'status': 'error',
-#             'message': 'Please login first'
-#         }, status=401)
-
-#     if request.method == 'POST':
-#         data = json.loads(request.body)
-#         product_id = data.get('product_id')
-        
-#         try:
-#             customer = get_object_or_404(Customer, id=request.session['customer_id'])
-#             product = get_object_or_404(Product, id=product_id)
-            
-#             wishlist_item, created = Wishlist.objects.get_or_create(
-#                 customer=customer,
-#                 product=product,
-#                 vendor=product.vendor
-#             )
-            
-#             wishlist_count = Wishlist.objects.filter(customer=customer).count()
-            
-#             return JsonResponse({
-#                 'status': 'success',
-#                 'wishlist_count': wishlist_count,
-#                 'message': 'Added to wishlist' if created else 'Already in wishlist'
-#             })
-            
-#         except Exception as e:
-#             return JsonResponse({
-#                 'status': 'error',
-#                 'message': str(e)
-#             }, status=400)
-    
-#     return JsonResponse({'status': 'error'}, status=400)
-
-
-
-# def remove_from_wishlist(request, product_id):
-#     if not request.session.get('customer_id'):
-#         return JsonResponse({
-#             'status': 'error',
-#             'message': 'Please login first'
-#         }, status=401)
-        
-#     if request.method == 'POST':
-#         try:
-#             customer = Customer.objects.get(id=request.session['customer_id'])
-#             wishlist_item = Wishlist.objects.get(
-#                 customer=customer,
-#                 product_id=product_id
-#             )
-#             wishlist_item.delete()
-            
-#             # Get updated wishlist count
-#             wishlist_count = Wishlist.objects.filter(customer=customer).count()
-            
-#             return JsonResponse({
-#                 'status': 'success',
-#                 'wishlist_count': wishlist_count,
-#                 'message': 'Item removed from wishlist'
-#             })
-            
-#         except (Customer.DoesNotExist, Wishlist.DoesNotExist) as e:
-#             return JsonResponse({
-#                 'status': 'error',
-#                 'message': str(e)
-#             }, status=404)
-            
-#     return JsonResponse({
-#         'status': 'error',
-#         'message': 'Invalid request method'
-#     }, status=400)
 
 
 
@@ -1712,109 +1570,6 @@ def fetch_instagram_posts(instagram_handle):
         return []
     
     
-    
-    
-
-
-# def debug_pinecone(request, subdomain):
-#     """Debug view to see what's in Pinecone"""
-#     try:
-#         from ai_features.clip_pineconesearch import CLIPPineconeSearch
-        
-#         # Initialize search
-#         clip_search = CLIPPineconeSearch()
-        
-#         if not clip_search or not clip_search.index:
-#             return JsonResponse({'status': 'error', 'message': 'Pinecone not initialized'})
-            
-#         # Check Pinecone stats - CONVERT TO DICT for JSON serialization
-#         stats = clip_search.index.describe_index_stats()
-        
-#         # Convert stats to a serializable dict
-#         serializable_stats = {
-#             'namespaces': stats.namespaces,
-#             'dimension': stats.dimension,
-#             'index_fullness': stats.index_fullness,
-#             'total_vector_count': stats.total_vector_count,
-#         }
-        
-#         # Get a few vectors as samples
-#         try:
-#             query_response = clip_search.index.query(
-#                 vector=[0.0] * 512,  # Dummy vector
-#                 top_k=5,
-#                 include_metadata=True
-#             )
-#             matches = query_response.get('matches', [])
-#         except Exception as e:
-#             matches = str(e)
-            
-#         # Convert matches to serializable format if needed
-#         serializable_matches = []
-#         if isinstance(matches, list):
-#             for match in matches:
-#                 if hasattr(match, '__dict__'):
-#                     serializable_matches.append(match.__dict__)
-#                 else:
-#                     serializable_matches.append(str(match))
-        
-#         return JsonResponse({
-#             'status': 'success',
-#             'stats': serializable_stats,
-#             'index_name': getattr(stats, 'index_name', '(unknown)'),
-#             'sample_vectors': serializable_matches
-#         })
-            
-#     except Exception as e:
-#         import traceback
-#         return JsonResponse({
-#             'status': 'error', 
-#             'message': str(e),
-#             'traceback': traceback.format_exc()
-#         })
-        
-        
-        
-# from django.http import JsonResponse
-
-# def debug_category(request, subdomain):
-#     """Debug view to examine the Category structure"""
-#     from products.models import Product, Category
-#     import inspect
-    
-#     # Get a product with category
-#     products = Product.objects.filter(category__isnull=False)
-#     if not products.exists():
-#         return JsonResponse({"error": "No products with categories found"})
-    
-#     product = products.first()
-#     category = product.category
-    
-#     # Analyze category
-#     category_info = {
-#         "product_id": product.id,
-#         "product_name": product.name,
-#         "category_id": category.id if hasattr(category, 'id') else None,
-#         "category_type": str(type(category)),
-#         "dir": dir(category),
-#         "attributes": {},
-#     }
-    
-#     # Check common attribute names
-#     for attr in ["name", "category_name", "title", "label", "category", "value"]:
-#         try:
-#             category_info["attributes"][attr] = str(getattr(category, attr, "Not found"))
-#         except Exception as e:
-#             category_info["attributes"][attr] = f"Error: {str(e)}"
-    
-#     # Try to get string representation
-#     try:
-#         category_info["string_representation"] = str(category)
-#     except Exception as e:
-#         category_info["string_representation"] = f"Error: {str(e)}"
-    
-#     return JsonResponse(category_info)
-
 
 
 def index_vendor_products(self, vendor_id):
