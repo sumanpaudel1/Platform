@@ -17,10 +17,6 @@ from .tasks import index_vendor_products
 
 import os
 import io
-# from PIL import Image
-# from django.http import JsonResponse
-# from django.shortcuts import get_object_or_404, reverse
-# from django.views.decorators.http import require_http_methods
 from ai_features.clip_pineconesearch import CLIPPineconeSearch
 logger = logging.getLogger(__name__)
 
