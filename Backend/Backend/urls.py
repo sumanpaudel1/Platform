@@ -25,4 +25,5 @@ urlpatterns = [
     path('', include(('accounts.urls', 'accounts'), namespace='accounts')),
     path('accounts/', include('allauth.urls')),
     path('', include('products.urls', namespace='products')),
+    path('', include('ai_features.urls', namespace='ai_features')),
 ]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

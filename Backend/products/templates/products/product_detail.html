@@ -307,6 +307,143 @@
     </div>
 </div>
 
+
+
+
+<div class="mt-16">
+    <h2 class="text-2xl font-bold mb-6">You May Also Like</h2>
+    <div id="similarProducts" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="col-span-4 text-center py-8">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[var(--primary)]"></div>
+            <p class="mt-2 text-gray-600">Loading recommendations...</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Fetch similar products
+        fetch(`/{{ vendor.subdomain }}/similar-products/{{ product.id }}/`)
+            .then(response => response.json())
+            .then(data => {
+                console.log("Recommendations data:", data);
+                
+                if (data.status === 'success' && data.similar_products && data.similar_products.length > 0) {
+                    // Create HTML for similar products
+                    const container = document.getElementById('similarProducts');
+                    container.innerHTML = '';
+                    
+                    // Set default values if data is missing
+                    const threshold = typeof data.threshold !== 'undefined' ? data.threshold : 60;
+                    const productCategory = data.product_category || 'All Products';
+                    
+                    // Add threshold info header
+                    const thresholdInfo = document.createElement('div');
+                    thresholdInfo.className = 'col-span-4 mb-6';
+                    thresholdInfo.innerHTML = `
+                        <div class="flex justify-between items-center">
+                            <p class="text-sm text-gray-600">Showing products with at least ${threshold}% similarity</p>
+                            <p class="text-sm text-gray-600">Current category: <span class="font-medium">${productCategory}</span></p>
+                        </div>
+                    `;
+                    container.appendChild(thresholdInfo);
+                    
+                    // Add section headers to visually separate categories
+                    let hasAddedSameCategoryHeader = false;
+                    let hasAddedOtherCategoryHeader = false;
+                    
+                    data.similar_products.forEach(product => {
+                        // Add section header for same category products
+                        if (product.same_category && !hasAddedSameCategoryHeader) {
+                            const header = document.createElement('div');
+                            header.className = 'col-span-4 mt-2 mb-4';
+                            header.innerHTML = `<h3 class="text-lg font-medium text-gray-900">Similar ${data.product_category}</h3>`;
+                            container.appendChild(header);
+                            hasAddedSameCategoryHeader = true;
+                        }
+                        
+                        // Add section header for other category products
+                        if (!product.same_category && !hasAddedOtherCategoryHeader && hasAddedSameCategoryHeader) {
+                            const header = document.createElement('div');
+                            header.className = 'col-span-4 mt-6 mb-4';
+                            header.innerHTML = `<h3 class="text-lg font-medium text-gray-900">You Might Also Like</h3>`;
+                            container.appendChild(header);
+                            hasAddedOtherCategoryHeader = true;
+                        }
+                        
+                        const productCard = document.createElement('div');
+                        productCard.className = 'bg-white rounded-lg shadow-sm overflow-hidden transition-transform hover:shadow-md hover:scale-105 relative';
+                        
+                        // Important: Fix similarity score handling - add default value
+                        const similarityScore = typeof product.similarity_score === 'number' ? product.similarity_score : 60;
+                        
+                        // Determine match badge color based on score
+                        let matchBadgeClass = 'bg-gray-500'; // Default
+                        if (similarityScore >= 80) {
+                            matchBadgeClass = 'bg-green-500';  // High match
+                        } else if (similarityScore >= 70) {
+                            matchBadgeClass = 'bg-blue-500';   // Good match
+                        } else if (similarityScore >= 60) {
+                            matchBadgeClass = 'bg-yellow-500'; // Moderate match
+                        }
+                        
+                        // Add category badge color
+                        const categoryBadgeClass = product.same_category ? 'bg-green-200 text-green-800' : 'bg-gray-200 text-gray-800';
+                        
+                        productCard.innerHTML = `
+                            <a href="${product.url}" class="block">
+                                <div class="relative">
+                                    <img src="${product.image_url || '/static/img/placeholder.jpg'}" 
+                                         alt="${product.name}" 
+                                         class="w-full h-48 object-cover">
+                                    
+                                    <div class="absolute top-2 right-2 ${matchBadgeClass} text-white text-xs font-bold px-2 py-1 rounded-full">
+                                        ${Math.round(similarityScore)}% match
+                                    </div>
+                                    
+                                    <div class="absolute bottom-2 left-2 ${categoryBadgeClass} text-xs px-2 py-1 rounded-full">
+                                        ${product.category || 'Uncategorized'}
+                                    </div>
+                                </div>
+                                <div class="p-4">
+                                    <h3 class="text-sm font-medium text-gray-900 truncate">${product.name}</h3>
+                                    <p class="mt-1 text-lg font-semibold text-[var(--primary)]">NPR ${product.price.toFixed(2)}</p>
+                                </div>
+                            </a>
+                        `;
+                        
+                        container.appendChild(productCard);
+                    });
+                } else {
+                    // Handle no similar products
+                    document.getElementById('similarProducts').innerHTML = 
+                        '<p class="col-span-4 text-center py-4 text-gray-500">No similar products found</p>';
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching similar products:', error);
+                document.getElementById('similarProducts').innerHTML = 
+                    '<p class="col-span-4 text-center py-4 text-gray-500">Error loading recommendations</p>';
+            });
+    });
+</script>
+
+<style>
+/* Add these styles for the similarity badges */
+.similarity-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    padding: 4px 8px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+</style>
+
+
 <style>
 .size-option {
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);

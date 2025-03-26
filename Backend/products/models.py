@@ -65,7 +65,21 @@ class Product(models.Model):
     def save(self, *args, **kwargs):
         if not self.slug:
             self.slug = slugify(self.name)
+        is_new = self._state.adding
         super(Product, self).save(*args, **kwargs)
+        
+        
+        if is_new:
+            # For new products, don't index yet (images will be added after)
+            pass
+        elif self.product_images.exists():
+            try:
+                from ai_features.clip_pineconesearch import CLIPPineconeSearch
+                clip_search = CLIPPineconeSearch()
+                clip_search.index_product(self)
+                print(f"Product {self.id} automatically indexed for image search")
+            except Exception as e:
+                print(f"Error indexing product {self.id}: {e}")
 
     def __str__(self):
         return self.name
