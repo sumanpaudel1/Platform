@@ -2,7 +2,7 @@
 
 {% block content %}
 <!-- Toast Notification System -->
-<div id="notification-container" class="fixed top-6 right-6 z-50 flex flex-col gap-3 items-end"></div>
+<div id="notification-container" class="fixed top-10 right-6 z-50 flex flex-col gap-3 items-end"></div>
 
 <!-- Enhanced Hero Section with Advanced Animations and Improved Slider -->
 <section class="relative h-[90vh] overflow-hidden">
@@ -170,6 +170,61 @@
         </div>
     </div>
 </section>
+
+
+
+
+
+<!-- Personalized Recommendations Section -->
+<section class="py-8 md:py-12">
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold">Recommended For You</h2>
+        <a href="{% url 'products:product_list' subdomain=vendor.subdomain %}" class="text-[var(--primary)] hover:underline">
+            View all &rarr;
+        </a>
+    </div>
+    
+    <div id="recommendedProducts" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {% if recommended_products %}
+            {% for product in recommended_products %}
+                <div class="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-all">
+                    <a href="{% url 'products:product_detail' subdomain=vendor.subdomain slug=product.slug %}">
+                        {% if product.product_images.first %}
+                            <img src="{{ product.product_images.first.image.url }}" 
+                                 alt="{{ product.name }}" 
+                                 class="w-full h-48 object-cover">
+                        {% else %}
+                            <div class="w-full h-48 bg-gray-200 flex items-center justify-center">
+                                <span class="text-gray-400">No image</span>
+                            </div>
+                        {% endif %}
+                        
+                        <div class="p-4">
+                            <h3 class="text-sm font-medium text-gray-900 truncate">{{ product.name }}</h3>
+                            <p class="mt-1 text-lg font-semibold text-[var(--primary)]">NPR {{ product.price }}</p>
+                            {% if product.similarity_score %}
+                                <div class="mt-1 flex items-center">
+                                    <span class="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">
+                                        {{ product.similarity_score|floatformat:0 }}% match
+                                    </span>
+                                    {% if product.category %}
+                                        <span class="ml-2 text-xs text-gray-500">{{ product.category.category_name }}</span>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </a>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p class="col-span-4 text-center py-4 text-gray-500">No recommended products available</p>
+        {% endif %}
+    </div>
+</section>
+
+
+
+
 
 <!-- Enhanced Featured Products With Modern UI and Animations -->
 <section id="featured" class="py-20 bg-white">
@@ -1176,13 +1231,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     window.toggleWishlist = function(productId) {
-        // Check if user is logged in
-        const isLoggedIn = document.body.classList.contains('logged-in');
-        if (!isLoggedIn) {
-            showNotification('Please log in to add items to your wishlist', 'info');
-            return;
-        }
-        
         const wishlistBtns = document.querySelectorAll(`.wishlist-btn[data-product-id="${productId}"]`);
         
         fetch('{% url "products:toggle_wishlist" %}', {
@@ -1193,30 +1241,53 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             body: JSON.stringify({ product_id: productId })
         })
-        .then(response => response.json())
+        .then(response => {
+            if (response.status === 401) {
+                // User is not logged in, redirect to login page
+                window.location.href = "{% url 'accounts:customer_login' subdomain=vendor.subdomain %}";
+                throw new Error('Not authenticated');
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.status === 'success') {
                 wishlistBtns.forEach(btn => {
                     const icon = btn.querySelector('i');
-                    if (data.added) {
-                        icon.classList.remove('far');
-                        icon.classList.add('fas', 'text-red-500');
-                        btn.classList.add('animate-bounce');
-                        setTimeout(() => btn.classList.remove('animate-bounce'), 500);
-                        showNotification('Added to wishlist!', 'success');
-                    } else {
-                        icon.classList.remove('fas', 'text-red-500');
-                        icon.classList.add('far');
-                        showNotification('Removed from wishlist', 'info');
+                    if (icon) {
+                        if (data.added) {
+                            icon.classList.remove('far');
+                            icon.classList.add('fas', 'text-red-500');
+                        } else {
+                            icon.classList.remove('fas', 'text-red-500');
+                            icon.classList.add('far');
+                        }
                     }
                 });
+    
+                updateWishlistCount(data.wishlist_count);
+                
+                showNotification(data.message);
             } else {
                 showNotification(data.message || 'Failed to update wishlist', 'error');
             }
         })
         .catch(error => {
-            console.error('Error:', error);
-            showNotification('An error occurred. Please try again.', 'error');
+            if (error.message !== 'Not authenticated') {
+                console.error('Error:', error);
+                showNotification('An error occurred. Please try again.', 'error');
+            }
+        });
+    };
+    
+    function updateWishlistCount(count) {
+        const wishlistCountElements = document.querySelectorAll('.wishlist-count');
+        wishlistCountElements.forEach(el => {
+            el.textContent = count;
+            if (count > 0) {
+                el.classList.remove('hidden');
+            } else {
+                el.classList.add('hidden');
+            }
         });
     }
 
@@ -1241,6 +1312,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.addEventListener('scroll', handleParallax);
     window.addEventListener('resize', handleParallax);
 });
+
 </script>
 
 <!-- Enhanced CSS Animations -->

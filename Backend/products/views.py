@@ -43,10 +43,10 @@ def vendor_home(request, subdomain):
         customer = request.customer
         
         # Debug prints
-        print("Debug Info:")
-        print(f"Session Data: {dict(request.session)}")
-        print(f"User Auth: {request.user.is_authenticated}")
-        print(f"Customer ID in session: {request.session.get('customer_id')}")
+        # print("Debug Info:")
+        # print(f"Session Data: {dict(request.session)}")
+        # print(f"User Auth: {request.user.is_authenticated}")
+        # print(f"Customer ID in session: {request.session.get('customer_id')}")
         
         customer = None
         if request.session.get('customer_id'):
@@ -63,6 +63,10 @@ def vendor_home(request, subdomain):
         products = Product.objects.filter(vendor=vendor)
         new_arrivals = products.order_by('-created_at')[:8]
         
+        from ai_features.services import get_recommended_products_for_homepage
+        recommended_products = get_recommended_products_for_homepage(vendor)
+        
+        
         # Get store photos safely
         store_photos = StorePhoto.objects.filter(vendor=vendor).order_by('-is_primary', '-uploaded_at')
         store_photo = store_photos.first()  # Changed from [0] to first()
@@ -73,6 +77,7 @@ def vendor_home(request, subdomain):
             'products': products,
             'customer': customer,
             'new_arrivals': new_arrivals,
+            'recommended_products': recommended_products,
             'categories': Category.objects.filter(vendor=vendor),
             'cover_photos': vendor.settings.cover_photos.all().order_by('order'),
             'year': datetime.now().year,
@@ -87,23 +92,24 @@ def vendor_home(request, subdomain):
                 id__in=Order.objects.filter(vendor=vendor).values('customer_id')
             ).distinct().count(),
             'years_in_business': (timezone.now().year - vendor.date_joined.year),
-            'store_photos': store_photo,  # Changed to use first() result
+            'store_photos': store_photo,  
         }
         
         if vendor.settings.instagram:
             instagram_posts = fetch_instagram_posts(vendor.settings.instagram)
             context['instagram_posts'] = instagram_posts
-            print(f"Instagram posts found: {len(instagram_posts)}")
-            print(f"First post: {instagram_posts[0] if instagram_posts else 'None'}")
+        #     print(f"Instagram posts found: {len(instagram_posts)}")
+        #     print(f"First post: {instagram_posts[0] if instagram_posts else 'None'}")
             
-        print(f"Session customer_id: {request.session.get('customer_id')}")
-        print(f"Customer in context: {context['customer']}")
-        print(f"Context customer before render: {context['customer']}")
+        # print(f"Session customer_id: {request.session.get('customer_id')}")
+        # print(f"Customer in context: {context['customer']}")
+        # print(f"Context customer before render: {context['customer']}")
         
         return render(request, 'products/vendor_home.html', context)
         
     except Exception as e:
-        print(f"Error in vendor_home: {str(e)}")
+        # print(f"Error in vendor_home: {str(e)}")
+        logger.error(f"Error in vendor_home: {str(e)}")
         messages.error(request, "An error occurred while loading the page")
         return redirect('accounts:customer_login' , subdomain=subdomain)
 
@@ -142,14 +148,27 @@ def product_detail(request, subdomain, slug):
         'size_variant'
     ), slug=slug, vendor=vendor)
     
-    related_products = Product.objects.filter(
-        category=product.category
-    ).exclude(id=product.id)[:4]
+    
+    # Get similar products using AI-based recommendation
+    similar_products = []
+    try:
+        from ai_features.recommendations import ContentBasedRecommender
+        recommender = ContentBasedRecommender()
+        similar_products = recommender.get_similar_products(product, threshold=60.0)
+    except Exception as e:
+        print(f"Error getting recommendations: {str(e)}")
+    
+    # If no AI recommendations, fall back to your existing related_products
+    if not similar_products:
+        similar_products = Product.objects.filter(
+            category=product.category
+        ).exclude(id=product.id)[:4]
+    
     
     context = {
         'vendor': vendor,
         'product': product,
-        'related_products': related_products
+        'related_products': similar_products
     }
     return render(request, 'products/product_detail.html', context)
 
@@ -243,6 +262,10 @@ def cart_count(request):
 
 
 
+
+
+    
+
 from django.http import JsonResponse
 import json
 from django.template.loader import render_to_string
@@ -250,51 +273,51 @@ import io
 
 from django.views.decorators.http import require_http_methods
 
-@require_http_methods(["POST"])
-def add_to_cart(request):
-    try:
-        data = json.loads(request.body)
-        customer_id = request.session.get('customer_id')
+# @require_http_methods(["POST"])
+# def add_to_cart(request):
+#     try:
+#         data = json.loads(request.body)
+#         customer_id = request.session.get('customer_id')
         
-        if not customer_id:
-            return JsonResponse({
-                'status': 'error',
-                'message': 'Please login to continue'
-            }, status=401)
+#         if not customer_id:
+#             return JsonResponse({
+#                 'status': 'error',
+#                 'message': 'Please login to continue'
+#             }, status=401)
         
-        # Get product
-        product = get_object_or_404(Product, id=data.get('product_id'))
+#         # Get product
+#         product = get_object_or_404(Product, id=data.get('product_id'))
         
-        # Get or create cart item
-        cart_item, created = Cart.objects.get_or_create(
-            customer_id=customer_id,
-            product=product,
-            vendor=product.vendor,
-            defaults={
-                'quantity': int(data.get('quantity', 1)),
-                'color_id': data.get('color_id'),
-                'size_id': data.get('size_id')
-            }
-        )
+#         # Get or create cart item
+#         cart_item, created = Cart.objects.get_or_create(
+#             customer_id=customer_id,
+#             product=product,
+#             vendor=product.vendor,
+#             defaults={
+#                 'quantity': int(data.get('quantity', 1)),
+#                 'color_id': data.get('color_id'),
+#                 'size_id': data.get('size_id')
+#             }
+#         )
         
-        if not created:
-            cart_item.quantity += int(data.get('quantity', 1))
-            cart_item.save()
+#         if not created:
+#             cart_item.quantity += int(data.get('quantity', 1))
+#             cart_item.save()
             
-        # Get updated cart count
-        cart_count = Cart.objects.filter(customer_id=customer_id).count()
+#         # Get updated cart count
+#         cart_count = Cart.objects.filter(customer_id=customer_id).count()
         
-        return JsonResponse({
-            'status': 'success',
-            'message': 'Added to cart successfully',
-            'cart_count': cart_count
-        })
+#         return JsonResponse({
+#             'status': 'success',
+#             'message': 'Added to cart successfully',
+#             'cart_count': cart_count
+#         })
         
-    except Exception as e:
-        return JsonResponse({
-            'status': 'error',
-            'message': 'An error occurred while adding to cart'
-        }, status=500)
+#     except Exception as e:
+#         return JsonResponse({
+#             'status': 'error',
+#             'message': 'An error occurred while adding to cart'
+#         }, status=500)
 
 
 
@@ -506,136 +529,131 @@ def wishlist_view(request, subdomain):
         messages.error(request, "Please login to view your wishlist")
         return redirect('accounts:customer_login', subdomain=subdomain)
 
-def add_to_wishlist(request):
-    if not request.session.get('customer_id'):
-        return JsonResponse({
-            'status': 'error',
-            'message': 'Please login first'
-        }, status=401)
+# def add_to_wishlist(request):
+#     if not request.session.get('customer_id'):
+#         return JsonResponse({
+#             'status': 'error',
+#             'message': 'Please login first'
+#         }, status=401)
 
-    if request.method == 'POST':
-        data = json.loads(request.body)
-        product_id = data.get('product_id')
+#     if request.method == 'POST':
+#         data = json.loads(request.body)
+#         product_id = data.get('product_id')
         
-        try:
-            customer = get_object_or_404(Customer, id=request.session['customer_id'])
-            product = get_object_or_404(Product, id=product_id)
+#         try:
+#             customer = get_object_or_404(Customer, id=request.session['customer_id'])
+#             product = get_object_or_404(Product, id=product_id)
             
-            wishlist_item, created = Wishlist.objects.get_or_create(
-                customer=customer,
-                product=product,
-                vendor=product.vendor
-            )
+#             wishlist_item, created = Wishlist.objects.get_or_create(
+#                 customer=customer,
+#                 product=product,
+#                 vendor=product.vendor
+#             )
             
-            wishlist_count = Wishlist.objects.filter(customer=customer).count()
+#             wishlist_count = Wishlist.objects.filter(customer=customer).count()
             
-            return JsonResponse({
-                'status': 'success',
-                'wishlist_count': wishlist_count,
-                'message': 'Added to wishlist' if created else 'Already in wishlist'
-            })
+#             return JsonResponse({
+#                 'status': 'success',
+#                 'wishlist_count': wishlist_count,
+#                 'message': 'Added to wishlist' if created else 'Already in wishlist'
+#             })
             
-        except Exception as e:
-            return JsonResponse({
-                'status': 'error',
-                'message': str(e)
-            }, status=400)
+#         except Exception as e:
+#             return JsonResponse({
+#                 'status': 'error',
+#                 'message': str(e)
+#             }, status=400)
     
-    return JsonResponse({'status': 'error'}, status=400)
+#     return JsonResponse({'status': 'error'}, status=400)
 
 
 
-def remove_from_wishlist(request, product_id):
-    if not request.session.get('customer_id'):
-        return JsonResponse({
-            'status': 'error',
-            'message': 'Please login first'
-        }, status=401)
+# def remove_from_wishlist(request, product_id):
+#     if not request.session.get('customer_id'):
+#         return JsonResponse({
+#             'status': 'error',
+#             'message': 'Please login first'
+#         }, status=401)
         
-    if request.method == 'POST':
-        try:
-            customer = Customer.objects.get(id=request.session['customer_id'])
-            wishlist_item = Wishlist.objects.get(
-                customer=customer,
-                product_id=product_id
-            )
-            wishlist_item.delete()
+#     if request.method == 'POST':
+#         try:
+#             customer = Customer.objects.get(id=request.session['customer_id'])
+#             wishlist_item = Wishlist.objects.get(
+#                 customer=customer,
+#                 product_id=product_id
+#             )
+#             wishlist_item.delete()
             
-            # Get updated wishlist count
-            wishlist_count = Wishlist.objects.filter(customer=customer).count()
+#             # Get updated wishlist count
+#             wishlist_count = Wishlist.objects.filter(customer=customer).count()
             
-            return JsonResponse({
-                'status': 'success',
-                'wishlist_count': wishlist_count,
-                'message': 'Item removed from wishlist'
-            })
+#             return JsonResponse({
+#                 'status': 'success',
+#                 'wishlist_count': wishlist_count,
+#                 'message': 'Item removed from wishlist'
+#             })
             
-        except (Customer.DoesNotExist, Wishlist.DoesNotExist) as e:
-            return JsonResponse({
-                'status': 'error',
-                'message': str(e)
-            }, status=404)
+#         except (Customer.DoesNotExist, Wishlist.DoesNotExist) as e:
+#             return JsonResponse({
+#                 'status': 'error',
+#                 'message': str(e)
+#             }, status=404)
             
-    return JsonResponse({
-        'status': 'error',
-        'message': 'Invalid request method'
-    }, status=400)
+#     return JsonResponse({
+#         'status': 'error',
+#         'message': 'Invalid request method'
+#     }, status=400)
 
 
 
 from django.http import JsonResponse
 import json
 
+@require_http_methods(["POST"])
 def toggle_wishlist(request):
+    """Toggle product in wishlist"""
+    # Change this:
+    # if not request.user.is_authenticated:
+    
+    # To this:
     if not request.session.get('customer_id'):
-        return JsonResponse({
-            'status': 'error',
-            'message': 'Please login first'
-        }, status=401)
-
-    if request.method == 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Login required'}, status=401)
+    
+    try:
         data = json.loads(request.body)
         product_id = data.get('product_id')
+        product = get_object_or_404(Product, id=product_id)
         
-        try:
-            customer = Customer.objects.get(id=request.session['customer_id'])
-            product = Product.objects.get(id=product_id)
+        # Get customer from session (NOT from request.user)
+        customer = get_object_or_404(Customer, id=request.session.get('customer_id'))
+        
+        # Check if product is already in wishlist
+        wishlist_item = Wishlist.objects.filter(customer=customer, product=product).first()
+        
+        if wishlist_item:
+            # Remove from wishlist
+            wishlist_item.delete()
+            message = f"{product.name} removed from wishlist"
+            added = False
+        else:
+            # Add to wishlist
+            Wishlist.objects.create(customer=customer, product=product, vendor=product.vendor)
+            message = f"{product.name} added to wishlist"
+            added = True
             
-            # Check if item exists in wishlist
-            wishlist_item = Wishlist.objects.filter(
-                customer=customer,
-                product=product
-            ).first()
+        # Get updated wishlist count
+        wishlist_count = Wishlist.objects.filter(customer=customer).count()
             
-            if wishlist_item:
-                # Remove from wishlist
-                wishlist_item.delete()
-                message = 'Removed from wishlist'
-            else:
-                # Add to wishlist
-                Wishlist.objects.create(
-                    customer=customer,
-                    product=product,
-                    vendor=product.vendor
-                )
-                message = 'Added to wishlist'
-            
-            # Get updated wishlist count
-            wishlist_count = Wishlist.objects.filter(customer=customer).count()
-            
-            return JsonResponse({
-                'status': 'success',
-                'wishlist_count': wishlist_count,
-                'message': message
-            })
-            
-        except (Customer.DoesNotExist, Product.DoesNotExist) as e:
-            return JsonResponse({
-                'status': 'error',
-                'message': str(e)
-            }, status=400)
-    
-    return JsonResponse({'status': 'error'}, status=400)
+        return JsonResponse({
+            'status': 'success', 
+            'message': message, 
+            'added': added,
+            'wishlist_count': wishlist_count
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in toggle_wishlist: {str(e)}")
+        return JsonResponse({'status': 'error', 'message': str(e)})
 
 
 
@@ -1502,33 +1520,31 @@ def search_products(request, subdomain):
     
     
     if request.GET.get('type') == 'image':
+        # Get search results from session
         search_results = request.session.get('image_search_results', [])
+        
         if search_results:
-            # Filter results with similarity score >= 80%
-            product_ids = [
-                result['product_id'] 
-                for result in search_results 
-                if result['similarity_score'] >= 80
-            ]
+            # Get product IDs from search results
+            product_ids = [int(float(item['product_id'])) for item in search_results if 'product_id' in item]
             
-            if not product_ids:
-                products = Product.objects.none()  # Return empty queryset if no matches
-            else:
-                # Get products and preserve search order
-                product_id_to_score = {
-                    result['product_id']: result['similarity_score']
-                    for result in search_results
-                    if result['similarity_score'] >= 80
-                }
-                
-                products = products.filter(id__in=product_ids)
-                
-                # Add similarity scores to products
-                for product in products:
-                    product.similarity_score = product_id_to_score.get(product.id, 0)
-                
-                # Sort by similarity score
-                products = sorted(products, key=lambda p: p.similarity_score, reverse=True)
+            # Get products in order of search results
+            products = []
+            product_dict = {p.id: p for p in Product.objects.filter(id__in=product_ids, vendor=vendor)}
+            
+            # Preserve search order and attach similarity scores
+            for result in search_results:
+                if 'product_id' in result:
+                    product_id = int(float(result['product_id']))
+                    if product_id in product_dict:
+                        product = product_dict[product_id]
+                        product.similarity_score = float(result.get('similarity_score', 0))
+                        product.explanation = result.get('explanation', f"Similarity: {product.similarity_score:.1f}%")
+                        # Only add products with similarity scores above the threshold
+                        products.append(product)
+            
+            # If no products above threshold
+            if not products:
+                messages.info(request, "No products matched your image with sufficient similarity. Try another image.")
             
     
     context = {
@@ -1555,20 +1571,33 @@ def search_products(request, subdomain):
 from .vector_database import VectorDatabase
 from PIL import Image
 import io
-
-# Create global instance
 from .vector_database import VectorDatabase
+from ai_features.clip_pineconesearch import CLIPPineconeSearch
+from ai_features.recommendations import ContentBasedRecommender
 
-# Create global instance with proper initialization
+
+
+
+# Import new stuff with error handling
 try:
     vector_db = VectorDatabase()
-    print("Vector database initialized successfully")
+    clip_search = CLIPPineconeSearch()
 except Exception as e:
-    print(f"Error initializing vector database: {str(e)}")
+    logger.error(f"Error initializing search engines: {str(e)}")
     vector_db = None
+    clip_search = None
+
+
+try:
+    recommender_system = ContentBasedRecommender()
+except Exception as e:
+    logger.error(f"Failed to initialize recommendation system: {str(e)}")
+    recommender_system = None
+    
 
 @require_http_methods(["POST"])
 def image_search_view(request, subdomain):
+    """View for processing image search"""
     try:
         if 'image_query' not in request.FILES:
             return JsonResponse({
@@ -1576,6 +1605,8 @@ def image_search_view(request, subdomain):
                 'message': 'No image file provided'
             })
             
+        # Get vendor from subdomain
+        subdomain = subdomain.replace('.platform', '')
         subdomain_obj = get_object_or_404(Subdomain, subdomain=subdomain)
         vendor = subdomain_obj.vendor
         
@@ -1583,22 +1614,53 @@ def image_search_view(request, subdomain):
         image_file = request.FILES['image_query']
         img = Image.open(io.BytesIO(image_file.read())).convert('RGB')
         
-        # Debug print
         print(f"Processing image search for vendor {vendor.id}")
         
-        # Get search results
-        search_results = vector_db.search_by_image(vendor.id, img)
-        print(f"Search results: {search_results}")  # Debug print
+        search_results = []
         
-        if not search_results:
-            # Index all products first if no results found
-            products = Product.objects.filter(vendor=vendor)
-            for product in products:
-                if product.product_images.exists():
-                    vector_db.index_product_images(vendor.id, [product])
-            
-            # Try search again
-            search_results = vector_db.search_by_image(vendor.id, img)
+        # Set threshold to 60% for high relevance
+        threshold = 60.0
+        
+        # Try CLIP search
+        if clip_search:
+            try:
+                # Check Pinecone stats first
+                stats = clip_search.index.describe_index_stats()
+                print(f"Pinecone has {stats.total_vector_count} vectors")
+                
+                # Search with threshold
+                search_results = clip_search.search(
+                    vendor.id, 
+                    query_image=img, 
+                    threshold=threshold
+                )
+                print(f"CLIP search returned {len(search_results)} results above {threshold}% similarity")
+                
+                # If no results and no vectors, try indexing
+                if not search_results and stats.total_vector_count == 0:
+                    print(f"No vectors found, indexing products for vendor {vendor.id}")
+                    indexed_count = clip_search.index_vendor_products(vendor.id)
+                    print(f"Indexed {indexed_count} products")
+                    
+                    # Try search again
+                    search_results = clip_search.search(
+                        vendor.id, 
+                        query_image=img,
+                        threshold=threshold
+                    )
+                    print(f"After indexing: search returned {len(search_results)} results")
+            except Exception as e:
+                print(f"CLIP search error: {str(e)}")
+                
+                # Fall back to ResNet search
+                if vector_db:
+                    try:
+                        search_results = vector_db.search_by_image(vendor.id, img)
+                        # Filter results below threshold
+                        search_results = [r for r in search_results if r.get('similarity_score', 0) >= threshold]
+                        print(f"Fallback ResNet search returned {len(search_results)} results")
+                    except Exception as e:
+                        print(f"ResNet search error: {str(e)}")
         
         if not search_results:
             return JsonResponse({
@@ -1606,16 +1668,22 @@ def image_search_view(request, subdomain):
                 'message': 'No similar products found'
             })
         
-        # Store in session
+        # Debug search results
+        print(f"Search results: {search_results}")
+        
+        # Store results in session
         request.session['image_search_results'] = search_results
         
         return JsonResponse({
             'status': 'success',
-            'redirect_url': reverse('products:search', kwargs={'subdomain': subdomain}) + '?type=image'
+            'redirect_url': reverse('products:search', kwargs={'subdomain': subdomain}) + '?type=image',
+            'result_count': len(search_results)
         })
         
     except Exception as e:
         print(f"Image search error: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
         return JsonResponse({
             'status': 'error',
             'message': str(e)
@@ -1642,3 +1710,313 @@ def fetch_instagram_posts(instagram_handle):
     except Exception as e:
         print(f"Instagram fetch error: {e}")
         return []
+    
+    
+    
+    
+
+
+# def debug_pinecone(request, subdomain):
+#     """Debug view to see what's in Pinecone"""
+#     try:
+#         from ai_features.clip_pineconesearch import CLIPPineconeSearch
+        
+#         # Initialize search
+#         clip_search = CLIPPineconeSearch()
+        
+#         if not clip_search or not clip_search.index:
+#             return JsonResponse({'status': 'error', 'message': 'Pinecone not initialized'})
+            
+#         # Check Pinecone stats - CONVERT TO DICT for JSON serialization
+#         stats = clip_search.index.describe_index_stats()
+        
+#         # Convert stats to a serializable dict
+#         serializable_stats = {
+#             'namespaces': stats.namespaces,
+#             'dimension': stats.dimension,
+#             'index_fullness': stats.index_fullness,
+#             'total_vector_count': stats.total_vector_count,
+#         }
+        
+#         # Get a few vectors as samples
+#         try:
+#             query_response = clip_search.index.query(
+#                 vector=[0.0] * 512,  # Dummy vector
+#                 top_k=5,
+#                 include_metadata=True
+#             )
+#             matches = query_response.get('matches', [])
+#         except Exception as e:
+#             matches = str(e)
+            
+#         # Convert matches to serializable format if needed
+#         serializable_matches = []
+#         if isinstance(matches, list):
+#             for match in matches:
+#                 if hasattr(match, '__dict__'):
+#                     serializable_matches.append(match.__dict__)
+#                 else:
+#                     serializable_matches.append(str(match))
+        
+#         return JsonResponse({
+#             'status': 'success',
+#             'stats': serializable_stats,
+#             'index_name': getattr(stats, 'index_name', '(unknown)'),
+#             'sample_vectors': serializable_matches
+#         })
+            
+#     except Exception as e:
+#         import traceback
+#         return JsonResponse({
+#             'status': 'error', 
+#             'message': str(e),
+#             'traceback': traceback.format_exc()
+#         })
+        
+        
+        
+# from django.http import JsonResponse
+
+# def debug_category(request, subdomain):
+#     """Debug view to examine the Category structure"""
+#     from products.models import Product, Category
+#     import inspect
+    
+#     # Get a product with category
+#     products = Product.objects.filter(category__isnull=False)
+#     if not products.exists():
+#         return JsonResponse({"error": "No products with categories found"})
+    
+#     product = products.first()
+#     category = product.category
+    
+#     # Analyze category
+#     category_info = {
+#         "product_id": product.id,
+#         "product_name": product.name,
+#         "category_id": category.id if hasattr(category, 'id') else None,
+#         "category_type": str(type(category)),
+#         "dir": dir(category),
+#         "attributes": {},
+#     }
+    
+#     # Check common attribute names
+#     for attr in ["name", "category_name", "title", "label", "category", "value"]:
+#         try:
+#             category_info["attributes"][attr] = str(getattr(category, attr, "Not found"))
+#         except Exception as e:
+#             category_info["attributes"][attr] = f"Error: {str(e)}"
+    
+#     # Try to get string representation
+#     try:
+#         category_info["string_representation"] = str(category)
+#     except Exception as e:
+#         category_info["string_representation"] = f"Error: {str(e)}"
+    
+#     return JsonResponse(category_info)
+
+
+
+def index_vendor_products(self, vendor_id):
+    """Index all products for a specific vendor"""
+    try:
+        # Get vendor's products with images
+        products = Product.objects.filter(
+            vendor_id=vendor_id,
+            product_images__isnull=False
+        ).distinct()
+        
+        total_count = products.count()
+        if total_count == 0:
+            return 0
+            
+        logger.info(f"Found {total_count} products with images for vendor {vendor_id}")
+        
+        # Process in batches
+        batch_size = 10
+        indexed_count = 0
+        errors = 0
+        
+        # Added debug info
+        print(f"Starting to index {total_count} products for vendor {vendor_id}")
+        
+        for i in range(0, total_count, batch_size):
+            batch = products[i:i+batch_size]
+            print(f"Processing batch {i//batch_size + 1} of {(total_count + batch_size - 1) // batch_size}")
+            
+            for product in batch:
+                try:
+                    # Debug print for category before processing
+                    print(f"Processing product {product.id}: {product.name}")
+                    
+                    # Check if product has images
+                    if not product.product_images.exists():
+                        print(f"  Skipping product {product.id}: No images")
+                        continue
+                    
+                    # Get the main image
+                    main_image = product.product_images.first()
+                    image_path = main_image.image.path
+                    
+                    # Check if image exists
+                    if not os.path.exists(image_path):
+                        print(f"  Skipping product {product.id}: Image file not found")
+                        continue
+                    
+                    # Load and process the image
+                    image = Image.open(image_path).convert('RGB')
+                    
+                    # Get product text for text embedding
+                    product_text = f"{product.name} {product.description or ''} {self.get_category_name(product)}"
+                    
+                    # Generate embeddings
+                    image_embedding = self.encode_image(image)
+                    text_embedding = self.encode_text(product_text)
+                    
+                    # Combine embeddings (average)
+                    combined_embedding = (image_embedding + text_embedding) / 2
+                    
+                    # Create unique vector ID
+                    vector_id = f"clip_v{product.vendor.id}_p{product.id}"
+                    
+                    # Prepare metadata
+                    metadata = {
+                        "product_id": product.id,
+                        "vendor_id": product.vendor.id,
+                        "name": product.name,
+                        "description": product.description or "",
+                        "category": self.get_category_name(product),
+                        "price": float(product.price),
+                        "last_updated": datetime.now().isoformat()
+                    }
+                    
+                    # Debug print before upserting
+                    print(f"  Upserting vector for product {product.id}")
+                    
+                    # Upsert vector to Pinecone
+                    self.index.upsert(
+                        vectors=[
+                            {
+                                "id": vector_id,
+                                "values": combined_embedding.tolist(),
+                                "metadata": metadata
+                            }
+                        ]
+                    )
+                    
+                    indexed_count += 1
+                    print(f"  Successfully indexed product {product.id}")
+                    
+                except Exception as e:
+                    errors += 1
+                    logger.error(f"Error processing product {product.id}: {str(e)}")
+                    print(f"  Error processing product {product.id}: {str(e)}")
+        
+        logger.info(f"Indexed {indexed_count} products, encountered {errors} errors")
+        print(f"Indexing complete: {indexed_count} products indexed, {errors} errors")
+        return indexed_count
+        
+    except Exception as e:
+        logger.error(f"Error in index_vendor_products: {str(e)}")
+        print(f"Error in index_vendor_products: {str(e)}")
+        return 0
+    
+    
+    
+@require_http_methods(["GET"])
+def similar_products_api(request, subdomain, product_id):
+    """API endpoint for fetching similar products"""
+    try:
+        # Get product and vendor
+        product = get_object_or_404(Product, id=product_id)
+        
+        # Set threshold - explicitly define it
+        threshold = 60.0
+        
+        # Get similar products with threshold
+        similar_products = get_similar_products_for_product(product, max_items=8, threshold=threshold)
+        
+        # Get product category name safely
+        category_name = "Uncategorized"
+        if hasattr(product, 'category') and product.category:
+            if hasattr(product.category, 'category_name'):
+                category_name = product.category.category_name
+        
+        # If no products above threshold, return empty but with metadata
+        if not similar_products:
+            return JsonResponse({
+                'status': 'success',
+                'similar_products': [],
+                'threshold': threshold,  # Include threshold even with empty results
+                'product_category': category_name
+            })
+        
+        # Prepare product data
+        products_data = []
+        for p in similar_products:
+            # Get category name safely
+            p_category = "Uncategorized"
+            if hasattr(p, 'category') and p.category:
+                if hasattr(p.category, 'category_name'):
+                    p_category = p.category.category_name
+            
+            # Check if products are in same category
+            same_category = False
+            if (hasattr(p, 'category') and p.category and 
+                hasattr(product, 'category') and product.category):
+                same_category = (p.category.id == product.category.id)
+            
+            # Ensure similarity score is always a number
+            similarity_score = getattr(p, 'similarity_score', 60.0)
+            if similarity_score is None or not isinstance(similarity_score, (int, float)):
+                similarity_score = 60.0
+            
+            products_data.append({
+                'id': p.id,
+                'name': p.name,
+                'price': float(p.price),
+                'url': reverse('products:product_detail', kwargs={
+                    'subdomain': subdomain,
+                    'slug': p.slug
+                }),
+                'image_url': p.product_images.first().image.url if p.product_images.exists() else None,
+                'similarity_score': float(similarity_score),  # Ensure it's a float
+                'category': p_category,
+                'same_category': same_category
+            })
+        
+        # Return complete response with threshold and category
+        return JsonResponse({
+            'status': 'success',
+            'similar_products': products_data,
+            'threshold': threshold,
+            'product_category': category_name
+        })
+    except Exception as e:
+        print(f"Error in similar_products_api: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        })
+        
+        
+def get_similar_products_for_product(product, max_items=6, threshold=60.0):
+    """Get similar products for product detail page"""
+    try:
+        recommender = ContentBasedRecommender()
+        return recommender.get_similar_products(
+            product, 
+            max_items=max_items,
+            threshold=threshold  # Pass threshold parameter
+        )
+    except Exception as e:
+        logger.error(f"Error getting similar products: {str(e)}")
+        # Fallback to category-based recommendations
+        return Product.objects.filter(
+            category=product.category, 
+            vendor=product.vendor
+        ).exclude(
+            id=product.id
+        ).order_by('-created_at')[:max_items]

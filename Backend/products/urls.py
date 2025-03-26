@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import vendor_home, product_detail,  product_create, wishlist_view, add_to_wishlist, remove_from_wishlist, add_to_cart, update_cart, remove_from_cart, cart_view, toggle_wishlist
+from .views import vendor_home, product_detail,  product_create, wishlist_view, add_to_cart, update_cart, remove_from_cart, cart_view, toggle_wishlist
 from . import views
 app_name = 'products'
 
@@ -16,8 +16,8 @@ urlpatterns = [
     path('api/cart/remove/<int:item_id>/',remove_from_cart, name='remove_from_cart'),
     
     path('<str:subdomain>.platform/wishlist/', wishlist_view, name='wishlist'),
-    path('api/wishlist/add/', add_to_wishlist, name='add_to_wishlist'),
-    path('api/wishlist/remove/<int:product_id>/', remove_from_wishlist, name='remove_from_wishlist'),
+#     path('api/wishlist/add/', add_to_wishlist, name='add_to_wishlist'),
+#     path('api/wishlist/remove/<int:product_id>/', remove_from_wishlist, name='remove_from_wishlist'),
     path('api/wishlist/toggle/', toggle_wishlist, name='toggle_wishlist'),
     
     
@@ -65,4 +65,7 @@ urlpatterns = [
      path('api/store-buy-now/', views.store_buy_now_data, name='store_buy_now_data'),
      
      path('api/orders/<str:order_id>/payment-details/', views.get_payment_details, name='order_payment_details'),
+#      path('<str:subdomain>/debug-pinecone/', views.debug_pinecone, name='debug_pinecone'),
+#      # Add this line right after the debug-pinecone URL
+#    path('<str:subdomain>/debug-category/', views.debug_category, name='debug_category'),
 ]

@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'accounts',
+    'ai_features',
     'products',
     'colorfield',
     'allauth',
@@ -265,6 +266,11 @@ ESEWA = {
 
 
 PINECONE_API_KEY = "pcsk_5toyDy_F6mkKSjGqaKyx9zmvxYrsaXoyhjBPr7A6otLiRBUWzwYFQh6YjHZy4WnQTmCFbC"
-PINECONE_INDEX_NAME = "product-search"
-PINECONE_HOST = "https://product-search-vjwf63f.svc.aped-4627-b74a.pinecone.io"
-PINECONE_DIMENSION = 2048  # Match your existing index dimension
+PINECONE_INDEX_NAME = "product-search-clip"
+PINECONE_HOST = "https://product-search-clip-vjwf63f.svc.aped-4627-b74a.pinecone.io"
+PINECONE_DIMENSION = 512  # Match your existing index dimension
+PINECONE_CLIP_INDEX = "product-search-clip"
+
+
+
+SIMILARITY_THRESHOLD = 60.0
