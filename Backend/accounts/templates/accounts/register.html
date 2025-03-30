@@ -126,5 +126,141 @@
             </p>
         </div>
     </footer>
+
+
+     <!-- Password and email validation -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Find the form fields (assuming they have IDs that contain 'email' and 'password')
+        const form = document.querySelector('form');
+        const emailField = document.querySelector('input[type="email"]');
+        const passwordFields = document.querySelectorAll('input[type="password"]');
+        const password1 = passwordFields[0];
+        const password2 = passwordFields.length > 1 ? passwordFields[1] : null;
+        
+        if (!emailField || !password1) return; // Exit if fields not found
+        
+        // Create feedback elements
+        const emailFeedback = document.createElement('div');
+        emailFeedback.className = 'mt-1 text-sm';
+        emailField.parentNode.appendChild(emailFeedback);
+        
+        const passwordFeedback = document.createElement('div');
+        passwordFeedback.className = 'mt-1 text-sm';
+        password1.parentNode.appendChild(passwordFeedback);
+        
+        let confirmFeedback;
+        if (password2) {
+            confirmFeedback = document.createElement('div');
+            confirmFeedback.className = 'mt-1 text-sm';
+            password2.parentNode.appendChild(confirmFeedback);
+        }
+        
+        // Email validation
+        emailField.addEventListener('input', function() {
+            const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+            
+            if (!this.value) {
+                emailFeedback.textContent = 'Email is required';
+                emailFeedback.className = 'mt-1 text-sm text-red-500';
+                return;
+            }
+            
+            if (!emailRegex.test(this.value)) {
+                emailFeedback.textContent = 'Please enter a valid email address';
+                emailFeedback.className = 'mt-1 text-sm text-red-500';
+            } else {
+                emailFeedback.textContent = 'Valid email';
+                emailFeedback.className = 'mt-1 text-sm text-green-500';
+            }
+        });
+        
+        // Password validation
+        password1.addEventListener('input', function() {
+            const password = this.value;
+            let feedback = [];
+            
+            if (!password) {
+                passwordFeedback.textContent = 'Password is required';
+                passwordFeedback.className = 'mt-1 text-sm text-red-500';
+                return;
+            }
+            
+            if (password.length < 8) {
+                feedback.push('Password must be at least 8 characters');
+            }
+            
+            if (!/[A-Z]/.test(password)) {
+                feedback.push('Include at least one uppercase letter');
+            }
+            
+            if (!/[a-z]/.test(password)) {
+                feedback.push('Include at least one lowercase letter');
+            }
+            
+            if (!/[0-9]/.test(password)) {
+                feedback.push('Include at least one number');
+            }
+            
+            if (feedback.length > 0) {
+                passwordFeedback.innerHTML = feedback.join('<br>');
+                passwordFeedback.className = 'mt-1 text-sm text-red-500';
+            } else {
+                passwordFeedback.textContent = 'Strong password';
+                passwordFeedback.className = 'mt-1 text-sm text-green-500';
+            }
+            
+            // Check if passwords match (if we have a confirm password field)
+            if (password2 && password2.value) {
+                checkPasswordMatch();
+            }
+        });
+        
+        // Confirm password validation (if we have a confirm password field)
+        if (password2) {
+            password2.addEventListener('input', checkPasswordMatch);
+            
+            function checkPasswordMatch() {
+                if (!password2.value) {
+                    confirmFeedback.textContent = 'Please confirm your password';
+                    confirmFeedback.className = 'mt-1 text-sm text-red-500';
+                    return;
+                }
+                
+                if (password1.value !== password2.value) {
+                    confirmFeedback.textContent = 'Passwords do not match';
+                    confirmFeedback.className = 'mt-1 text-sm text-red-500';
+                } else {
+                    confirmFeedback.textContent = 'Passwords match';
+                    confirmFeedback.className = 'mt-1 text-sm text-green-500';
+                }
+            }
+        }
+        
+        // Form submission validation
+        form.addEventListener('submit', function(e) {
+            // Trigger validation for all fields
+            const emailEvent = new Event('input');
+            emailField.dispatchEvent(emailEvent);
+            
+            const passwordEvent = new Event('input');
+            password1.dispatchEvent(passwordEvent);
+            
+            if (password2) {
+                const confirmEvent = new Event('input');
+                password2.dispatchEvent(confirmEvent);
+            }
+            
+            // Check if there are any error messages
+            if (
+                emailFeedback.classList.contains('text-red-500') || 
+                passwordFeedback.classList.contains('text-red-500') || 
+                (confirmFeedback && confirmFeedback.classList.contains('text-red-500'))
+            ) {
+                e.preventDefault();
+            }
+        });
+    });
+    </script>
 </body>
 </html>

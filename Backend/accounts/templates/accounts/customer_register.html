@@ -109,4 +109,128 @@
         </p>
     </div>
 </div>
+
+<!-- Password and email validation -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.querySelector('form');
+        const email = document.getElementById('id_email');
+        const password1 = document.getElementById('id_password1');
+        const password2 = document.getElementById('id_password2');
+        
+        // Create feedback elements
+        const emailFeedback = document.createElement('div');
+        emailFeedback.className = 'mt-1 text-sm';
+        email.parentNode.appendChild(emailFeedback);
+        
+        const passwordFeedback = document.createElement('div');
+        passwordFeedback.className = 'mt-1 text-sm';
+        password1.parentNode.appendChild(passwordFeedback);
+        
+        const confirmFeedback = document.createElement('div');
+        confirmFeedback.className = 'mt-1 text-sm';
+        password2.parentNode.appendChild(confirmFeedback);
+        
+        // Email validation
+        email.addEventListener('input', function() {
+            const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+            
+            if (!this.value) {
+                emailFeedback.textContent = 'Email is required';
+                emailFeedback.className = 'mt-1 text-sm text-red-500';
+                return;
+            }
+            
+            if (!emailRegex.test(this.value)) {
+                emailFeedback.textContent = 'Please enter a valid email address';
+                emailFeedback.className = 'mt-1 text-sm text-red-500';
+            } else {
+                emailFeedback.textContent = 'Valid email';
+                emailFeedback.className = 'mt-1 text-sm text-green-500';
+            }
+        });
+        
+        // Password validation
+        password1.addEventListener('input', function() {
+            const password = this.value;
+            let feedback = [];
+            
+            if (!password) {
+                passwordFeedback.textContent = 'Password is required';
+                passwordFeedback.className = 'mt-1 text-sm text-red-500';
+                return;
+            }
+            
+            if (password.length < 8) {
+                feedback.push('Password must be at least 8 characters');
+            }
+            
+            if (!/[A-Z]/.test(password)) {
+                feedback.push('Include at least one uppercase letter');
+            }
+            
+            if (!/[a-z]/.test(password)) {
+                feedback.push('Include at least one lowercase letter');
+            }
+            
+            if (!/[0-9]/.test(password)) {
+                feedback.push('Include at least one number');
+            }
+            
+            if (feedback.length > 0) {
+                passwordFeedback.innerHTML = feedback.join('<br>');
+                passwordFeedback.className = 'mt-1 text-sm text-red-500';
+            } else {
+                passwordFeedback.textContent = 'Strong password';
+                passwordFeedback.className = 'mt-1 text-sm text-green-500';
+            }
+            
+            // Check if passwords match
+            if (password2.value) {
+                checkPasswordMatch();
+            }
+        });
+        
+        // Confirm password validation
+        password2.addEventListener('input', checkPasswordMatch);
+        
+        function checkPasswordMatch() {
+            if (!password2.value) {
+                confirmFeedback.textContent = 'Please confirm your password';
+                confirmFeedback.className = 'mt-1 text-sm text-red-500';
+                return;
+            }
+            
+            if (password1.value !== password2.value) {
+                confirmFeedback.textContent = 'Passwords do not match';
+                confirmFeedback.className = 'mt-1 text-sm text-red-500';
+            } else {
+                confirmFeedback.textContent = 'Passwords match';
+                confirmFeedback.className = 'mt-1 text-sm text-green-500';
+            }
+        }
+        
+        // Form submission validation
+        form.addEventListener('submit', function(e) {
+            // Trigger validation for all fields
+            const emailEvent = new Event('input');
+            email.dispatchEvent(emailEvent);
+            
+            const passwordEvent = new Event('input');
+            password1.dispatchEvent(passwordEvent);
+            
+            const confirmEvent = new Event('input');
+            password2.dispatchEvent(confirmEvent);
+            
+            // Check if there are any error messages
+            if (
+                emailFeedback.classList.contains('text-red-500') || 
+                passwordFeedback.classList.contains('text-red-500') || 
+                confirmFeedback.classList.contains('text-red-500')
+            ) {
+                e.preventDefault();
+            }
+        });
+    });
+    </script>
 {% endblock %}

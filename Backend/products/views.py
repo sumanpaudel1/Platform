@@ -831,12 +831,33 @@ def esewa_payment_success(request):
         status = decoded_data.get('status')
         transaction_code = decoded_data.get('transaction_code')
         
+        # Extract original order ID from transaction UUID (example: ORD-123-456-789)
+        # Transaction UUIDs may contain the order ID plus extra identifiers
+        original_order_id = None
+        if transaction_uuid:
+            # Try to extract just the order ID portion from the transaction UUID
+            parts = transaction_uuid.split('-')
+            if len(parts) >= 3:
+                # First part is likely "ORD"
+                original_order_id = f"{parts[0]}-{parts[1]}-{parts[2]}"
+        
         if status == 'COMPLETE':
             try:
-                # Get order by transaction UUID
-                order = Order.objects.get(order_id=transaction_uuid)
+                # First try with the original extracted order ID
+                if original_order_id:
+                    try:
+                        order = Order.objects.get(order_id=original_order_id)
+                    except Order.DoesNotExist:
+                        # If that doesn't work, try with the full transaction UUID
+                        order = Order.objects.get(order_id=transaction_uuid)
+                else:
+                    # If no original order ID could be extracted, use the full UUID
+                    order = Order.objects.get(order_id=transaction_uuid)
+                
+                # Get vendor and subdomain from the order
                 vendor = order.vendor
-                subdomain = vendor.subdomain
+                subdomain_obj = vendor.subdomain
+                subdomain = subdomain_obj.subdomain if subdomain_obj else 'default'
                 
                 # Create payment record
                 Payment.objects.create(
@@ -853,7 +874,7 @@ def esewa_payment_success(request):
                 order.status = 'pending'  # Now set to pending since payment is complete
                 order.save()
                 
-                # NOW create the notification since payment is confirmed
+                # Now create the notification since payment is confirmed
                 create_order_notification(request, order)
                 
                 # For cart orders, delete the cart items now that payment is complete
@@ -861,22 +882,23 @@ def esewa_payment_success(request):
                     Cart.objects.filter(customer=order.customer, vendor=order.vendor).delete()
                 
                 messages.success(request, "Payment successful!")
-                return redirect(
-                    f'/{subdomain}.platform/order/confirmation/{order.order_id}/'
-                )
+                return redirect(f'/{subdomain}.platform/order/confirmation/{order.order_id}/')
                 
             except Order.DoesNotExist:
                 messages.error(request, "Order not found")
-                return redirect('products:vendor_home', subdomain=request.subdomain)
+                # Use a simple redirect when subdomain is not available
+                return redirect('/')
                 
         else:
             messages.error(request, "Payment was not completed")
-            return redirect('products:vendor_home', subdomain=request.subdomain)
+            # Use a simple redirect when subdomain is not available
+            return redirect('/')
             
     except Exception as e:
         logger.error(f"eSewa payment error: {str(e)}")
         messages.error(request, "An error occurred processing the payment")
-        return redirect('products:vendor_home', subdomain=request.subdomain)
+        # Use a simple redirect when subdomain is not available  
+        return redirect('/')
     
     
 
@@ -888,6 +910,9 @@ def esewa_payment_failure(request):
             # Find the order
             order = Order.objects.get(order_id=order_id)
             
+            # Get subdomain from order's vendor
+            subdomain = order.vendor.subdomain.subdomain if order.vendor.subdomain else 'default'
+            
             # Change status to payment failed
             order.status = 'payment_failed'
             order.save()
@@ -897,12 +922,50 @@ def esewa_payment_failure(request):
             request.session.modified = True
             
             messages.error(request, "Payment failed or was cancelled")
+            return redirect('products:vendor_home', subdomain=subdomain)
+            
         except Order.DoesNotExist:
             pass
     
-    return redirect('products:vendor_home', subdomain=request.subdomain)
+    # Fallback to homepage if order not found or no pending order
+    return redirect('/')
 
 
+def generate_payment_data(self, order):
+    # Format amount to 2 decimal places
+    amount = "{:.2f}".format(float(order.total_amount))
+    
+    # Use the original order ID as the transaction UUID for easier lookup
+    # Append timestamp to ensure uniqueness if needed
+    transaction_uuid = order.order_id  # Just use the exact order ID
+    
+    # Store order ID in session for reference
+    if hasattr(order, 'request') and order.request:
+        order.request.session['pending_esewa_order_id'] = order.order_id
+        order.request.session.modified = True
+    
+    # Generate payment data
+    params = {
+        'amount': amount,
+        'tax_amount': "0",
+        'total_amount': amount,  # Same as amount if no tax
+        'transaction_uuid': transaction_uuid,
+        'product_code': self.merchant_id,
+        'product_service_charge': "0",
+        'product_delivery_charge': "0",
+        'success_url': self.success_url,
+        'failure_url': self.failure_url,
+        'signed_field_names': "total_amount,transaction_uuid,product_code",
+    }
+    
+    # Generate signature
+    params['signature'] = self.generate_signature(
+        total_amount=amount,
+        transaction_uuid=transaction_uuid,
+        product_code=self.merchant_id
+    )
+    
+    return self.test_url, params
 
 from django.shortcuts import render, redirect
 from django.contrib import messages
