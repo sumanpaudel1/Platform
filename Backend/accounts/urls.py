@@ -89,6 +89,7 @@ urlpatterns = [
          name='mark_single_notification_as_read'),
     
     path('dashboard/', views.vendor_dashboard, name='vendor_dashboard'),
+    
 ]
 
     # path('home/products/<int:product_id>/add-color/', views.add_product_color, name='add_product_color'),
