@@ -94,19 +94,19 @@
                     <div class="flex items-center space-x-6">
                         <!-- Notification Icon -->
                         <div class="relative">
-                            <button onclick="toggleNotifications(); markNotificationsAsRead();" 
-                                    class="relative p-2 text-gray-600 hover:text-gray-900 focus:outline-none">
-                                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                          d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
-                                </svg>
-                                {% if unread_notifications_count > 0 %}
-                                <span id="notificationCount" 
-                                      class="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
-                                    {{ unread_notifications_count }}
-                                </span>
-                                {% endif %}
-                            </button>
+                            <button onclick="toggleNotifications();" 
+                            class="relative p-2 text-gray-600 hover:text-gray-900 focus:outline-none notification-button">
+                        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                  d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                        </svg>
+                        {% if unread_notifications_count > 0 %}
+                        <span id="notificationCount" 
+                              class="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                            {{ unread_notifications_count }}
+                        </span>
+                        {% endif %}
+                    </button>
                     
                             <!-- Notifications Dropdown -->
                             <div id="notificationsDropdown" 
@@ -120,19 +120,26 @@
                                     </button>
                                     {% endif %}
                                 </div>
+                                <!-- Replace the current notifications dropdown content with this -->
                                 <div class="max-h-96 overflow-y-auto" id="notificationsList">
                                     {% if notifications %}
                                         {% for notification in notifications %}
                                         <div class="notification-item {% if not notification.is_read %}bg-blue-50{% endif %} 
-                                                    hover:bg-gray-50 transition-colors duration-150">
+                                                    hover:bg-gray-50 transition-colors duration-150"
+                                            data-notification-id="{{ notification.id }}">
                                             <div class="block px-4 py-3">
                                                 <div class="flex justify-between items-start">
-                                                    <p class="text-sm text-gray-600 {% if not notification.is_read %}font-semibold{% endif %}">
+                                                    {% if notification.order_id %}
+                                                    <a href="{% url 'accounts:order_detail' notification.order_id %}" 
+                                                       onclick="markNotificationAsRead({{ notification.id }}, event)"
+                                                       class="text-sm text-gray-600 {% if not notification.is_read %}font-semibold{% endif %}">
                                                         {{ notification.message }}
-                                                    </p>
-                                                    {% if not notification.is_read %}
-                                                    <span class="h-2 w-2 bg-blue-600 rounded-full flex-shrink-0 ml-2"></span>
-                                                    {% endif %}
+                                                    </a>
+                                                {% else %}
+                                                    <span class="text-sm text-gray-600 {% if not notification.is_read %}font-semibold{% endif %}">
+                                                        {{ notification.message }}
+                                                    </span>
+                                                {% endif %}
                                                 </div>
                                                 <p class="text-xs text-gray-400 mt-1">{{ notification.created_at|timesince }} ago</p>
                                             </div>
@@ -225,45 +232,182 @@
                     0 4px 6px -2px rgba(0, 0, 0, 0.05);
     }
 </style>
-<!-- Add this JavaScript at the bottom of your file -->
+
 <script>
-    function toggleNotifications() {
-        const dropdown = document.getElementById('notificationsDropdown');
-        dropdown.classList.toggle('hidden');
-    }
-
-
-    function handleNotificationClick(notificationId, link) {
-        // Mark single notification as read
-        fetch(`/api/notifications/${notificationId}/mark-read/`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken')
+        // Replace all existing notification JavaScript functions with these
+        function toggleNotifications() {
+            const dropdown = document.getElementById('notificationsDropdown');
+            dropdown.classList.toggle('hidden');
+            
+            // Refresh notifications when opening the dropdown
+            if (!dropdown.classList.contains('hidden')) {
+                fetchNotifications();
             }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                // Update UI for this specific notification
-                const notificationItem = document.querySelector(`[data-notification-id="${notificationId}"]`);
-                notificationItem.classList.remove('bg-blue-50');
-                notificationItem.querySelector('.bg-blue-600')?.remove();
-                
-                // Update notification count
-                const countElement = document.getElementById('notificationCount');
-                const currentCount = parseInt(countElement.textContent);
-                if (currentCount > 1) {
-                    countElement.textContent = currentCount - 1;
-                } else {
-                    countElement.remove();
+        }
+
+        // Function to mark single notification as read
+        function markNotificationAsRead(notificationId, event) {
+            event.preventDefault(); // Prevent default link behavior
+            
+            // Get the link's href for redirection after marking as read
+            const link = event.currentTarget.getAttribute('href');
+            
+            fetch(`/api/notifications/${notificationId}/mark-read/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
                 }
-                
-                // Navigate to the link
-                window.location.href = link;
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // Update notification count
+                    const countElement = document.getElementById('notificationCount');
+                    if (countElement) {
+                        const currentCount = parseInt(countElement.textContent);
+                        if (currentCount > 1) {
+                            countElement.textContent = currentCount - 1;
+                        } else {
+                            countElement.remove(); // Remove the badge if count reaches zero
+                        }
+                    }
+                    
+                    // Update notification appearance
+                    const notificationItem = document.querySelector(`.notification-item[data-notification-id="${notificationId}"]`);
+                    if (notificationItem) {
+                        notificationItem.classList.remove('bg-blue-50');
+                        const indicator = notificationItem.querySelector('.bg-blue-600');
+                        if (indicator) {
+                            indicator.remove();
+                        }
+                    }
+                    
+                    // Redirect to the order details page
+                    window.location.href = link;
+                } else {
+                    console.error('Failed to mark notification as read');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+
+        // Function to mark all notifications as read
+        function markAllAsRead() {
+            fetch('/api/notifications/mark-as-read/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // Remove notification count badge
+                    const countElement = document.getElementById('notificationCount');
+                    if (countElement) {
+                        countElement.remove();
+                    }
+                    
+                    // Update all notification items
+                    document.querySelectorAll('.notification-item').forEach(item => {
+                        item.classList.remove('bg-blue-50');
+                        const indicator = item.querySelector('.bg-blue-600');
+                        if (indicator) {
+                            indicator.remove();
+                        }
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+
+        // Function to fetch notifications via AJAX
+        function fetchNotifications() {
+            fetch('/api/notifications/', {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // Update notification count
+                    updateNotificationCount(data.unread_count);
+                    
+                    // Update notification list
+                    const notificationsList = document.getElementById('notificationsList');
+                    
+                    if (data.notifications.length > 0) {
+                        let notificationsHTML = '';
+                        
+                        data.notifications.forEach(notification => {
+                            notificationsHTML += `
+                                <div class="notification-item ${!notification.is_read ? 'bg-blue-50' : ''} 
+                                        hover:bg-gray-50 transition-colors duration-150"
+                                    data-notification-id="${notification.id}">
+                                    <div class="block px-4 py-3">
+                                        <div class="flex justify-between items-start">
+                                            <a href="/vendor/orders/${notification.order_id}/" 
+                                            onclick="markNotificationAsRead(${notification.id}, event)"
+                                            class="text-sm text-gray-600 ${!notification.is_read ? 'font-semibold' : ''}">
+                                                ${notification.message}
+                                            </a>
+                                            ${!notification.is_read ? '<span class="h-2 w-2 bg-blue-600 rounded-full flex-shrink-0 ml-2"></span>' : ''}
+                                        </div>
+                                        <p class="text-xs text-gray-400 mt-1">${notification.time_ago} ago</p>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        
+                        notificationsList.innerHTML = notificationsHTML;
+                    } else {
+                        notificationsList.innerHTML = `
+                            <div class="px-4 py-3 text-sm text-gray-500">
+                                No new notifications
+                            </div>
+                        `;
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching notifications:', error);
+            });
+        }
+
+        // Function to update notification count
+        function updateNotificationCount(count) {
+            let countElement = document.getElementById('notificationCount');
+            
+            if (count > 0) {
+                if (countElement) {
+                    countElement.textContent = count;
+                } else {
+                    countElement = document.createElement('span');
+                    countElement.id = 'notificationCount';
+                    countElement.className = 'absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center';
+                    countElement.textContent = count;
+                    document.querySelector('.notification-button').appendChild(countElement);
+                }
+            } else if (countElement) {
+                countElement.remove();
             }
+        }
+
+        // Set up polling for notifications
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initial fetch
+            fetchNotifications();
+            
+            // Fetch notifications every 15 seconds
+            setInterval(fetchNotifications, 15000);
         });
-    }
 
     function toggleProfile() {
         document.getElementById('profileDropdown').classList.toggle('hidden');
@@ -277,34 +421,6 @@
             document.getElementById('profileDropdown').classList.add('hidden');
         }
     });
-
-
-
-    // Add this to your existing script section
-function markNotificationsAsRead() {
-    const unreadCount = document.getElementById('notificationCount');
-    if (!unreadCount) return;
-
-    fetch('/api/notifications/mark-as-read/', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken')
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.status === 'success') {
-            // Remove unread indicators
-            unreadCount.remove();
-            document.querySelectorAll('.notification-item').forEach(item => {
-                item.classList.remove('bg-blue-50');
-                item.querySelector('.bg-blue-600')?.remove();
-            });
-        }
-    });
-}
-
 
 
 // Add this helper function if not already present
@@ -375,60 +491,6 @@ document.addEventListener('DOMContentLoaded', refreshNotifications);
 
 
 
-// Add this to your existing script section
-function refreshNotifications() {
-    fetch('/api/notifications/', {
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.status === 'success') {
-            const notificationsList = document.getElementById('notificationsList');
-            const notificationCount = document.getElementById('notificationCount');
-            
-            // Update notification count
-            if (data.unread_count > 0) {
-                if (notificationCount) {
-                    notificationCount.textContent = data.unread_count;
-                    notificationCount.classList.remove('hidden');
-                } else {
-                    const countBadge = document.createElement('span');
-                    countBadge.id = 'notificationCount';
-                    countBadge.className = 'absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center';
-                    countBadge.textContent = data.unread_count;
-                    document.querySelector('.notification-button').appendChild(countBadge);
-                }
-            } else if (notificationCount) {
-                notificationCount.classList.add('hidden');
-            }
-            
-            // Update notifications list
-            if (data.notifications.length > 0) {
-                notificationsList.innerHTML = data.notifications.map(notification => `
-                    <div class="notification-item ${!notification.is_read ? 'bg-blue-50' : ''} hover:bg-gray-50">
-                        <div class="block px-4 py-3">
-                            <div class="flex justify-between items-start">
-                                <p class="text-sm text-gray-600 ${!notification.is_read ? 'font-semibold' : ''}">
-                                    ${notification.message}
-                                </p>
-                                ${!notification.is_read ? '<span class="h-2 w-2 bg-blue-600 rounded-full"></span>' : ''}
-                            </div>
-                            <p class="text-xs text-gray-400 mt-1">${notification.created_at}</p>
-                        </div>
-                    </div>
-                `).join('');
-            } else {
-                notificationsList.innerHTML = `
-                    <div class="px-4 py-3 text-sm text-gray-500">
-                        No new notifications
-                    </div>
-                `;
-            }
-        }
-    })
-    .catch(error => console.error('Error:', error));
-}
+
 </script>
 {% endblock %}

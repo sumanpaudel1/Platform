@@ -83,6 +83,7 @@ TEMPLATES = [
                 'products.context_processors.cart_and_wishlist_counts',
                 'products.context_processors.customer_context',
                 'accounts.views.get_notifications_context',
+                'accounts.context_processors.notifications_context',
             ],
         },
     },

@@ -1838,3 +1838,7 @@ def get_similar_products_for_product(product, max_items=6, threshold=60.0):
         ).exclude(
             id=product.id
         ).order_by('-created_at')[:max_items]
+        
+        
+        
+        

@@ -1391,12 +1391,9 @@ from .models import Notification
 from django.http import JsonResponse
 
 def get_notifications_context(request):
-    """
-    Return notifications as JSON response for API calls,
-    or context data for template rendering
-    """
-    if 'HTTP_X_REQUESTED_WITH' in request.META and request.META['HTTP_X_REQUESTED_WITH'] == 'XMLHttpRequest':
-        # This is an AJAX request
+    """Return notifications as JSON response for API calls or context for templates"""
+    # ALWAYS RETURN JsonResponse when accessed as a URL endpoint
+    if request.path == '/api/notifications/':
         if request.user.is_authenticated:
             try:
                 # Get unread count
@@ -1411,12 +1408,15 @@ def get_notifications_context(request):
                 ).order_by('-created_at')[:15]
 
                 # Format notifications for JSON response
-                notifications_data = [{
-                    'id': n.id,
-                    'message': n.message,
-                    'is_read': n.is_read,
-                    'created_at': n.created_at.strftime('%Y-%m-%d %H:%M:%S'),
-                } for n in notifications]
+                notifications_data = []
+                for n in notifications:
+                    notifications_data.append({
+                        'id': n.id,
+                        'message': n.message,
+                        'is_read': n.is_read,
+                        'time_ago': timesince(n.created_at),
+                        'order_id': n.order_id,  # Include order_id
+                    })
 
                 return JsonResponse({
                     'status': 'success',
@@ -1433,27 +1433,26 @@ def get_notifications_context(request):
             'message': 'User not authenticated'
         }, status=401)
 
-    # This is a regular template context request
-    if request.user.is_authenticated:
-        try:
-            notifications = Notification.objects.filter(
-                vendor=request.user
-            ).order_by('-created_at')[:15]
-            unread_count = Notification.objects.filter(
-                vendor=request.user,
-                is_read=False
-            ).count()
-            return {
-                'notifications': notifications,
-                'unread_notifications_count': unread_count
-            }
-        except Exception as e:
-            print(f"Error in notifications context: {str(e)}")
-    
-    return {
+    # For template context usage, return a dictionary
+    context = {
         'notifications': [],
         'unread_notifications_count': 0
     }
+    
+    if request.user.is_authenticated:
+        try:
+            context['notifications'] = Notification.objects.filter(
+                vendor=request.user
+            ).order_by('-created_at')[:15]
+            
+            context['unread_notifications_count'] = Notification.objects.filter(
+                vendor=request.user,
+                is_read=False
+            ).count()
+        except Exception as e:
+            print(f"Error in notifications context: {str(e)}")
+    
+    return context
 
 
 def mark_notifications_as_read(request):
@@ -1491,7 +1490,8 @@ def create_order_notification(request, order):
         Notification.objects.create(
             vendor=order.vendor,
             message=f"New order #{order.order_id} received",
-            is_read=False
+            is_read=False,
+            order_id=order.id  # Include the order ID
         )
     except Exception as e:
         print(f"Error creating notification: {str(e)}")
@@ -1504,13 +1504,21 @@ def mark_single_notification_as_read(request, notification_id):
         try:
             notification = Notification.objects.get(
                 id=notification_id,
-                vendor=request.user,
-                is_read=False
+                vendor=request.user
             )
             notification.is_read = True
             notification.save()
             
-            return JsonResponse({'status': 'success'})
+            # Count remaining unread notifications
+            unread_count = Notification.objects.filter(
+                vendor=request.user,
+                is_read=False
+            ).count()
+            
+            return JsonResponse({
+                'status': 'success',
+                'unread_count': unread_count
+            })
         except Notification.DoesNotExist:
             return JsonResponse({
                 'status': 'error',
@@ -1618,4 +1626,29 @@ def vendor_dashboard(request):
     except Exception as e:
         print(f"Dashboard Error: {str(e)}")  # Add debug print
         messages.error(request, f"Error loading dashboard: {str(e)}")
-        return redirect('accounts:home')
+        return redirect('accounts:Dashboard')
+    
+    
+  
+from django.utils.timesince import timesince
+from django.http import JsonResponse
+from django.contrib.auth.decorators import login_required
+from .models import Notification
+from django.utils import timezone
+from django.shortcuts import get_object_or_404
+from django.http import JsonResponse
+
+
+
+
+def create_order_notification(request, order):
+    """Create a notification when a new order is placed"""
+    try:
+        Notification.objects.create(
+            vendor=order.vendor,
+            message=f"New order #{order.order_id} received",
+            is_read=False,
+            order_id=order.id  # Include the order ID
+        )
+    except Exception as e:
+        print(f"Error creating notification: {str(e)}")

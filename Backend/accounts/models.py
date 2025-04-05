@@ -429,14 +429,19 @@ class Customer(AbstractBaseUser, PermissionsMixin):
         ]
         
 
+
 class Notification(models.Model):
-    vendor = models.ForeignKey('Vendor', on_delete=models.CASCADE)
+    vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE, related_name='notifications')
     message = models.CharField(max_length=255)
     is_read = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
-
+    order_id = models.IntegerField(null=True, blank=True)
+    
+    # Add a new field for general URL (for non-order notifications)
+    action_url = models.CharField(max_length=255, null=True, blank=True)
+    
     class Meta:
         ordering = ['-created_at']
-
+    
     def __str__(self):
-        return f"{self.vendor} - {self.message[:50]}"
+        return f"Notification for {self.vendor}: {self.message[:30]}"
