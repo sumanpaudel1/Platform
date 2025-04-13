@@ -139,12 +139,16 @@ class Subdomain(models.Model):
     subdomain = models.CharField(max_length=50, unique=True)
 
     def save(self, *args, **kwargs):
-        if not self.subdomain:
-            self.subdomain = slugify(f"{self.vendor.first_name}-{str(uuid.uuid4())[:8]}")
+        # Make sure subdomain is clean before saving
+        if self.subdomain:
+            # Remove all invalid characters, keep only lowercase letters, numbers, and hyphens
+            import re
+            self.subdomain = re.sub(r'[^a-z0-9-]', '', self.subdomain.lower())
         super().save(*args, **kwargs)
 
+
     def __str__(self):
-        return self.subdomain
+        return f"{self.subdomain}"
     
 
 
@@ -227,6 +231,25 @@ class VendorSetting(models.Model):
     class Meta:
         verbose_name = "Vendor Setting"
         verbose_name_plural = "Vendor Settings"
+        
+    def save(self, *args, **kwargs):
+        # Handle subdomain changes
+        if self.subdomain and not self.subdomain_request_date:
+            self.subdomain_request_date = timezone.now()
+            
+        super().save(*args, **kwargs)
+        
+        # Keep Subdomain model in sync
+        if self.is_subdomain_active and self.subdomain:
+            from django.db import transaction
+            with transaction.atomic():
+                Subdomain.objects.update_or_create(
+                    vendor=self.vendor,
+                    defaults={'subdomain': self.subdomain}
+                )
+        elif not self.is_subdomain_active or not self.subdomain:
+            # Remove subdomain record if subdomain is deactivated or removed
+            Subdomain.objects.filter(vendor=self.vendor).delete()
 
     def __str__(self):
         return f"Settings for {self.vendor.first_name}"
@@ -329,18 +352,38 @@ class VendorProfile(models.Model):
     def __str__(self):
         return f"Profile of {self.vendor.first_name} {self.vendor.last_name}"
 
+
     def is_profile_complete(self):
-        required_fields = [
-            self.profile_photo,
-            self.business_name,
-            self.pan_vat_number,
-            self.registration_number,
-            self.pan_vat_document,
-            self.business_registration,
-            self.citizenship_front,
-            self.citizenship_back
+        """Check if all required profile fields are filled"""
+        # Check required text fields
+        required_text_fields = [
+            'business_name', 
+            'business_type', 
+            'pan_vat_number',
+            'registration_number',
+            'street_address',
+            'city',
+            'state', 
+            'postal_code',
+            'country',
+            'citizenship_number'
         ]
-        return all(required_fields)
+        
+        for field in required_text_fields:
+            if not getattr(self, field, None):
+                return False
+                
+        # Check required file fields
+        if not self.pan_vat_document or not self.pan_vat_document.name:
+            return False
+        if not self.business_registration or not self.business_registration.name:
+            return False
+        if not self.citizenship_front or not self.citizenship_front.name:
+            return False
+        if not self.citizenship_back or not self.citizenship_back.name:
+            return False
+                
+        return True
 
 
 
@@ -430,18 +473,58 @@ class Customer(AbstractBaseUser, PermissionsMixin):
         
 
 
+
 class Notification(models.Model):
-    vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE, related_name='notifications')
+    # Existing fields
     message = models.CharField(max_length=255)
+    vendor = models.ForeignKey('Vendor', on_delete=models.CASCADE, null=True, blank=True)  # Now nullable
     is_read = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
-    order_id = models.IntegerField(null=True, blank=True)
+    order_id = models.CharField(max_length=50, blank=True, null=True)
     
-    # Add a new field for general URL (for non-order notifications)
-    action_url = models.CharField(max_length=255, null=True, blank=True)
+    # New fields
+    is_admin = models.BooleanField(default=False)  # True for admin notifications
+    notification_type = models.CharField(max_length=50, default='general',
+        choices=[
+            ('general', 'General Notification'),
+            ('order', 'Order Notification'),
+            ('subdomain_request', 'Subdomain Request'),
+            ('subdomain_update', 'Subdomain Update'),
+            ('profile_update', 'Profile Update'),
+        ]
+    )
+    
+    # Related fields for subdomain approval
+    related_vendor_id = models.IntegerField(null=True, blank=True)  # Store vendor ID for admin actions
+    action_url = models.CharField(max_length=255, null=True, blank=True)  # URL for action button
+
     
     class Meta:
         ordering = ['-created_at']
     
     def __str__(self):
         return f"Notification for {self.vendor}: {self.message[:30]}"
+    
+    
+    
+
+
+class CollectionImage(models.Model):
+    COLLECTION_CHOICES = [
+        ('new_arrivals', 'New Arrivals'),
+        ('best_sellers', 'Best Sellers'), 
+        ('season_special', 'Season Special'),
+    ]
+    
+    vendor_setting = models.ForeignKey('VendorSetting', on_delete=models.CASCADE, related_name='collection_images')
+    collection_type = models.CharField(max_length=20, choices=COLLECTION_CHOICES)
+    image = models.ImageField(upload_to='vendor/collections/')
+    title = models.CharField(max_length=100, default="New Arrivals")
+    subtitle = models.CharField(max_length=200, default="Latest styles for you")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ['vendor_setting', 'collection_type']
+        
+    def __str__(self):
+        return f"{self.get_collection_type_display()} for {self.vendor_setting.vendor}"

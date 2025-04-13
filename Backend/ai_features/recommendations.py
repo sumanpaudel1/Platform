@@ -141,3 +141,47 @@ class ContentBasedRecommender:
                 return list(popular_products)
             else:
                 return []
+            
+    
+    # Add to ai_features/recommendations.py
+    def get_cached_recommendations(vendor_id, product_id=None, category_id=None, max_items=8):
+        """Get cached recommendations or compute if necessary"""
+        from django.core.cache import cache
+        
+        # Define cache key
+        if product_id:
+            cache_key = f"rec_prod_{vendor_id}_{product_id}"
+        elif category_id:
+            cache_key = f"rec_cat_{vendor_id}_{category_id}"
+        else:
+            cache_key = f"rec_vendor_{vendor_id}"
+        
+        # Try to get from cache
+        cached = cache.get(cache_key)
+        if cached:
+            return cached
+        
+        # Compute recommendations
+        if product_id:
+            product = Product.objects.get(id=product_id)
+            recommender = ContentBasedRecommender()
+            recommendations = recommender.get_similar_products(product, max_items)
+        elif category_id:
+            recommender = ContentBasedRecommender()
+            recommendations = recommender.get_recommended_products(
+                vendor_id=vendor_id,
+                category=category_id,
+                max_items=max_items
+            )
+            recommender = ContentBasedRecommender()
+            recommendations = recommender.get_recommended_products(
+                vendor_id=vendor_id,
+                max_items=max_items
+            )
+        
+        # Cache product IDs instead of actual objects for 6 hours
+        if recommendations:
+            rec_ids = [p.id for p in recommendations]
+            cache.set(cache_key, rec_ids, 60*60*6)  # 6 hours
+        
+        return recommendations

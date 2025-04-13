@@ -21,7 +21,7 @@ def register(request):
             send_otp_to_email(vendor.email, otp)
             OTP.objects.create(email=vendor.email, otp=otp)
 
-            return redirect('verify_otp', email=vendor.email)
+            return redirect('accounts:verify_otp', email=vendor.email)
     else:
         form = RegistrationForm()
 
@@ -44,7 +44,7 @@ def verify_otp(request, email):
                 vendor.is_verified = True
                 vendor.save()
                 messages.success(request, "Email verified successfully!")
-                return redirect('login')
+                return redirect('accounts:login')
             else:
                 error_message = "OTP has expired. Please request a new one." if otp_entry.is_expired() else "Invalid OTP. Please try again."
                 return render(request, 'accounts/otp_verification.html', {
@@ -133,7 +133,7 @@ def resend_otp(request, email):
             logger.error(f"Error in resend_otp: {str(e)}")
             messages.error(request, "An error occurred. Please try again")
     
-    return redirect('verify_otp', email=email)
+    return redirect('accounts:verify_otp', email=email)
 
 def forgot_password(request):
     if request.method == "POST":
@@ -152,7 +152,7 @@ def forgot_password(request):
                 
         except Vendor.DoesNotExist:
             messages.error(request, "No account found with this email address")
-            return redirect('forgot_password')
+            return redirect('accounts:forgot_password')
     
     return render(request, 'accounts/forgot_password.html')
 
@@ -166,7 +166,7 @@ def verify_reset_otp(request, email):
             
             if otp_entry.is_valid(entered_otp):
                 otp_entry.mark_as_used()
-                return redirect('reset_password', email=email)
+                return redirect('accounts:reset_password', email=email)
             else:
                 error_message = "OTP has expired. Please request a new one." if otp_entry.is_expired() else "Invalid OTP. Please try again."
                 return render(request, 'accounts/otp_verification.html', {
@@ -282,7 +282,7 @@ from django.contrib import messages
 from django.shortcuts import render, redirect
 from .models import VendorSetting, CoverPhoto
 from django.contrib.auth.decorators import login_required
-
+from .models import Vendor, OTP, VendorProfile, StorePhoto, VendorSetting, CoverPhoto, Subdomain, CollectionImage
 @login_required
 def store_settings(request):
     # Get or create settings for vendor
@@ -291,6 +291,17 @@ def store_settings(request):
     except VendorSetting.DoesNotExist:
         settings = VendorSetting(vendor=request.user)
         settings.save()
+
+    # Get collection images
+    collection_images = {}
+    for collection_type in ['new_arrivals', 'best_sellers', 'season_special']:
+        try:
+            collection_images[collection_type] = CollectionImage.objects.get(
+                vendor_setting=settings, 
+                collection_type=collection_type
+            )
+        except CollectionImage.DoesNotExist:
+            collection_images[collection_type] = None
 
     if request.method == 'POST':
         # Handle regular form fields
@@ -342,6 +353,33 @@ def store_settings(request):
                     image=photo
                 )
 
+        # Handle collection images
+        for collection_type, field_prefix in [
+            ('new_arrivals', 'new_arrivals_'),
+            ('best_sellers', 'best_sellers_'),
+            ('season_special', 'season_special_')
+        ]:
+            # Get or create collection image object
+            collection_obj, created = CollectionImage.objects.get_or_create(
+                vendor_setting=settings,
+                collection_type=collection_type,
+                defaults={
+                    'title': request.POST.get(f'{field_prefix}title', ''),
+                    'subtitle': request.POST.get(f'{field_prefix}subtitle', '')
+                }
+            )
+            
+            # Update existing collection if not created
+            if not created:
+                collection_obj.title = request.POST.get(f'{field_prefix}title', collection_obj.title)
+                collection_obj.subtitle = request.POST.get(f'{field_prefix}subtitle', collection_obj.subtitle)
+            
+            # Handle image upload
+            image_field = f'{field_prefix}image'
+            if request.FILES.get(image_field):
+                collection_obj.image = request.FILES[image_field]
+                collection_obj.save()
+
         try:
             settings.save()
             messages.success(request, 'Settings updated successfully!')
@@ -352,7 +390,10 @@ def store_settings(request):
 
     context = {
         'settings': settings,
-        'cover_photos': settings.cover_photos.all() if settings.id else []
+        'cover_photos': settings.cover_photos.all() if settings.id else [],
+        'new_arrivals_collection': collection_images['new_arrivals'],
+        'best_sellers_collection': collection_images['best_sellers'],
+        'season_special_collection': collection_images['season_special'],
     }
     return render(request, 'accounts/store_settings.html', context)
     
@@ -440,7 +481,7 @@ def vendor_product_edit(request, pk):
             product.size_variant.set(request.POST.getlist('size_variants'))
 
             messages.success(request, 'Product updated successfully!')
-            return redirect('vendor_products')
+            return redirect('accounts:vendor_products')
         else:
             messages.error(request, 'Please correct the errors below.')
     else:
@@ -507,7 +548,7 @@ def vendor_product_delete(request, pk):
             messages.success(request, 'Product deleted successfully!')
         except Exception as e:
             messages.error(request, f'Error deleting product: {str(e)}')
-        return redirect('vendor_products')
+        return redirect('accounts:vendor_products')
     
     # If GET request, show confirmation page
     context = {
@@ -1652,3 +1693,199 @@ def create_order_notification(request, order):
         )
     except Exception as e:
         print(f"Error creating notification: {str(e)}")
+        
+        
+   
+   
+   
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
+from django.utils import timezone
+from .models import Vendor, VendorSetting, VendorProfile, Notification
+
+@login_required
+def subdomain_management(request):
+    """View for managing vendor subdomain"""
+    try:
+        vendor = request.user
+        
+        # Check if vendor has settings, create if not
+        if not hasattr(vendor, 'settings'):
+            VendorSetting.objects.create(
+                vendor=vendor,
+                store_name=vendor.profile.business_name if hasattr(vendor, 'profile') else f"{vendor.first_name}'s Store"
+            )
+        
+        # Handle form submission
+        if request.method == "POST":
+            subdomain = request.POST.get('subdomain', '').strip().lower()
+            action = request.POST.get('action', 'create')
+            
+            # Basic validation
+            if not subdomain:
+                messages.error(request, "Subdomain cannot be empty.")
+                return redirect('accounts:subdomain_management')
+            
+            # More validation (alphanumeric and hyphen only)
+            import re
+            if not re.match(r'^[a-z0-9-]+$', subdomain):
+                messages.error(request, "Subdomain can only contain lowercase letters, numbers, and hyphens.")
+                return redirect('accounts:subdomain_management')
+            
+            # Check if the profile is complete and verified
+            if not hasattr(vendor, 'profile') or vendor.profile.profile_status != 'approved' or not vendor.profile.is_verified:
+                messages.error(request, "Your profile must be complete and verified before requesting a subdomain.")
+                return redirect('accounts:subdomain_management')
+            
+            # Check availability (exclude current vendor's subdomain if updating)
+            existing_subdomain = VendorSetting.objects.filter(subdomain=subdomain).exclude(vendor=vendor).first()
+            if existing_subdomain:
+                messages.error(request, f"The subdomain '{subdomain}' is already taken. Please choose another one.")
+                return redirect('accounts:subdomain_management')
+            
+            # Process the request
+            if action == 'update' and vendor.settings.subdomain:
+                # For update requests
+                old_subdomain = vendor.settings.subdomain
+                
+                # Update the subdomain
+                vendor.settings.subdomain = subdomain
+                vendor.settings.is_subdomain_active = False  # Require re-approval
+                vendor.settings.subdomain_request_date = timezone.now()
+                vendor.settings.subdomain_approval_date = None
+                vendor.settings.save()
+                
+                # Create notification for admin
+                admin_notification = Notification.objects.create(
+                    message=f"Vendor {vendor.first_name} {vendor.last_name} requested to change subdomain from '{old_subdomain}' to '{subdomain}'",
+                    vendor=None,  # Admin notification
+                    is_admin=True,
+                    notification_type='subdomain_update'
+                )
+                
+                messages.success(request, "Your subdomain update request has been submitted and is pending approval.")
+            else:
+                # For new subdomain requests
+                vendor.settings.subdomain = subdomain
+                vendor.settings.is_subdomain_active = False
+                vendor.settings.subdomain_request_date = timezone.now()
+                vendor.settings.save()
+                
+                # Create notification for admin
+                admin_notification = Notification.objects.create(
+                    message=f"Vendor {vendor.first_name} {vendor.last_name} requested subdomain '{subdomain}'",
+                    vendor=None,  # Admin notification
+                    is_admin=True,
+                    notification_type='subdomain_request'
+                )
+                
+                messages.success(request, "Your subdomain request has been submitted and is pending approval.")
+            
+            return redirect('accounts:subdomain_management')
+        
+        context = {
+            'vendor': vendor,
+        }
+        
+        return render(request, 'accounts/subdomain.html', context)
+    
+    except Exception as e:
+        messages.error(request, f"An error occurred: {str(e)}")
+        return redirect('accounts:vendor_dashboard')
+    
+    
+
+
+@login_required
+def admin_subdomain_requests(request):
+    """Admin view for managing subdomain requests"""
+    # Check if user is admin
+    if not request.user.is_admin and not request.user.is_staff:
+        messages.error(request, "You don't have permission to access this page.")
+        return redirect('accounts:dashboard')
+    
+    # Get all pending subdomain requests
+    pending_requests = VendorSetting.objects.filter(
+        is_subdomain_active=False,
+        subdomain__isnull=False,
+        subdomain_approval_date__isnull=True
+    ).select_related('vendor').order_by('-subdomain_request_date')
+    
+    # Handle approval/rejection
+    if request.method == "POST":
+        vendor_id = request.POST.get('vendor_id')
+        action = request.POST.get('action')
+        
+        if not vendor_id or not action:
+            messages.error(request, "Invalid request.")
+            return redirect('accounts:admin_subdomain_requests')
+        
+        try:
+            vendor = Vendor.objects.get(id=vendor_id)
+            vendor_settings = vendor.settings
+            
+            if action == 'approve':
+                # Approve the subdomain
+                vendor_settings.is_subdomain_active = True
+                vendor_settings.subdomain_approval_date = timezone.now()
+                vendor_settings.save()
+                
+                # Create notification for vendor
+                Notification.objects.create(
+                    message=f"Your subdomain request '{vendor_settings.subdomain}.platform' has been approved!",
+                    vendor=vendor,
+                    notification_type='general'
+                )
+                
+                messages.success(request, f"Subdomain '{vendor_settings.subdomain}' has been approved.")
+                
+            elif action == 'reject':
+                rejection_reason = request.POST.get('rejection_reason', 'Your subdomain request was rejected.')
+                old_subdomain = vendor_settings.subdomain
+                
+                # Reset the subdomain
+                vendor_settings.is_subdomain_active = False
+                vendor_settings.subdomain = None
+                vendor_settings.save()
+                
+                # Create notification for vendor
+                Notification.objects.create(
+                    message=f"Your subdomain request '{old_subdomain}.platform' was rejected: {rejection_reason}",
+                    vendor=vendor,
+                    notification_type='general'
+                )
+                
+                messages.success(request, f"Subdomain '{old_subdomain}' has been rejected.")
+            
+            # Mark related admin notifications as read
+            Notification.objects.filter(
+                is_admin=True,
+                notification_type__in=['subdomain_request', 'subdomain_update'],
+                related_vendor_id=vendor_id,
+                is_read=False
+            ).update(is_read=True)
+                
+        except Vendor.DoesNotExist:
+            messages.error(request, "Vendor not found.")
+        except Exception as e:
+            messages.error(request, f"Error processing request: {str(e)}")
+    
+    context = {
+        'pending_requests': pending_requests
+    }
+    
+    return render(request, 'accounts/admin_subdomain_requests.html', context)
+
+
+
+def landing_page(request):
+    """Display the landing page for vendors"""
+    return render(request, 'C:/Users/Asus/Desktop/level-6/Final Year Project & Professionalism/Final_Year_Project\Backend\accounts\templates\accounts\landingpage.html')
+
+
+# Add CollectionImage to this import statement
+from .models import Vendor, OTP, VendorProfile, StorePhoto, VendorSetting, CoverPhoto, Subdomain, CollectionImage
+from .utils import generate_otp, send_otp_to_email
+
+

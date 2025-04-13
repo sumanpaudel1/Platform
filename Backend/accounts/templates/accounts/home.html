@@ -36,7 +36,12 @@
                     </svg>
                     Profile
                 </a>
-
+                <a href="{% url 'accounts:subdomain_management' %}" class="flex items-center p-3 text-gray-700 rounded-lg hover:bg-gray-100">
+                    <svg class="w-6 h-6 mr-3 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9" />
+                    </svg>
+                    <span>Subdomain</span>
+                </a>
                 <a href="{% url 'accounts:vendor_settings' %}" class="flex items-center p-3 text-gray-700 rounded-lg hover:bg-gray-100">
                     <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
@@ -250,7 +255,7 @@
             event.preventDefault(); // Prevent default link behavior
             
             // Get the link's href for redirection after marking as read
-            const link = event.currentTarget.getAttribute('href');
+            const actionUrl = event.currentTarget.getAttribute('data-action-url');
             
             fetch(`/api/notifications/${notificationId}/mark-read/`, {
                 method: 'POST',
@@ -334,7 +339,17 @@
                     'X-Requested-With': 'XMLHttpRequest'
                 }
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    // If unauthorized, stop polling
+                    if (response.status === 401) {
+                        clearInterval(notificationInterval);
+                        return null;
+                    }
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data.status === 'success') {
                     // Update notification count
@@ -407,6 +422,8 @@
             
             // Fetch notifications every 15 seconds
             setInterval(fetchNotifications, 15000);
+            setInterval(refreshNotifications, 30000);
+
         });
 
     function toggleProfile() {

@@ -12,7 +12,8 @@ from django.conf import settings
 from django.utils import timezone
 from django.core.mail import send_mail
 
-from django.http import JsonResponse
+from django.http import JsonResponse, Http404
+from ai_features import models  # Ensure ai_features module is imported
 import json
 from django.template.loader import render_to_string
 import io
@@ -104,7 +105,80 @@ def vendor_home(request, subdomain):
         logger.error(f"Error in vendor_home: {str(e)}")
         messages.error(request, "An error occurred while loading the page")
         return redirect('accounts:customer_login' , subdomain=subdomain)
+        # return redirect('products:vendor_home', subdomain=subdomain)
 
+
+
+
+
+# Remove this decorator to allow guest access
+# @vendor_login_required
+# def vendor_home(request, subdomain):
+#     try:
+#         subdomain = subdomain.replace('.platform', '')
+#         subdomain_obj = get_object_or_404(Subdomain, subdomain=subdomain)
+#         vendor = subdomain_obj.vendor
+        
+#         # Remove this problematic line
+#         # customer = request.customer
+        
+#         # This part is correct - get customer from session if available
+#         customer = None
+#         if request.session.get('customer_id'):
+#             try:
+#                 customer = Customer.objects.get(
+#                     id=request.session['customer_id'],
+#                     vendor=vendor
+#                 )
+#                 print(f"Found customer: {customer.email}")
+#             except Customer.DoesNotExist:
+#                 print("Customer not found in database")
+        
+#         # Get all products and new arrivals
+#         products = Product.objects.filter(vendor=vendor)
+#         new_arrivals = products.order_by('-created_at')[:8]
+        
+#         from ai_features.services import get_recommended_products_for_homepage
+#         recommended_products = get_recommended_products_for_homepage(vendor)
+        
+#         # Get store photos safely
+#         store_photos = StorePhoto.objects.filter(vendor=vendor).order_by('-is_primary', '-uploaded_at')
+#         store_photo = store_photos.first()  # Changed from [0] to first()
+
+#         context = {
+#             'vendor': vendor,
+#             'products': products,
+#             'customer': customer,
+#             'new_arrivals': new_arrivals,
+#             'recommended_products': recommended_products,
+#             'categories': Category.objects.filter(vendor=vendor),
+#             'cover_photos': vendor.settings.cover_photos.all().order_by('order'),
+#             'year': datetime.now().year,
+#             'show_popup': vendor.settings.show_popup,
+#             'popup_delay': vendor.settings.popup_delay,
+#             'debug': settings.DEBUG,
+#             'wishlisted_products': list(Wishlist.objects.filter(
+#                 customer_id=request.session.get('customer_id', None)
+#             ).values_list('product_id', flat=True)) if request.session.get('customer_id') else [],
+#             'total_products': products.count(),
+#             'total_customers': Customer.objects.filter(
+#                 id__in=Order.objects.filter(vendor=vendor).values('customer_id')
+#             ).distinct().count(),
+#             'years_in_business': (timezone.now().year - vendor.date_joined.year),
+#             'store_photos': store_photo,  
+#         }
+        
+#         if vendor.settings.instagram:
+#             instagram_posts = fetch_instagram_posts(vendor.settings.instagram)
+#             context['instagram_posts'] = instagram_posts
+        
+#         return render(request, 'products/vendor_home.html', context)
+        
+#     except Exception as e:
+#         logger.error(f"Error in vendor_home: {str(e)}")
+#         messages.error(request, "An error occurred while loading the page")
+#         # Fix the redirect loop by redirecting elsewhere on error
+#         return redirect('products:product_list', subdomain=subdomain)
 
 
 
@@ -150,6 +224,16 @@ def product_detail(request, subdomain, slug):
     except Exception as e:
         print(f"Error getting recommendations: {str(e)}")
     
+    
+    if similar_products:
+        # Record recommendation events
+        for position, rec_product in enumerate(similar_products):
+            models.RecommendationEvent.objects.create(
+                vendor=vendor,
+                source_product=product,
+                recommended_product=rec_product,
+                recommendation_type='detail_page'
+            )
     # If no AI recommendations, fall back to your existing related_products
     if not similar_products:
         similar_products = Product.objects.filter(
@@ -1398,75 +1482,102 @@ from django.db.models import Q
 from django.core.paginator import Paginator
 
 def search_products(request, subdomain):
+    """Search products based on query parameters"""
+    import re
+    from django.http import Http404
+    
     subdomain = subdomain.replace('.platform', '')
-    subdomain_obj = get_object_or_404(Subdomain, subdomain=subdomain)
+    sanitized_subdomain = re.sub(r'[^a-z0-9-]', '', subdomain.lower())
+    
+    try:
+        # Try sanitized subdomain first
+        subdomain_obj = get_object_or_404(Subdomain, subdomain=sanitized_subdomain)
+    except Http404:
+        # Fallback handling
+        raise Http404(f"Invalid subdomain: {sanitized_subdomain}")
+        
     vendor = subdomain_obj.vendor
     
+    # Get filter parameters
     query = request.GET.get('q', '')
     selected_categories = request.GET.get('categories', '').split(',')
     selected_categories = [cat for cat in selected_categories if cat.strip()]
     price_max = request.GET.get('price')
     sort = request.GET.get('sort', 'relevance')
     
-    # Base queryset
-    products = Product.objects.filter(vendor=vendor)
-    
-    # Apply search query
-    if query:
-        products = products.filter(
-            Q(name__icontains=query) |
-            Q(description__icontains=query) 
-        ).distinct()
-    
-    # Apply category filter
-    if selected_categories:
-        category_ids = [int(cat) for cat in selected_categories]
-        products = products.filter(category__id__in=category_ids)
-    
-    # Apply price filter
-    if price_max:
-        products = products.filter(price__lte=price_max)
-    
-    # Apply sorting
-    if sort == 'price_asc':
-        products = products.order_by('price')
-    elif sort == 'price_desc':
-        products = products.order_by('-price')
-    elif sort == 'newest':
-        products = products.order_by('-created_at')
-    
     # Get max price for filter
     max_price = Product.objects.filter(vendor=vendor).order_by('-price').first()
     max_price = max_price.price if max_price else 1000
     
+    # Check if this is an image search
+    is_image_search = request.GET.get('type') == 'image'
     
-    if request.GET.get('type') == 'image':
+    if is_image_search:
         # Get search results from session
         search_results = request.session.get('image_search_results', [])
         
         if search_results:
-            # Get product IDs from search results
-            product_ids = [int(float(item['product_id'])) for item in search_results if 'product_id' in item]
+            # Get product IDs and similarity scores
+            product_data = {int(float(item['product_id'])): item['similarity_score'] 
+                          for item in search_results if 'product_id' in item}
+            product_ids = list(product_data.keys())
             
-            # Get products in order of search results
-            products = []
-            product_dict = {p.id: p for p in Product.objects.filter(id__in=product_ids, vendor=vendor)}
+            # Query the database for these products
+            products = Product.objects.filter(id__in=product_ids, vendor=vendor)
             
-            # Preserve search order and attach similarity scores
-            for result in search_results:
-                if 'product_id' in result:
-                    product_id = int(float(result['product_id']))
-                    if product_id in product_dict:
-                        product = product_dict[product_id]
-                        product.similarity_score = float(result.get('similarity_score', 0))
-                        product.explanation = result.get('explanation', f"Similarity: {product.similarity_score:.1f}%")
-                        # Only add products with similarity scores above the threshold
-                        products.append(product)
+            # Apply category filter if selected
+            if selected_categories:
+                products = products.filter(category__id__in=selected_categories)
             
-            # If no products above threshold
-            if not products:
-                messages.info(request, "No products matched your image with sufficient similarity. Try another image.")
-            
+            # Apply price filter if specified
+            if price_max:
+                products = products.filter(price__lte=price_max)
+                
+            # Apply sorting
+            if sort == 'price_asc':
+                products = products.order_by('price')
+            elif sort == 'price_desc':
+                products = products.order_by('-price')
+            elif sort == 'newest':
+                products = products.order_by('-created_at')
+            # Default to similarity score for relevance in image search
+                
+            # After filtering, attach similarity scores to products
+            for product in products:
+                product.similarity_score = product_data.get(product.id, 0)
+                
+            # If sorting by relevance, sort by similarity score
+            if sort == 'relevance' or not sort:
+                products = sorted(products, key=lambda p: p.similarity_score, reverse=True)
+        else:
+            products = Product.objects.none()
+    else:
+        # Regular text search - Base queryset
+        products = Product.objects.filter(vendor=vendor)
+        
+        # Apply search query
+        if query:
+            products = products.filter(
+                Q(name__icontains=query) | 
+                Q(description__icontains=query) |
+                Q(category__category_name__icontains=query)
+            ).distinct()
+        
+        # Apply category filter
+        if selected_categories:
+            products = products.filter(category__id__in=selected_categories)
+        
+        # Apply price filter
+        if price_max:
+            products = products.filter(price__lte=price_max)
+        
+        # Apply sorting
+        if sort == 'price_asc':
+            products = products.order_by('price')
+        elif sort == 'price_desc':
+            products = products.order_by('-price')
+        elif sort == 'newest':
+            products = products.order_by('-created_at')
     
     context = {
         'products': products,
@@ -1477,7 +1588,7 @@ def search_products(request, subdomain):
         'selected_price': price_max,
         'sort': sort,
         'vendor': vendor,
-        'is_image_search': request.GET.get('type') == 'image'
+        'is_image_search': is_image_search
     }
     
     return render(request, 'products/search_result.html', context)
@@ -1500,14 +1611,17 @@ from ai_features.recommendations import ContentBasedRecommender
 
 
 # Import new stuff with error handling
-try:
-    vector_db = VectorDatabase()
-    clip_search = CLIPPineconeSearch()
-except Exception as e:
-    logger.error(f"Error initializing search engines: {str(e)}")
-    vector_db = None
-    clip_search = None
+# Don't initialize at import time
+vector_db = None
 
+def get_vector_db():
+    global vector_db
+    if vector_db is None:
+        try:
+            vector_db = CLIPPineconeSearch()
+        except Exception as e:
+            logger.error(f"Error initializing vector_db: {str(e)}")
+    return vector_db
 
 try:
     recommender_system = ContentBasedRecommender()
@@ -1515,10 +1629,10 @@ except Exception as e:
     logger.error(f"Failed to initialize recommendation system: {str(e)}")
     recommender_system = None
     
-
+    
+from io import BytesIO
 @require_http_methods(["POST"])
 def image_search_view(request, subdomain):
-    """View for processing image search"""
     try:
         if 'image_query' not in request.FILES:
             return JsonResponse({
@@ -1526,23 +1640,35 @@ def image_search_view(request, subdomain):
                 'message': 'No image file provided'
             })
             
-        # Get vendor from subdomain
+        # Import here to ensure it's available
+        from ai_features.clip_pineconesearch import CLIPPineconeSearch
+        
         subdomain = subdomain.replace('.platform', '')
         subdomain_obj = get_object_or_404(Subdomain, subdomain=subdomain)
         vendor = subdomain_obj.vendor
         
-        # Process query image
-        image_file = request.FILES['image_query']
-        img = Image.open(io.BytesIO(image_file.read())).convert('RGB')
-        
         print(f"Processing image search for vendor {vendor.id}")
         
-        search_results = []
+        # Process query image
+        image_file = request.FILES['image_query']
+        img = Image.open(BytesIO(image_file.read())).convert('RGB')
         
+        # Use CLIP search
+        clip_search = CLIPPineconeSearch()
+        search_results = []
+           
         # Set threshold to 60% for high relevance
         threshold = 60.0
         
-        # Try CLIP search
+        # Initialize clip_search if not already defined
+        if 'clip_search' not in globals():
+            try:
+                from ai_features.clip_pineconesearch import CLIPPineconeSearch
+                clip_search = CLIPPineconeSearch()
+            except Exception as e:
+                logger.error(f"Error initializing clip_search: {str(e)}")
+                clip_search = None
+
         if clip_search:
             try:
                 # Check Pinecone stats first
@@ -1597,8 +1723,14 @@ def image_search_view(request, subdomain):
         
         return JsonResponse({
             'status': 'success',
-            'redirect_url': reverse('products:search', kwargs={'subdomain': subdomain}) + '?type=image',
+            'redirect_url': reverse('products:search', kwargs={'subdomain':subdomain}) + '?type=image',
             'result_count': len(search_results)
+        })
+        
+    except Http404:
+        return JsonResponse({
+            'status': 'error', 
+            'message': 'Invalid subdomain'
         })
         
     except Exception as e:
@@ -1839,6 +1971,130 @@ def get_similar_products_for_product(product, max_items=6, threshold=60.0):
             id=product.id
         ).order_by('-created_at')[:max_items]
         
+from .models import Product, Category, Cart, Wishlist, ColorVariant, OrderItem
+
+def product_list(request, subdomain):
+    try:
+        subdomain = subdomain.replace('.platform', '')
+        subdomain_obj = get_object_or_404(Subdomain, subdomain=subdomain)
+        vendor = subdomain_obj.vendor
+        
+        # Get customer from session if available
+        customer = None
+        if request.session.get('customer_id'):
+            try:
+                customer = Customer.objects.get(
+                    id=request.session['customer_id'],
+                    vendor=vendor
+                )
+            except Customer.DoesNotExist:
+                pass
+        
+        # Get filter parameters
+        category_id = request.GET.get('category')
+        collection = request.GET.get('collection')
+        sort_by = request.GET.get('sort', 'newest')
+        
+        # Start with all products for this vendor
+        products = Product.objects.filter(vendor=vendor)
+        
+        # Apply category filter if specified
+        selected_category_name = None
+        if category_id:
+            try:
+                category = Category.objects.get(id=category_id, vendor=vendor)
+                products = products.filter(category=category)
+                selected_category_name = category.category_name
+            except Category.DoesNotExist:
+                pass
+        
+        # Apply collection filter if specified
+        collection_name = None
+        if collection:
+            # Print for debugging
+            print(f"Filtering by collection: {collection}")
+            
+            if collection == 'new_arrivals':
+                # Get products from the last 30 days
+                thirty_days_ago = timezone.now() - timezone.timedelta(days=30)
+                products = products.filter(created_at__gte=thirty_days_ago)
+                collection_name = "New Arrivals"
+            
+            elif collection == 'best_sellers':
+                print("Processing best_sellers collection")
+                try:
+                    # Simpler approach: Get products with any orders, sorted by order count
+                    from django.db.models import Count
+                    
+                    # Direct query - get products with order counts
+                    products = Product.objects.filter(vendor=vendor).annotate(
+                        order_count=Count('orderitem')
+                    ).filter(order_count__gt=0).order_by('-order_count')
+                    
+                    # If no results, try without filtering on order_count > 0
+                    if not products.exists():
+                        print("No products with orders found, showing all products with order counts")
+                        products = Product.objects.filter(vendor=vendor).annotate(
+                            order_count=Count('orderitem')
+                        ).order_by('-order_count')
+                    
+                    # If still no results, use recent products as fallback
+                    if not products.exists():
+                        print("No order data found, using recently added products")
+                        products = Product.objects.filter(vendor=vendor).order_by('-created_at')
+                        
+                    print(f"Found {products.count()} products for best sellers")
+                    collection_name = "Best Sellers"
+                except Exception as e:
+                    print(f"Error processing best sellers: {str(e)}")
+                    # Fall back to recent products
+                    products = Product.objects.filter(vendor=vendor).order_by('-created_at')
+                    collection_name = "Best Sellers"
+            
+            elif collection == 'season_special':
+                # Get products with a discount/special offer
+                discounted = products.filter(cut_price__isnull=False)
+                if discounted.exists():
+                    products = discounted
+                collection_name = "Season Special"
+        
+        # Apply sorting (skip for best_sellers as it has its own sort)
+        if collection != 'best_sellers':
+            if sort_by == 'price_low':
+                products = products.order_by('price')
+            elif sort_by == 'price_high':
+                products = products.order_by('-price')
+            elif sort_by == 'newest':
+                products = products.order_by('-created_at')
+        
+        # Always limit to a reasonable number to prevent performance issues
+        if products.count() > 100:
+            products = products[:100]
+        
+        context = {
+            'vendor': vendor,
+            'products': products,
+            'customer': customer,
+            'categories': Category.objects.filter(vendor=vendor),
+            'selected_category_id': category_id,
+            'selected_category_name': selected_category_name,
+            'collection': collection,
+            'collection_name': collection_name,
+            'sort_by': sort_by,
+            'wishlisted_products': list(Wishlist.objects.filter(
+                customer_id=request.session.get('customer_id', None)
+            ).values_list('product_id', flat=True)) if request.session.get('customer_id') else []
+        }
+        
+        return render(request, 'products/product_list.html', context)
+        
+    except Exception as e:
+        print(f"Error in product_list: {str(e)}")
+        # Include traceback for better debugging
+        import traceback
+        print(traceback.format_exc())
+        messages.error(request, "An error occurred while loading the page")
+        return redirect('products:vendor_home', subdomain=subdomain)
         
         
         
