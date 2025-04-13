@@ -1,27 +1,176 @@
 {% extends 'accounts/home.html' %}
 
-{% block content %}
-<div class="py-6">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 class="text-2xl font-bold">Subdomain Management</h2>
-        <div class="mt-6">
-            <form method="POST" class="space-y-4">
-                {% csrf_token %}
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Subdomain Name</label>
-                    <div class="mt-1 flex rounded-md shadow-sm">
-                        <input type="text" name="subdomain" value="{{ settings.subdomain|default:'' }}" 
-                               class="flex-1 min-w-0 block w-full px-3 py-2 rounded-md border border-gray-300 focus:ring-blue-500 focus:border-blue-500" 
-                               placeholder="your-store">
-                        <span class="inline-flex items-center px-3 py-2 border border-l-0 border-gray-300 bg-gray-50 text-gray-500">
-                            .yourdomain.com
+{% block dashboard_content %}
+<div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+    <!-- Page Header -->
+    <div class="md:flex md:items-center md:justify-between mb-6">
+        <div class="flex-1 min-w-0">
+            <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">Subdomain Management</h2>
+        </div>
+    </div>
+
+    {% if messages %}
+    <div class="mb-6">
+        {% for message in messages %}
+        <div class="p-4 rounded-md {% if message.tags == 'success' %}bg-green-50 text-green-700{% elif message.tags == 'error' %}bg-red-50 text-red-700{% else %}bg-blue-50 text-blue-700{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Profile Status Card -->
+    <div class="bg-white shadow overflow-hidden sm:rounded-lg mb-6">
+        <div class="px-4 py-5 sm:px-6">
+            <h3 class="text-lg leading-6 font-medium text-gray-900">Profile Status</h3>
+            <p class="mt-1 max-w-2xl text-sm text-gray-500">Your profile must be verified before requesting a subdomain.</p>
+        </div>
+        <div class="border-t border-gray-200 px-4 py-5 sm:p-6">
+            <div class="flex items-center">
+                <div class="mr-4">
+                    {% if vendor.profile.profile_status == 'approved' and vendor.profile.is_verified %}
+                        <span class="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
+                            <svg class="h-5 w-5 text-green-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
                         </span>
-                    </div>
+                    {% else %}
+                        <span class="h-8 w-8 rounded-full bg-yellow-100 flex items-center justify-center">
+                            <svg class="h-5 w-5 text-yellow-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </span>
+                    {% endif %}
                 </div>
-                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-md">
-                    Request Subdomain
-                </button>
-            </form>
+                <div>
+                    <h4 class="text-md font-medium text-gray-900">
+                        {% if vendor.profile.profile_status == 'approved' and vendor.profile.is_verified %}
+                            Profile Verified
+                        {% elif vendor.profile.profile_status == 'pending' %}
+                            Profile Pending Review
+                        {% elif vendor.profile.profile_status == 'under_review' %}
+                            Profile Under Review
+                        {% elif vendor.profile.profile_status == 'rejected' %}
+                            Profile Rejected
+                        {% else %}
+                            Profile Incomplete
+                        {% endif %}
+                    </h4>
+                    <p class="text-sm text-gray-500">
+                        {% if vendor.profile.profile_status == 'approved' and vendor.profile.is_verified %}
+                            Your profile has been verified and you can now request a subdomain.
+                        {% elif vendor.profile.profile_status == 'rejected' %}
+                            Your profile has been rejected. Please update your information and resubmit.
+                        {% elif vendor.profile.profile_status == 'pending' or vendor.profile.profile_status == 'under_review' %}
+                            Your profile is pending approval. You'll be notified once it's reviewed.
+                        {% else %}
+                            Please complete your profile before requesting a subdomain.
+                        {% endif %}
+                    </p>
+
+                    {% if not vendor.profile.is_profile_complete %}
+                        <a href="{% url 'accounts:vendor_profile' %}" class="mt-2 inline-flex items-center px-3 py-1 border border-transparent text-sm rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none">
+                            Complete Profile
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Subdomain Request Form -->
+    <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+        <div class="px-4 py-5 sm:px-6">
+            <h3 class="text-lg leading-6 font-medium text-gray-900">Subdomain Request</h3>
+            <p class="mt-1 max-w-2xl text-sm text-gray-500">Choose your unique subdomain name for your store.</p>
+        </div>
+        <div class="border-t border-gray-200 px-4 py-5 sm:p-6">
+            {% if vendor.profile.profile_status == 'approved' and vendor.profile.is_verified %}
+                {% if vendor.settings.subdomain %}
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h4 class="text-md font-medium text-gray-900">Current Subdomain</h4>
+                            <p class="text-sm text-gray-500 mt-1">Your store is available at:</p>
+                            <div class="mt-2 flex items-center">
+                                <a href="//127.0.0.1:8080/{{ vendor.settings.subdomain }}.platform/home" target="_blank" class="text-indigo-600 hover:text-indigo-900">
+                                    <span class="font-medium">{{ vendor.settings.subdomain }}.platform</span>
+                                </a>
+                                <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if vendor.settings.is_subdomain_active %}bg-green-100 text-green-800{% else %}bg-gray-100 text-gray-800{% endif %}">
+                                    {% if vendor.settings.is_subdomain_active %}Active{% else %}Pending Activation{% endif %}
+                                </span>
+                            </div>
+                        </div>
+                        {% if vendor.settings.is_subdomain_active %}
+                        <a href="//127.0.0.1:8080/{{ vendor.settings.subdomain }}.platform/home" target="_blank" class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none">
+                            <svg class="-ml-1 mr-2 h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                            </svg>
+                            Visit Store
+                        </a>
+                        {% endif %}
+                    </div>
+                    {% if not vendor.settings.is_subdomain_active %}
+                        <div class="mt-4 flex items-center">
+                            <svg class="h-5 w-5 text-yellow-400 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                            </svg>
+                            <span class="text-sm text-yellow-700">Your subdomain request is pending approval. You'll be notified once it's approved.</span>
+                        </div>
+                    {% endif %}
+                    
+                    {% if vendor.settings.is_subdomain_active or vendor.settings.subdomain_approval_date %}
+                    <div class="mt-4 border-t border-gray-200 pt-4">
+                        <h4 class="text-md font-medium text-gray-900">Update Subdomain</h4>
+                        <p class="text-sm text-gray-500 mt-1">You can request to change your subdomain if needed:</p>
+                        
+                        <form method="POST" class="mt-3">
+                            {% csrf_token %}
+                            <div class="flex">
+                                <div class="flex-grow flex rounded-md shadow-sm">
+                                   
+                                    <input type="text" name="subdomain" value="{{ subdomain_form_data|default:'' }}" class="focus:ring-indigo-500 focus:border-indigo-500 flex-grow block w-full rounded-none rounded-l-md sm:text-sm border-gray-300" placeholder="yourname">
+                                    <span class="inline-flex items-center px-3 rounded-r-md border border-l-0 border-gray-300 bg-gray-50 text-gray-500 sm:text-sm">
+                                        .platform
+                                    </span>
+                                </div>
+                                <button type="submit" name="action" value="update" class="ml-3 inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none">
+                                    Request Update
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                    {% endif %}
+                {% else %}
+                    <form method="POST" class="space-y-4">
+                        {% csrf_token %}
+                        <div>
+                            <label for="subdomain" class="block text-sm font-medium text-gray-700">Subdomain Name</label>
+                            <div class="mt-1 flex rounded-md shadow-sm">
+                            
+                                <input type="text" name="subdomain" id="subdomain" class="focus:ring-indigo-500 focus:border-indigo-500 flex-grow block w-full rounded-none rounded-l-md sm:text-sm border-gray-300" placeholder="yourname">
+                                <span class="inline-flex items-center px-3 rounded-r-md border border-l-0 border-gray-300 bg-gray-50 text-gray-500 sm:text-sm">
+                                    .platform
+                                </span>
+                            </div>
+                            <p class="mt-1 text-sm text-gray-500">Choose a unique name for your store. Only lowercase letters, numbers, and hyphens are allowed.</p>
+                        </div>
+                        <div>
+                            <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none">
+                                Request Subdomain
+                            </button>
+                        </div>
+                    </form>
+                {% endif %}
+            {% else %}
+                <div class="flex items-center">
+                    <svg class="h-5 w-5 text-yellow-400 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="text-sm text-yellow-700">
+                        You must complete your profile and be verified before requesting a subdomain.
+                    </span>
+                </div>
+            {% endif %}
         </div>
     </div>
 </div>

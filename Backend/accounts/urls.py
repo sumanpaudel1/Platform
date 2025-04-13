@@ -5,7 +5,7 @@ app_name = 'accounts'
 
 
 urlpatterns = [
-    
+    path('', views.landing_page, name='landing_page'),
     path('register/', views.register, name='register'),
     path('verify-otp/<str:email>/', views.verify_otp, name='verify_otp'),
     path('login/', views.login_vendor, name='login'),
@@ -89,6 +89,8 @@ urlpatterns = [
          name='mark_single_notification_as_read'),
     
     path('dashboard/', views.vendor_dashboard, name='vendor_dashboard'),
+
+    path('home/subdomain/', views.subdomain_management, name='subdomain_management'),
     
 ]
 

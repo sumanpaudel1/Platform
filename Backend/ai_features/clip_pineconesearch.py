@@ -38,8 +38,11 @@ class CLIPPineconeSearch:
     
     def __init__(self):
         # Initialize CLIP model
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.model = None
+        self.preprocess = None
+        self._model_loaded = False
         try:
-            self.device = "cuda" if torch.cuda.is_available() else "cpu"
             self.model, self.preprocess = clip.load("ViT-B/32", device=self.device)
             logger.info(f"CLIP model loaded successfully. Using device: {self.device}")
             
@@ -55,8 +58,24 @@ class CLIPPineconeSearch:
             self.index = None
             raise
     
+    def _load_model(self):
+        """Load CLIP model only when needed"""
+        if not self._model_loaded:
+            try:
+                import clip
+                self.model, self.preprocess = clip.load("ViT-B/32", device=self.device)
+                self._model_loaded = True
+                logger.info(f"CLIP model loaded successfully. Using device: {self.device}")
+                return True
+            except Exception as e:
+                logger.error(f"Error loading CLIP model: {str(e)}")
+                return False
+        return True
+    
     def encode_image(self, image):
         """Encode image to embedding vector using CLIP"""
+        if not self._load_model():
+            return None
         try:
             image_input = self.preprocess(image).unsqueeze(0).to(self.device)
             
@@ -73,6 +92,8 @@ class CLIPPineconeSearch:
     
     def encode_text(self, text):
         """Encode text to embedding vector using CLIP"""
+        if not self._load_model():
+            return None
         try:
             text_input = clip.tokenize([text]).to(self.device)
             

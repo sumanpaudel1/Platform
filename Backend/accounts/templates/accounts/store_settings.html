@@ -31,6 +31,10 @@
                 <button type="button" onclick="showTab('cover-photos')" class="tab-btn border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500">
                     Cover Photos
                 </button>
+                <button type="button" onclick="showTab('collections')" class="tab-btn border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500">
+                    Collections
+                </button>
+
             </nav>
         </div>
 
@@ -253,6 +257,126 @@
                                         </div>
                                     </div>
                                 </div>
+
+
+
+<!-- Add this tab content section -->
+<div id="collections" class="tab-content hidden">
+    <div class="space-y-8">
+        <h2 class="text-lg font-medium text-gray-900">Shop Collections</h2>
+        <p class="text-sm text-gray-500 mb-6">Customize the images and text for your collection sections.</p>
+        
+        <!-- New Arrivals Collection -->
+        <div class="border border-gray-200 rounded-lg p-6">
+            <h3 class="text-md font-medium mb-4">New Arrivals Collection</h3>
+            
+            <div class="grid md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Collection Image</label>
+                    <div class="relative h-48 bg-gray-100 rounded-lg overflow-hidden">
+                        {% if new_arrivals_collection %}
+                            <img src="{{ new_arrivals_collection.image.url }}" alt="New Arrivals" class="w-full h-full object-cover">
+                        {% else %}
+                            <div class="flex items-center justify-center h-full">
+                                <span class="text-gray-400">No image uploaded</span>
+                            </div>
+                        {% endif %}
+                    </div>
+                    <input type="file" name="new_arrivals_image" accept="image/*" class="mt-2">
+                </div>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Title</label>
+                        <input type="text" name="new_arrivals_title" 
+                               value="{{ new_arrivals_collection.title|default:'New Arrivals' }}" 
+                               class="mt-1 block w-full rounded-md border-gray-300">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Subtitle</label>
+                        <input type="text" name="new_arrivals_subtitle" 
+                               value="{{ new_arrivals_collection.subtitle|default:'Latest styles for you' }}" 
+                               class="mt-1 block w-full rounded-md border-gray-300">
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Best Sellers Collection -->
+        <div class="border border-gray-200 rounded-lg p-6">
+            <h3 class="text-md font-medium mb-4">Best Sellers Collection</h3>
+            
+            <div class="grid md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Collection Image</label>
+                    <div class="relative h-48 bg-gray-100 rounded-lg overflow-hidden">
+                        {% if best_sellers_collection %}
+                            <img src="{{ best_sellers_collection.image.url }}" alt="Best Sellers" class="w-full h-full object-cover">
+                        {% else %}
+                            <div class="flex items-center justify-center h-full">
+                                <span class="text-gray-400">No image uploaded</span>
+                            </div>
+                        {% endif %}
+                    </div>
+                    <input type="file" name="best_sellers_image" accept="image/*" class="mt-2">
+                </div>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Title</label>
+                        <input type="text" name="best_sellers_title" 
+                               value="{{ best_sellers_collection.title|default:'Best Sellers' }}" 
+                               class="mt-1 block w-full rounded-md border-gray-300">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Subtitle</label>
+                        <input type="text" name="best_sellers_subtitle" 
+                               value="{{ best_sellers_collection.subtitle|default:'Customer favorites' }}" 
+                               class="mt-1 block w-full rounded-md border-gray-300">
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Season Special Collection -->
+        <div class="border border-gray-200 rounded-lg p-6">
+            <h3 class="text-md font-medium mb-4">Season Special Collection</h3>
+            
+            <div class="grid md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Collection Image</label>
+                    <div class="relative h-48 bg-gray-100 rounded-lg overflow-hidden">
+                        {% if season_special_collection %}
+                            <img src="{{ season_special_collection.image.url }}" alt="Season Special" class="w-full h-full object-cover">
+                        {% else %}
+                            <div class="flex items-center justify-center h-full">
+                                <span class="text-gray-400">No image uploaded</span>
+                            </div>
+                        {% endif %}
+                    </div>
+                    <input type="file" name="season_special_image" accept="image/*" class="mt-2">
+                </div>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Title</label>
+                        <input type="text" name="season_special_title" 
+                               value="{{ season_special_collection.title|default:'Season Special' }}" 
+                               class="mt-1 block w-full rounded-md border-gray-300">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Subtitle</label>
+                        <input type="text" name="season_special_subtitle" 
+                               value="{{ season_special_collection.subtitle|default:'Perfect for this season' }}" 
+                               class="mt-1 block w-full rounded-md border-gray-300">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
 
                 <!-- Save Button -->
                 <div class="mt-6 flex justify-end">

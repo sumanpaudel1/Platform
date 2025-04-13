@@ -140,33 +140,37 @@
         
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {% for category in categories %}
-            <div class="group cursor-pointer h-[320px] rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-500 relative animate-on-scroll" style="animation-delay: {{ forloop.counter0 }}00ms">
+            <a href="{% url 'products:product_list' subdomain=vendor.subdomain %}?category={{ category.id }}" 
+               class="group cursor-pointer h-[320px] rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-500 relative animate-on-scroll" 
+               style="animation-delay: {{ forloop.counter0 }}00ms">
                 {% if category.category_image %}
                 <img src="{{ category.category_image.url }}" 
-                     class="w-full h-full object-cover transition-transform duration-700 ease-out transform group-hover:scale-110 group-hover:rotate-2"
-                     alt="{{ category.category_name }}">
+                     alt="{{ category.category_name }}"
+                     class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700">
                 
                 <!-- Enhanced overlay with gradient -->
                 <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent transition-opacity duration-300"></div>
                 
                 <!-- Category content with improved animations -->
                 <div class="absolute inset-x-0 bottom-0 p-6 translate-y-2 opacity-90 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300">
-                    <div class="text-white">
-                        <h3 class="text-xl font-bold mb-1">{{ category.category_name }}</h3>
-                        <div class="w-10 h-0.5 bg-[var(--accent)] mb-3 transition-all duration-300 group-hover:w-16"></div>
-                        <div class="flex items-center">
-                            <a href="?category={{ category.slug }}" class="text-sm text-white/80 group-hover:text-white transition-colors flex items-center gap-1">
-                                Browse Products
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transform transition-transform duration-300 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                                </svg>
-                            </a>
-                        </div>
+                    <h3 class="text-2xl font-bold text-white mb-2">{{ category.category_name }}</h3>
+                    <div class="flex items-center text-white/80">
+                        <span>Browse Products</span>
+                        <i class="fas fa-arrow-right ml-2 transform group-hover:translate-x-2 transition-transform"></i>
                     </div>
                 </div>
                 {% endif %}
-            </div>
+            </a>
             {% endfor %}
+        </div>
+        
+        <!-- Add Browse All Categories button -->
+        <div class="text-center mt-12">
+            <a href="{% url 'products:product_list' subdomain=vendor.subdomain %}" 
+               class="inline-flex items-center gap-3 px-8 py-3 bg-[var(--primary)] text-white rounded-lg hover:bg-opacity-90 transition-all shadow-lg hover:shadow-[var(--primary)]/20">
+                <span>Browse All Products</span>
+                <i class="fas fa-arrow-right"></i>
+            </a>
         </div>
     </div>
 </section>
@@ -327,7 +331,7 @@
                         {% else %}
                             onclick="addToCart({{ product.id }})"
                             class="w-full mt-3 bg-[var(--primary)] text-white py-2.5 rounded-lg
-                                   transition-all duration-300 hover:shadow-md hover:bg-[var(--primary-darker)] 
+                                   transition-all duration-300 hover:shadow-md hover:bg-[var(--primary-darker)] hover:text-zinc-700 
                                    active:scale-95 add-to-cart flex items-center justify-center"
                         {% endif %}
                         data-product-id="{{ product.id }}"
@@ -588,175 +592,219 @@
     </div>
 </section>
 
-<!-- Enhanced Collections Showcase with Parallax Effect -->
-<section class="py-24 overflow-hidden">
+<!-- Featured Collections Section -->
+<section class="py-20 bg-white">
     <div class="container mx-auto px-6">
-        <!-- Section Header -->
-        <div class="text-center mb-16 animate-on-scroll">
-            <span class="px-4 py-1.5 bg-[var(--accent)]/10 text-[var(--accent)] rounded-full text-sm font-medium mb-4 inline-block">
-                Discover Our Collections
-            </span>
-            <h2 class="text-4xl font-bold">Shop By Collection</h2>
+        <div class="text-center mb-14 relative animate-on-scroll">
+            <span class="inline-block text-[var(--accent)] font-semibold text-sm uppercase tracking-wider mb-2">Featured</span>
+            <h2 class="text-4xl font-bold relative inline-block">
+                Shop Our Collections
+                <span class="absolute -bottom-3 left-1/2 transform -translate-x-1/2 w-24 h-1.5 bg-[var(--primary)]"></span>
+            </h2>
         </div>
         
-        <!-- Collections Grid with Parallax Effect -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {% for collection in collections|slice:":2" %}
-            <div class="relative h-[60vh] md:h-[500px] rounded-2xl overflow-hidden collection-parallax">
-                <!-- Background Image with Parallax Effect -->
-                <div class="absolute inset-0 parallax-bg">
-                    <img src="{{ collection.image.url }}" 
-                         alt="{{ collection.title }}"
-                         class="w-full h-full object-cover transform scale-110">
-                </div>
-                
-                <!-- Content Overlay -->
-                <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent flex flex-col justify-end p-10">
-                    <div class="transform translate-y-6 opacity-0 collection-content">
-                        <h3 class="text-white text-3xl font-bold mb-3">{{ collection.title }}</h3>
-                        <p class="text-white/80 mb-6 max-w-md">{{ collection.description }}</p>
-                        <a href="{{ collection.url }}" 
-                           class="inline-flex items-center px-5 py-2.5 bg-white text-[var(--primary)] rounded-lg
-                                 hover:bg-[var(--primary)] hover:text-white transition-colors duration-300">
-                            <span>Explore Collection</span>
-                            <i class="fas fa-arrow-right ml-2"></i>
-                        </a>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <!-- Collection 1: New Arrivals -->
+            <a href="{% url 'products:product_list' subdomain=vendor.subdomain %}?collection=new_arrivals" 
+               class="relative h-96 rounded-xl overflow-hidden group collection-card">
+                <div class="absolute inset-0 bg-black/40 group-hover:bg-black/50 transition-colors duration-300"></div>
+                {% if vendor.settings.collection_images.all %}
+                    {% for collection in vendor.settings.collection_images.all %}
+                        {% if collection.collection_type == 'new_arrivals' %}
+                            <img src="{{ collection.image.url }}" 
+                                 alt="New Arrivals" class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700">
+                            <div class="absolute inset-0 flex flex-col items-center justify-center text-white">
+                                <h3 class="text-3xl font-bold mb-2">{{ collection.title }}</h3>
+                                <p class="text-white/80 mb-4">{{ collection.subtitle }}</p>
+                                <span class="px-6 py-2 bg-white/20 backdrop-blur-sm border border-white/30 rounded-lg group-hover:bg-white/30 transition-colors">
+                                    Explore Collection
+                                </span>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                {% else %}
+                    <img src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=600&q=80" 
+                         alt="New Arrivals" class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700">
+                    <div class="absolute inset-0 flex flex-col items-center justify-center text-white">
+                        <h3 class="text-3xl font-bold mb-2">New Arrivals</h3>
+                        <p class="text-white/80 mb-4">Latest styles for you</p>
+                        <span class="px-6 py-2 bg-white/20 backdrop-blur-sm border border-white/30 rounded-lg group-hover:bg-white/30 transition-colors">
+                            Explore Collection
+                        </span>
                     </div>
-                </div>
-            </div>
-            {% endfor %}
+                {% endif %}
+            </a>
+            
+            <!-- Collection 2: Best Sellers -->
+            <a href="{% url 'products:product_list' subdomain=vendor.subdomain %}?collection=best_sellers"
+                class="relative h-96 rounded-xl overflow-hidden group collection-card">
+                <div class="absolute inset-0 bg-black/40 group-hover:bg-black/50 transition-colors duration-300"></div>
+                {% if vendor.settings.collection_images.all %}
+                    {% for collection in vendor.settings.collection_images.all %}
+                        {% if collection.collection_type == 'best_sellers' %}
+                            <img src="{{ collection.image.url }}" 
+                                 alt="Best Sellers" class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700">
+                            <div class="absolute inset-0 flex flex-col items-center justify-center text-white">
+                                <h3 class="text-3xl font-bold mb-2">{{ collection.title }}</h3>
+                                <p class="text-white/80 mb-4">{{ collection.subtitle }}</p>
+                                <span class="px-6 py-2 bg-white/20 backdrop-blur-sm border border-white/30 rounded-lg group-hover:bg-white/30 transition-colors">
+                                    Explore Collection
+                                </span>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                {% else %}
+                    <img src="https://images.unsplash.com/photo-1469334031218-e382a71b716b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=600&q=80" 
+                        alt="Best Sellers" class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700">
+                    <div class="absolute inset-0 flex flex-col items-center justify-center text-white">
+                        <h3 class="text-3xl font-bold mb-2">Best Sellers</h3>
+                        <p class="text-white/80 mb-4">Customer favorites</p>
+                        <span class="px-6 py-2 bg-white/20 backdrop-blur-sm border border-white/30 rounded-lg group-hover:bg-white/30 transition-colors">
+                            Explore Collection
+                        </span>
+                    </div>
+                {% endif %}
+            </a>
+            
+            <!-- Collection 3: Season Special -->
+            <a href="{% url 'products:product_list' subdomain=vendor.subdomain %}?collection=season_special" 
+               class="relative h-96 rounded-xl overflow-hidden group collection-card">
+                <div class="absolute inset-0 bg-black/40 group-hover:bg-black/50 transition-colors duration-300"></div>
+                {% if vendor.settings.collection_images.all %}
+                    {% for collection in vendor.settings.collection_images.all %}
+                        {% if collection.collection_type == 'season_special' %}
+                            <img src="{{ collection.image.url }}" 
+                                 alt="Season Special" class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700">
+                            <div class="absolute inset-0 flex flex-col items-center justify-center text-white">
+                                <h3 class="text-3xl font-bold mb-2">{{ collection.title }}</h3>
+                                <p class="text-white/80 mb-4">{{ collection.subtitle }}</p>
+                                <span class="px-6 py-2 bg-white/20 backdrop-blur-sm border border-white/30 rounded-lg group-hover:bg-white/30 transition-colors">
+                                    Explore Collection
+                                </span>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                {% else %}
+                    <img src="https://images.unsplash.com/photo-1445205170230-053b83016050?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=600&q=80" 
+                         alt="Season Special" class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700">
+                    <div class="absolute inset-0 flex flex-col items-center justify-center text-white">
+                        <h3 class="text-3xl font-bold mb-2">Season Special</h3>
+                        <p class="text-white/80 mb-4">Perfect for this season</p>
+                        <span class="px-6 py-2 bg-white/20 backdrop-blur-sm border border-white/30 rounded-lg group-hover:bg-white/30 transition-colors">
+                            Explore Collection
+                        </span>
+                    </div>
+                {% endif %}
+            </a>
+        </div>
+        
+        <!-- Browse All Collections Button -->
+        <div class="text-center mt-12">
+            <a href="{% url 'products:product_list' subdomain=vendor.subdomain %}" 
+               class="inline-flex items-center gap-3 px-8 py-3 border-2 border-[var(--primary)] text-[var(--primary)] rounded-lg hover:bg-[var(--primary)] hover:text-white transition-all">
+                <span>Browse All Collections</span>
+                <i class="fas fa-arrow-right"></i>
+            </a>
         </div>
     </div>
 </section>
 
-<!-- Enhanced Customer Testimonials with Improved Slider -->
-<section class="py-20 bg-gray-50">
-    <div class="container mx-auto px-6">
+
+
+<!-- Why Shop With Us Section -->
+<section class="py-20 bg-gray-50 overflow-hidden relative">
+    <!-- Background Decoration -->
+    <div class="absolute inset-0 overflow-hidden pointer-events-none">
+        <div class="absolute top-1/4 left-1/4 w-40 h-40 rounded-full border-4 border-[var(--primary)]/10 animate-float-slow"></div>
+        <div class="absolute bottom-1/3 right-1/5 w-56 h-56 rounded-full border border-[var(--accent)]/10 animate-float-medium" style="animation-delay: 2s"></div>
+    </div>
+
+    <div class="container mx-auto px-6 relative z-10">
         <!-- Section Header -->
         <div class="flex flex-col items-center mb-16 animate-on-scroll">
-            <span class="px-4 py-1.5 bg-[var(--accent)]/10 text-[var(--accent)] rounded-full text-sm font-medium mb-4">
-                Our Happy Customers
+            <span class="px-4 py-1.5 bg-[var(--primary)]/10 text-[var(--primary)] rounded-full text-sm font-medium mb-4">
+                Why Shop With Us
             </span>
             <h2 class="text-4xl font-bold text-center relative">
-                What People Say
-                <span class="absolute -bottom-3 left-1/2 transform -translate-x-1/2 w-24 h-1.5 bg-[var(--primary)] rounded-full"></span>
+                The {{ vendor.settings.store_name }} Experience
+                <span class="absolute -bottom-3 left-1/2 transform -translate-x-1/2 w-24 h-1.5 bg-[var(--accent)] rounded-full"></span>
             </h2>
         </div>
         
-        <!-- Testimonials Slider with Enhanced Controls -->
-        <div class="relative testimonials-container">
-            <div class="absolute inset-y-0 left-0 flex items-center">
-                <button id="prev-testimonial" class="w-10 h-10 rounded-full bg-white shadow-lg text-gray-700 flex items-center justify-center
-                            hover:bg-[var(--primary)] hover:text-white transition-colors duration-300 focus:outline-none">
-                    <i class="fas fa-chevron-left"></i>
-                </button>
-            </div>
-            
-            <div class="overflow-hidden px-12">
-                <div id="testimonials-slider" class="flex transition-transform duration-500 ease-in-out">
-                    {% for testimonial in testimonials %}
-                    <div class="flex-shrink-0 w-full md:w-1/2 lg:w-1/3 px-4">
-                        <div class="bg-white rounded-xl p-8 shadow-sm hover:shadow-md transition-shadow duration-300 h-full flex flex-col">
-                            <!-- Rating Stars -->
-                            <div class="flex text-amber-400 mb-4">
-                                {% for i in "12345" %}
-                                    {% if forloop.counter <= testimonial.rating %}
-                                        <i class="fas fa-star"></i>
-                                    {% else %}
-                                        <i class="far fa-star"></i>
-                                    {% endif %}
-                                {% endfor %}
-                            </div>
-                            
-                            <!-- Quote -->
-                            <div class="flex-1">
-                                <p class="text-gray-600 italic mb-6">{{ testimonial.quote }}</p>
-                            </div>
-                            
-                            <!-- Customer Info -->
-                            <div class="flex items-center">
-                                {% if testimonial.avatar %}
-                                <img src="{{ testimonial.avatar.url }}" 
-                                     alt="{{ testimonial.name }}" 
-                                     class="w-12 h-12 rounded-full mr-4 object-cover">
-                                {% else %}
-                                <div class="w-12 h-12 rounded-full bg-[var(--primary)]/10 flex items-center justify-center mr-4">
-                                    <span class="text-[var(--primary)] font-bold">{{ testimonial.name|first|upper }}</span>
-                                </div>
-                                {% endif %}
-                                <div>
-                                    <h4 class="font-medium text-gray-900">{{ testimonial.name }}</h4>
-                                    <p class="text-sm text-gray-500">{{ testimonial.date|date:"F Y" }}</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    {% empty %}
-                    <!-- Sample testimonials if no actual testimonials exist -->
-                    <div class="flex-shrink-0 w-full md:w-1/2 lg:w-1/3 px-4">
-                        <div class="bg-white rounded-xl p-8 shadow-sm hover:shadow-md transition-shadow duration-300 h-full flex flex-col">
-                            <div class="flex text-amber-400 mb-4">
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                            </div>
-                            <div class="flex-1">
-                                <p class="text-gray-600 italic mb-6">"I'm extremely satisfied with my purchase. The quality exceeded my expectations and customer service was outstanding!"</p>
-                            </div>
-                            <div class="flex items-center">
-                                <div class="w-12 h-12 rounded-full bg-[var(--primary)]/10 flex items-center justify-center mr-4">
-                                    <span class="text-[var(--primary)] font-bold">S</span>
-                                </div>
-                                <div>
-                                    <h4 class="font-medium text-gray-900">Sarah Johnson</h4>
-                                    <p class="text-sm text-gray-500">Loyal Customer</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="flex-shrink-0 w-full md:w-1/2 lg:w-1/3 px-4">
-                        <div class="bg-white rounded-xl p-8 shadow-sm hover:shadow-md transition-shadow duration-300 h-full flex flex-col">
-                            <div class="flex text-amber-400 mb-4">
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star-half-alt"></i>
-                            </div>
-                            <div class="flex-1">
-                                <p class="text-gray-600 italic mb-6">"Fast delivery and great products! I'll definitely be shopping here again and recommending to friends."</p>
-                            </div>
-                            <div class="flex items-center">
-                                <div class="w-12 h-12 rounded-full bg-[var(--primary)]/10 flex items-center justify-center mr-4">
-                                    <span class="text-[var(--primary)] font-bold">R</span>
-                                </div>
-                                <div>
-                                    <h4 class="font-medium text-gray-900">Raj Patel</h4>
-                                    <p class="text-sm text-gray-500">Happy Customer</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
+        <!-- Feature Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <!-- Free Shipping -->
+            <div class="bg-white p-8 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 animate-on-scroll"
+                 style="animation-delay: 100ms">
+                <div class="w-16 h-16 rounded-full bg-[var(--primary)]/10 flex items-center justify-center mb-6">
+                    <i class="fas fa-truck text-[var(--primary)] text-2xl"></i>
                 </div>
+                <h3 class="text-xl font-bold mb-3">Free Fast Shipping</h3>
+                <p class="text-gray-600">Enjoy free shipping on all orders above $50. Quick delivery right to your doorstep.</p>
             </div>
             
-            <div class="absolute inset-y-0 right-0 flex items-center">
-                <button id="next-testimonial" class="w-10 h-10 rounded-full bg-white shadow-lg text-gray-700 flex items-center justify-center
-                            hover:bg-[var(--primary)] hover:text-white transition-colors duration-300 focus:outline-none">
-                    <i class="fas fa-chevron-right"></i>
-                </button>
+            <!-- Premium Quality -->
+            <div class="bg-white p-8 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 animate-on-scroll"
+                 style="animation-delay: 200ms">
+                <div class="w-16 h-16 rounded-full bg-[var(--primary)]/10 flex items-center justify-center mb-6">
+                    <i class="fas fa-medal text-[var(--primary)] text-2xl"></i>
+                </div>
+                <h3 class="text-xl font-bold mb-3">Premium Quality</h3>
+                <p class="text-gray-600">All our products undergo rigorous quality checks to ensure superior quality and durability.</p>
             </div>
             
-            <!-- Dots Indicators -->
-            <div class="flex justify-center mt-8" id="testimonial-dots">
-                <!-- Generated dynamically by JS -->
+            <!-- Easy Returns -->
+            <div class="bg-white p-8 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 animate-on-scroll"
+                 style="animation-delay: 300ms">
+                <div class="w-16 h-16 rounded-full bg-[var(--primary)]/10 flex items-center justify-center mb-6">
+                    <i class="fas fa-undo text-[var(--primary)] text-2xl"></i>
+                </div>
+                <h3 class="text-xl font-bold mb-3">Easy Returns</h3>
+                <p class="text-gray-600">Not satisfied? Return within 30 days for a full refund or exchange with our hassle-free policy.</p>
             </div>
+            
+            <!-- Secure Payment -->
+            <div class="bg-white p-8 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 animate-on-scroll"
+                 style="animation-delay: 400ms">
+                <div class="w-16 h-16 rounded-full bg-[var(--primary)]/10 flex items-center justify-center mb-6">
+                    <i class="fas fa-lock text-[var(--primary)] text-2xl"></i>
+                </div>
+                <h3 class="text-xl font-bold mb-3">Secure Payment</h3>
+                <p class="text-gray-600">Shop with confidence using our secure payment methods, with end-to-end encryption.</p>
+            </div>
+            
+            <!-- Expert Support -->
+            <div class="bg-white p-8 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 animate-on-scroll"
+                 style="animation-delay: 500ms">
+                <div class="w-16 h-16 rounded-full bg-[var(--primary)]/10 flex items-center justify-center mb-6">
+                    <i class="fas fa-headset text-[var(--primary)] text-2xl"></i>
+                </div>
+                <h3 class="text-xl font-bold mb-3">24/7 Support</h3>
+                <p class="text-gray-600">Our dedicated support team is always ready to help you with any questions or concerns.</p>
+            </div>
+            
+            <!-- Exclusive Deals -->
+            <div class="bg-white p-8 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 animate-on-scroll"
+                 style="animation-delay: 600ms">
+                <div class="w-16 h-16 rounded-full bg-[var(--primary)]/10 flex items-center justify-center mb-6">
+                    <i class="fas fa-gift text-[var(--primary)] text-2xl"></i>
+                </div>
+                <h3 class="text-xl font-bold mb-3">Exclusive Offers</h3>
+                <p class="text-gray-600">Subscribe to our newsletter for exclusive deals and early access to new arrivals.</p>
+            </div>
+        </div>
+        
+        <!-- Call to Action -->
+        <div class="text-center mt-12">
+            <a href="{% url 'products:product_list' subdomain=vendor.subdomain %}" 
+               class="inline-flex items-center gap-3 px-8 py-3.5 bg-[var(--primary)] text-white rounded-lg hover:bg-opacity-90 transition-all shadow-lg hover:shadow-[var(--primary)]/20">
+                <span>Browse Products</span>
+                <i class="fas fa-arrow-right"></i>
+            </a>
         </div>
     </div>
 </section>
+
 
 <!-- Enhanced Instagram Gallery with 4 Posts -->
 <section class="py-20 bg-gradient-to-b from-white to-gray-50 relative overflow-hidden">
@@ -997,92 +1045,6 @@ document.addEventListener('DOMContentLoaded', function() {
         window.addEventListener('resize', updateCarouselButtons);
     }
     
-    // ===== TESTIMONIAL SLIDER =====
-    const testimonialSlider = document.getElementById('testimonials-slider');
-    const prevTestimonial = document.getElementById('prev-testimonial');
-    const nextTestimonial = document.getElementById('next-testimonial');
-    const testimonialDots = document.getElementById('testimonial-dots');
-    let testimonialIndex = 0;
-    let slidesToShow = window.innerWidth < 768 ? 1 : window.innerWidth < 1024 ? 2 : 3;
-    
-    if (testimonialSlider && prevTestimonial && nextTestimonial && testimonialDots) {
-        // Create dots
-        const testimonials = testimonialSlider.children;
-        const totalSlides = Math.ceil(testimonials.length / slidesToShow);
-        
-        for (let i = 0; i < totalSlides; i++) {
-            const dot = document.createElement('button');
-            dot.classList.add('w-3', 'h-3', 'mx-1', 'rounded-full', 'transition-all', 'duration-300');
-            dot.classList.add(i === 0 ? 'bg-[var(--primary)]' : 'bg-gray-300');
-            if (i === 0) dot.classList.add('w-6');
-            dot.setAttribute('aria-label', `Go to testimonial slide ${i + 1}`);
-            dot.addEventListener('click', () => goToTestimonialSlide(i));
-            testimonialDots.appendChild(dot);
-        }
-        
-        function goToTestimonialSlide(index) {
-            testimonialIndex = index;
-            updateTestimonialSlider();
-        }
-        
-        function updateTestimonialSlider() {
-            const translateX = testimonialIndex * (100 / slidesToShow);
-            testimonialSlider.style.transform = `translateX(-${translateX}%)`;
-            
-            // Update dots
-            const dots = testimonialDots.children;
-            for (let i = 0; i < dots.length; i++) {
-                if (i === testimonialIndex) {
-                    dots[i].classList.add('bg-[var(--primary)]', 'w-6');
-                    dots[i].classList.remove('bg-gray-300');
-                } else {
-                    dots[i].classList.remove('bg-[var(--primary)]', 'w-6');
-                    dots[i].classList.add('bg-gray-300');
-                }
-            }
-        }
-        
-        prevTestimonial.addEventListener('click', () => {
-            testimonialIndex = Math.max(0, testimonialIndex - 1);
-            updateTestimonialSlider();
-        });
-        
-        nextTestimonial.addEventListener('click', () => {
-            const maxIndex = Math.ceil(testimonials.length / slidesToShow) - 1;
-            testimonialIndex = Math.min(maxIndex, testimonialIndex + 1);
-            updateTestimonialSlider();
-        });
-        
-        // Auto-play testimonials
-        let testimonialInterval = setInterval(() => {
-            const maxIndex = Math.ceil(testimonials.length / slidesToShow) - 1;
-            testimonialIndex = testimonialIndex >= maxIndex ? 0 : testimonialIndex + 1;
-            updateTestimonialSlider();
-        }, 5000);
-        
-        // Pause on hover
-        testimonialSlider.parentElement.addEventListener('mouseenter', () => {
-            clearInterval(testimonialInterval);
-        });
-        
-        testimonialSlider.parentElement.addEventListener('mouseleave', () => {
-            testimonialInterval = setInterval(() => {
-                const maxIndex = Math.ceil(testimonials.length / slidesToShow) - 1;
-                testimonialIndex = testimonialIndex >= maxIndex ? 0 : testimonialIndex + 1;
-                updateTestimonialSlider();
-            }, 5000);
-        });
-        
-        // Update on window resize
-        window.addEventListener('resize', () => {
-            const newSlidesToShow = window.innerWidth < 768 ? 1 : window.innerWidth < 1024 ? 2 : 3;
-            if (newSlidesToShow !== slidesToShow) {
-                slidesToShow = newSlidesToShow;
-                testimonialIndex = 0;
-                updateTestimonialSlider();
-            }
-        });
-    }
     
     // ===== SCROLL ANIMATIONS =====
     const animatedElements = document.querySelectorAll('.animate-on-scroll');

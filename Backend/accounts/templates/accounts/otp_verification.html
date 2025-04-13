@@ -151,7 +151,7 @@
             </form>
 
             <!-- Hidden Resend Form -->
-            <form id="resend-form" method="POST" action="{% url 'resend_otp' email=email %}">
+            <form id="resend-form" method="POST" action="{% url 'accounts:resend_otp' email=email %}">
                 {% csrf_token %}
             </form>
 
