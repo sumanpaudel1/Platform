@@ -212,6 +212,13 @@
                                    font-medium shadow-sm">
                         Buy Now
                     </button>
+                    <button id="tryOnBtn" onclick="openTryOnModal()"
+                    class="w-full h-14 border-2 border-[var(--accent)] text-[var(--accent)] 
+                        rounded-xl hover:bg-[var(--accent)] hover:text-white transition-all duration-300
+                        font-medium shadow-sm flex items-center justify-center gap-2">
+                    <i class="fas fa-tshirt"></i>
+                    Try On
+                </button>
                 </div>
 
                 <!-- Product Details Accordion -->
@@ -797,6 +804,197 @@ function toggleWishlist(productId) {
             cartCount.classList.toggle('hidden', count === 0);
         }
     }
+
+    // Virtual Try-On Modal
+
+// Virtual Try-On functions
+let selectedModel = null;
+const FLASK_APP_URL = "https://5000-gpu-t4-s-2vp9bmsszm19m-b.us-west1-1.prod.colab.dev"; // Replace with your Flask app URL
+
+function openTryOnModal() {
+    const modal = document.getElementById('tryOnModal');
+    if (!modal) {
+        console.error('Try-on modal element not found');
+        showNotification('Something went wrong with the try-on feature', 'error');
+        return;
+    }
+    
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
+function closeTryOnModal() {
+    const modal = document.getElementById('tryOnModal');
+    if (!modal) return;
+    
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+}
+
+function startTryOn() {
+    try {
+        // Get the image element
+        const productImageElement = document.querySelector('#mainImage');
+        if (!productImageElement || !productImageElement.complete) {
+            showNotification('Product image is not fully loaded yet', 'error');
+            return;
+        }
+        
+        // Show loading feedback
+        showNotification('Preparing try-on experience...', 'success');
+        
+        // Create a canvas to convert the image to base64
+        const canvas = document.createElement('canvas');
+        canvas.width = productImageElement.naturalWidth;
+        canvas.height = productImageElement.naturalHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(productImageElement, 0, 0);
+        
+        // Get base64 data URL
+        const imageBase64 = canvas.toDataURL('image/jpeg');
+        const productName = '{{ product.name }}';
+        
+        // Close the modal
+        closeTryOnModal();
+        
+        // Create a form to submit the base64 data
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `${FLASK_APP_URL}/try-on-base64`;
+        form.target = '_blank';
+        
+        // Add the image data
+        const imageInput = document.createElement('input');
+        imageInput.type = 'hidden';
+        imageInput.name = 'image_data';
+        imageInput.value = imageBase64;
+        form.appendChild(imageInput);
+        
+        // Add product name
+        const nameInput = document.createElement('input');
+        nameInput.type = 'hidden';
+        nameInput.name = 'product_name';
+        nameInput.value = productName;
+        form.appendChild(nameInput);
+        
+        // Submit the form
+        document.body.appendChild(form);
+        form.submit();
+        document.body.removeChild(form);
+    } catch (error) {
+        console.error('Error starting try-on experience:', error);
+        showNotification('Failed to prepare image for try-on', 'error');
+    }
+}
+// Close modal with Escape key
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        closeTryOnModal();
+    }
+});
+
+// Handle potential errors from Flask app
+window.addEventListener('message', function(event) {
+    // Check if message is from Flask app
+    if (event.origin === FLASK_APP_URL) {
+        try {
+            const data = event.data;
+            if (data.type === 'try-on-error') {
+                showNotification('Error from try-on application: ' + data.message, 'error');
+            } else if (data.type === 'try-on-success') {
+                showNotification('Try-on completed successfully!', 'success');
+            }
+        } catch (error) {
+            console.error('Error handling message from Flask app:', error);
+        }
+    }
+});
+
+// Add to your product_detail.html script section
+function sendErrorToFlaskApp(errorMessage) {
+    try {
+        fetch(`${FLASK_APP_URL}/api/error`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ message: errorMessage })
+        }).catch(err => console.error("Failed to send error to Flask app:", err));
+    } catch (e) {
+        console.error("Error sending message to Flask app:", e);
+    }
+}
     </script>
+
+
+
+<!-- Virtual Try-On Modal -->
+<div id="tryOnModal" class="fixed inset-0 bg-black bg-opacity-75 z-50 hidden flex items-center justify-center">
+    <div class="bg-white rounded-lg max-w-4xl w-full mx-4 overflow-hidden">
+        <!-- Modal Header -->
+        <div class="flex justify-between items-center border-b px-6 py-4">
+            <h3 class="text-lg font-medium">Virtual Try-On</h3>
+            <button onclick="closeTryOnModal()" class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <!-- Modal Content -->
+        <div class="px-6 py-4">
+            <div class="flex flex-col md:flex-row gap-6">
+                <!-- Product Image -->
+                <div class="md:w-1/2">
+                    <h4 class="text-sm font-medium text-gray-700 mb-2">Product</h4>
+                    <div class="bg-gray-100 rounded-lg p-4 flex items-center justify-center">
+                        <img src="{{ product.product_images.first.image.url }}" 
+                             alt="{{ product.name }}" 
+                             class="max-h-64 object-contain">
+                    </div>
+                </div>
+                
+                <!-- Try-On Section -->
+                <div class="md:w-1/2">
+                    <h4 class="text-sm font-medium text-gray-700 mb-2">Virtual Try-On</h4>
+                    <div class="bg-gray-100 rounded-lg p-4">
+                        <p class="text-gray-600 mb-4">
+                            Try on this {{ product.name }} virtually with our AI-powered technology.
+                        </p>
+                        
+                        <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
+                            <div class="flex">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-info-circle text-yellow-400"></i>
+                                </div>
+                                <div class="ml-3">
+                                    <p class="text-sm text-yellow-700">
+                                        The virtual try-on will open in a new tab. Once there:
+                                        <ol class="list-decimal pl-5 mt-2 space-y-1">
+                                            <li>Select a model photo</li>
+                                            <li>Click "Try On" button</li>
+                                            <li>View and save your result</li>
+                                        </ol>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Flask App Link -->
+                        <div class="text-center">
+                            <button onclick="startTryOn()" 
+                                class="inline-block bg-[var(--primary)] text-white px-4 py-2 rounded-lg hover:bg-opacity-90 transition-all duration-300">
+                                <i class="fas fa-tshirt mr-2"></i>
+                                Start Virtual Try-On
+                            </button>
+                        </div>
+                        
+                        <p class="text-xs text-gray-500 mt-4 text-center">
+                            This will redirect you to our try-on application
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
     
 {% endblock %}
