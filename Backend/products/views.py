@@ -11,7 +11,7 @@ from datetime import datetime
 from django.conf import settings
 from django.utils import timezone
 from django.core.mail import send_mail
-
+import os
 from django.http import JsonResponse, Http404
 from ai_features import models  # Ensure ai_features module is imported
 import json
