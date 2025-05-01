@@ -88,6 +88,46 @@
         </div>
     </div>
 
+<!-- filepath: c:\Users\Asus\Desktop\level-6\Final Year Project & Professionalism\Final_Year_Project\Backend\accounts\templates\accounts\vendor_dashboard.html -->
+
+<!-- Add this card to your dashboard layout -->
+<!-- Add this after your existing cards in the dashboard -->
+<div class="bg-white rounded-lg shadow p-6 col-span-1">
+    <div class="flex items-center">
+        <div class="p-3 rounded-full bg-blue-100">
+            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+            </svg>
+        </div>
+        <div class="ml-4">
+            <p class="text-sm font-medium text-gray-500">Subscription</p>
+            <p class="text-lg font-semibold text-gray-900">
+                {% if request.user.subscription %}
+                    {% if request.user.subscription.is_trial %}
+                        Free Trial
+                    {% else %}
+                        {{ request.user.subscription.plan.name }}
+                    {% endif %}
+                {% else %}
+                    No Plan
+                {% endif %}
+            </p>
+            <p class="text-xs {% if request.user.subscription and request.user.subscription.days_remaining > 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                {% if request.user.subscription %}
+                    {% if request.user.subscription.days_remaining > 0 %}
+                        {{ request.user.subscription.days_remaining }} days remaining
+                    {% else %}
+                        Expired
+                    {% endif %}
+                {% else %}
+                    No active subscription
+                {% endif %}
+            </p>
+            <a href="{% url 'accounts:vendor_subscription_tab' %}" class="text-xs text-blue-600 hover:text-blue-800 mt-1 inline-block">Manage Subscription</a>
+        </div>
+    </div>
+</div>
+
     <!-- Recent Orders and Analytics Section -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- Recent Orders -->

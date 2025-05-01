@@ -309,3 +309,78 @@ def test_recommendations(request, subdomain, product_id):
         
         
         
+        
+
+import requests
+import base64
+import json
+import logging
+from django.http import JsonResponse, HttpResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.conf import settings
+
+logger = logging.getLogger(__name__)  # Fixed from logger = logging.getLogger(name)
+
+@csrf_exempt
+def proxy_try_on(request):
+    """Proxy the try-on request to the Google Colab server"""
+    try:
+        # Get the product image and name from the request
+        product_image = request.POST.get('product_image')
+        product_name = request.POST.get('product_name', 'Unknown Product')
+        
+        # Log the request (without the full image data for brevity)
+        if product_image and len(product_image) > 100:
+            logger.info(f"Received try-on request for {product_name}, image length: {len(product_image)}")
+        else:
+            logger.info(f"Received try-on request for {product_name}, but no valid image")
+        
+        # Check if the image is a base64 data URI
+        if product_image and product_image.startswith('data:image'):
+            # Extract the base64 part after the comma
+            header, encoded = product_image.split(",", 1)  # Fixed from , encoded = product_image.split(",", 1)
+            
+            # The URL of your Flask server in Google Colab
+            colab_url = "https://5000-gpu-t4-s-y5w38tbwdmiu-c.asia-southeast1-0.prod.colab.dev/try-on"
+            
+            # Prepare the data for the request
+            data = {
+                'product_name': product_name,
+                'image_data': encoded
+            }
+            
+            # Send the POST request to your Flask server
+            response = requests.post(colab_url, json=data, timeout=30)
+            
+            # Check if the request was successful
+            if response.status_code == 200:
+                # If Colab returns HTML, just pass it through to the user
+                content_type = response.headers.get('Content-Type', '')
+                if 'text/html' in content_type:
+                    return HttpResponse(response.content, content_type=content_type)
+                
+                # Otherwise return the JSON response
+                return JsonResponse(response.json())
+            else:
+                logger.error(f"Colab server returned error: {response.status_code}, {response.text}")
+                return JsonResponse({
+                    'status': 'error',
+                    'message': f"Colab server error {response.status_code}: {response.text[:100]}"
+                }, status=500)
+        else:
+            return JsonResponse({
+                'status': 'error',
+                'message': "Invalid image format. Please provide a base64-encoded image."
+            }, status=400)
+    except requests.exceptions.ConnectionError:
+        logger.error("Connection error to Colab server")
+        return JsonResponse({
+            'status': 'error',
+            'message': "Could not connect to the Colab server. It may be offline or the URL has changed."
+        }, status=503)
+    except Exception as e:
+        logger.error(f"Error in proxy_try_on: {str(e)}")
+        return JsonResponse({
+            'status': 'error',
+            'message': f"Server error: {str(e)}"
+        }, status=500)

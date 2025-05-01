@@ -1,0 +1,76 @@
+{% extends 'accounts/base_customer.html' %}
+{% load static %}
+
+{% block title %}Payment Processing{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow-lg">
+        <div class="text-center">
+            <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
+                Payment Processing
+            </h2>
+            <p class="mt-2 text-center text-sm text-gray-600">
+                You are subscribing to the {{ plan.name }} plan ({{ period }})
+            </p>
+        </div>
+        
+        <div class="mt-8 text-center">
+            <div class="bg-blue-50 border border-blue-200 rounded-md p-4">
+                <p class="text-xl font-bold text-blue-900">${{ price }}</p>
+                <p class="text-sm text-blue-700">
+                    {% if period == 'monthly' %}
+                        Monthly payment
+                    {% elif period == 'quarterly' %}
+                        Quarterly payment (3 months)
+                    {% elif period == 'annual' %}
+                        Annual payment (12 months)
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+        
+        <div class="mt-6">
+            <p class="text-sm text-gray-600 mb-4">
+                You'll be redirected to eSewa to complete your payment. Once the payment is completed, you'll be automatically returned to the dashboard.
+            </p>
+            
+            <!-- Payment form -->
+            <form id="esewa-form" method="POST" action="https://rc-epay.esewa.com.np/epay/main" class="space-y-4">
+                <input type="hidden" id="esewa-amount" name="amount" value="{{ price }}">
+                <input type="hidden" id="esewa-tax-amount" name="tax_amount" value="0">
+                <input type="hidden" id="esewa-total-amount" name="total_amount" value="{{ price }}">
+                <input type="hidden" id="esewa-transaction-uuid" name="transaction_uuid" value="{{ transaction_uuid }}">
+                <input type="hidden" name="product_code" value="CLOTHY-SUB">
+                <input type="hidden" name="product_service_charge" value="0">
+                <input type="hidden" name="product_delivery_charge" value="0">
+                <input type="hidden" name="success_url" value="{% url 'accounts:subscription_payment_success' %}">
+                <input type="hidden" name="failure_url" value="{% url 'accounts:subscription_payment_failure' %}">
+                
+                <button type="submit" class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    <span class="absolute left-0 inset-y-0 flex items-center pl-3">
+                        <svg class="h-5 w-5 text-blue-500 group-hover:text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                            <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
+                        </svg>
+                    </span>
+                    Proceed to Payment
+                </button>
+            </form>
+            
+            <a href="{% url 'accounts:subscription_plans' %}" class="mt-4 w-full block text-center py-2 px-4 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">
+                Cancel
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Auto-submit after a short delay to show the information to the user
+    document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(function() {
+            // Submit the form
+            document.getElementById('esewa-form').submit();
+        }, 3000);
+    });
+</script>
+{% endblock %}

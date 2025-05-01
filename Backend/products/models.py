@@ -87,12 +87,24 @@ class Product(models.Model):
     class Meta:
         ordering = ['-created_at']
 
+
+
+
 class ProductImage(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="product_images")
-    image = models.ImageField(upload_to="product")
-
+    image = models.ImageField(upload_to="product")  # Keep this for backward compatibility
+    image_url = models.URLField(max_length=500, blank=True, null=True)  # Cloudinary URL
+    public_id = models.CharField(max_length=255, blank=True, null=True)  # Cloudinary public_id
+    
     def __str__(self):
         return f"Image for {self.product.name}"
+    
+    def delete(self, *args, **kwargs):
+        # Delete from Cloudinary when deleted from database
+        from .utils import delete_product_image
+        if self.public_id:
+            delete_product_image(self.public_id)
+        super().delete(*args, **kwargs)
     
     
 
@@ -325,6 +337,12 @@ def cleanup_abandoned_payments():
 #     def __str__(self):
 #         return f"{self.customer} - {self.product}"
     
-    
 
+from products.models import ProductImage
+from django.db.models import Count
 
+# Check how many images have Cloudinary URLs
+cloudinary_count = ProductImage.objects.exclude(image_url__isnull=True).count()
+total_count = ProductImage.objects.count()
+
+print(f"Images with Cloudinary URLs: {cloudinary_count}/{total_count} ({cloudinary_count/total_count*100:.2f}%)")

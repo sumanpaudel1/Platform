@@ -243,3 +243,44 @@ class CollectionImageAdmin(admin.ModelAdmin):
     list_filter = ['collection_type']
     search_fields = ['vendor_setting__vendor__email', 'title', 'subtitle']
 
+
+
+
+
+from django.contrib import admin
+from .models import Subscription, SubscriptionPlan, SubscriptionPayment
+from django.contrib import admin
+from .models import (
+    Vendor, VendorProfile, VendorSetting, Notification,
+    CoverPhoto, Subdomain, SubscriptionPlan, Subscription, SubscriptionPayment
+)
+
+class SubscriptionPaymentInline(admin.TabularInline):
+    model = SubscriptionPayment
+    extra = 0
+    readonly_fields = ('payment_date', 'transaction_id', 'amount', 'status')
+
+@admin.register(SubscriptionPlan)
+class SubscriptionPlanAdmin(admin.ModelAdmin):
+    list_display = ('name', 'get_price_display', 'period', 'max_products', 'is_active')
+    search_fields = ('name',)
+    list_filter = ('is_active', 'period', 'plan_type')
+    
+    def get_price_display(self, obj):
+        return f"${obj.price}" if obj.price else "Free"
+    get_price_display.short_description = "Price"
+
+@admin.register(Subscription)
+class SubscriptionAdmin(admin.ModelAdmin):
+    list_display = ('vendor', 'plan', 'start_date', 'end_date', 'status', 'is_trial')
+    list_filter = ('status', 'plan', 'is_trial')
+    search_fields = ('vendor__email', 'vendor__first_name', 'vendor__last_name')
+    date_hierarchy = 'start_date'
+    inlines = [SubscriptionPaymentInline]
+    
+@admin.register(SubscriptionPayment)
+class SubscriptionPaymentAdmin(admin.ModelAdmin):
+    list_display = ('subscription', 'amount', 'status', 'payment_date', 'transaction_id')
+    list_filter = ('status', 'payment_date')
+    search_fields = ('subscription__vendor__email', 'transaction_id')
+    date_hierarchy = 'payment_date'

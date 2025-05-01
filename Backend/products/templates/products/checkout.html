@@ -90,8 +90,8 @@
             <div class="space-y-4 mb-6">
                 {% if is_buy_now %}
                 <div class="flex items-center">
-                    <img src="{{ product.product_images.first.image.url }}" 
-                         class="w-16 h-16 object-cover rounded-lg">
+                    <img src="{% if product.product_images.first.image_url %}{{ product.product_images.first.image_url }}{% else %}{{ product.product_images.first.image.url }}{% endif %}" 
+                    class="w-16 h-16 object-cover rounded-lg">
                     <div class="ml-4 flex-1">
                         <h3 class="text-sm font-medium">{{ product.name }}</h3>
                         <p class="text-sm text-gray-500">
@@ -111,8 +111,8 @@
                 {% else %}
                 {% for item in cart_items %}
                 <div class="flex items-center">
-                    <img src="{{ item.product.product_images.first.image.url }}" 
-                         class="w-16 h-16 object-cover rounded-lg">
+                    <img src="{% if item.product.product_images.first.image_url %}{{ item.product.product_images.first.image_url }}{% else %}{{ item.product.product_images.first.image.url }}{% endif %}" 
+                    class="w-16 h-16 object-cover rounded-lg">
                     <div class="ml-4 flex-1">
                         <h3 class="text-sm font-medium">{{ item.product.name }}</h3>
                         <p class="text-sm text-gray-500">

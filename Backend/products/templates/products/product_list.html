@@ -129,9 +129,8 @@
                 <div class="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 group">
                     <a href="{% url 'products:product_detail' subdomain=vendor.subdomain slug=product.slug %}" class="block relative">
                         {% if product.product_images.first %}
-                        <img src="{{ product.product_images.first.image.url }}" 
-                             alt="{{ product.name }}" 
-                             class="w-full h-64 object-cover transform group-hover:scale-105 transition-transform duration-500">
+                        <img src="{% if product.product_images.first.image_url %}{{ product.product_images.first.image_url }}{% else %}{{ product.product_images.first.image.url }}{% endif %}" 
+                             alt="{{ product.name }}" class="w-full h-64 object-cover transform group-hover:scale-105 transition-transform duration-500">
                         {% endif %}
                         
                         <!-- Enhanced Badge Display -->

@@ -528,3 +528,142 @@ class CollectionImage(models.Model):
         
     def __str__(self):
         return f"{self.get_collection_type_display()} for {self.vendor_setting.vendor}"
+    
+    
+    
+
+
+
+from django.db import models
+from django.utils import timezone
+from django.contrib.auth import get_user_model
+import uuid
+
+# Add these to your existing models.py file
+
+# Find your SubscriptionPlan model and update it:
+class SubscriptionPlan(models.Model):
+    """Model to store subscription plan details"""
+    PERIOD_CHOICES = [
+        ('monthly', 'Monthly'),
+        ('quarterly', 'Quarterly'),
+        ('annual', 'Annual'),
+    ]
+    
+    PLAN_TYPE_CHOICES = [
+        ('free', 'Free'),
+        ('starter', 'Starter'),
+        ('professional', 'Professional'),
+        ('enterprise', 'Enterprise'),
+    ]
+    
+    name = models.CharField(max_length=100)  # Professional, Enterprise
+    plan_type = models.CharField(max_length=20, choices=PLAN_TYPE_CHOICES, default='starter')
+    period = models.CharField(max_length=10, choices=PERIOD_CHOICES)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    max_products = models.IntegerField(default=10)
+    transaction_fee_percent = models.DecimalField(max_digits=4, decimal_places=2, default=5.00)
+    
+    # Additional fields
+    description = models.TextField(blank=True)
+    has_analytics = models.BooleanField(default=False)
+    has_ai_recommendations = models.BooleanField(default=False)
+    custom_domain = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
+    
+    class Meta:
+        unique_together = ['plan_type', 'period']
+    
+    def __str__(self):
+        return f"{self.name} ({self.get_period_display()}) - ${self.price}"
+
+
+class Subscription(models.Model):
+    """Model to track vendor subscriptions"""
+    STATUS_CHOICES = [
+        ('trial', 'Trial'),
+        ('active', 'Active'),
+        ('past_due', 'Past Due'),
+        ('canceled', 'Canceled'),
+        ('expired', 'Expired'),
+    ]
+    
+    vendor = models.OneToOneField('Vendor', on_delete=models.CASCADE, related_name='subscription')
+    plan = models.ForeignKey(SubscriptionPlan, on_delete=models.PROTECT, null=True, blank=True)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='trial')
+    start_date = models.DateTimeField(default=timezone.now)
+    end_date = models.DateTimeField()
+    trial_end_date = models.DateTimeField(null=True, blank=True)
+    is_trial = models.BooleanField(default=True)
+    transaction_id = models.CharField(max_length=100, blank=True, null=True)
+    auto_renew = models.BooleanField(default=False)
+    subscription_id = models.CharField(max_length=50, default=uuid.uuid4, unique=True)
+    last_payment_date = models.DateTimeField(null=True, blank=True)
+    next_payment_date = models.DateTimeField(null=True, blank=True)
+    
+    def __str__(self):
+        return f"{self.vendor.email} - {self.get_status_display}"
+    
+    def save(self, *args, **kwargs):
+        # Set trial end date if not set
+        if self.is_trial and not self.trial_end_date:
+            self.trial_end_date = timezone.now() + timezone.timedelta(days=10)
+            self.end_date = self.trial_end_date
+            
+        # Set end date based on plan period if not trial
+        if not self.is_trial and self.plan and not self.id:  # Only on create, not update
+            if self.plan.period == 'monthly':
+                self.end_date = self.start_date + timezone.timedelta(days=30)
+            elif self.plan.period == 'quarterly':
+                self.end_date = self.start_date + timezone.timedelta(days=90)
+            elif self.plan.period == 'annual':
+                self.end_date = self.start_date + timezone.timedelta(days=365)
+                
+        super().save(*args, **kwargs)
+        
+    # Add these methods to your Subscription model
+    @property
+    def days_remaining(self):
+        """Return the number of days remaining in the subscription"""
+        now = timezone.now()
+        if self.end_date > now:
+            return (self.end_date - now).days
+        return 0
+
+    @property
+    def get_status_display(self):
+        """Return a display-friendly status"""
+        status_map = {
+            'trial': 'Free Trial',
+            'active': 'Active',
+            'past_due': 'Past Due',
+            'canceled': 'Canceled',
+            'expired': 'Expired'
+        }
+        return status_map.get(self.status, self.status.title())
+    
+    
+    @property
+    def is_active(self):
+        """Check if subscription is active"""
+        return self.status in ['trial', 'active'] and timezone.now() < self.end_date
+    
+    def get_product_limit(self):
+        """Get product limit based on plan or trial"""
+        if self.is_trial:
+            return 10  # Trial product limit
+        return self.plan.product_limit if self.plan else 0
+
+
+class SubscriptionPayment(models.Model):
+    """Model to track subscription payments"""
+    subscription = models.ForeignKey(Subscription, on_delete=models.CASCADE, related_name='payments')
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    transaction_id = models.CharField(max_length=255)
+    payment_date = models.DateTimeField(auto_now_add=True)
+    payment_method = models.CharField(max_length=50, default='esewa')
+    status = models.CharField(max_length=20, default='completed')
+    response_data = models.JSONField(null=True, blank=True)
+    
+    def __str__(self):
+        return f"Payment of ${self.amount} for {self.subscription.vendor.email}"

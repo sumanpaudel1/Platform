@@ -1,4 +1,3 @@
-\landing.html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -20,9 +19,14 @@
         .gradient-bg {
             background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
         }
+
+        .hero-gradient {
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+        }
         
         .hero-pattern {
-            background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%234F46E5' fill-opacity='0.05' fill-rule='evenodd'/%3E%3C/svg%3E");
+            background-color: #f0f4ff;
+            background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3z' fill='%234F46E5' fill-opacity='0.05' fill-rule='evenodd'/%3E%3C/svg%3E");
         }
         
         .feature-card {
@@ -39,7 +43,7 @@
         }
         
         .pricing-card:hover {
-            transform: scale(1.03);
+            transform: scale(1.02);
         }
         
         .pricing-popular {
@@ -48,7 +52,7 @@
         }
         
         .pricing-popular:hover {
-            transform: scale(1.08);
+            transform: scale(1.07);
         }
         
         .cta-button {
@@ -66,6 +70,20 @@
         
         .navbar {
             backdrop-filter: blur(10px);
+        }
+
+        .subscription-toggle .active {
+            background-color: #4F46E5;
+            color: white;
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
         
         @media (max-width: 768px) {
@@ -86,23 +104,32 @@
             <div class="flex justify-between h-16">
                 <div class="flex items-center">
                     <a href="#" class="flex-shrink-0 flex items-center">
-                        <span class="text-2xl font-bold text-indigo-600">Clothy</span>
-                        <span class="text-sm ml-2 text-gray-500 hidden sm:inline-block">Vendor Platform</span>
+                        <span class="text-2xl font-bold text-blue-600">Clothy</span>
+                        <span class="text-sm ml-2 text-gray-500 hidden sm:inline-block">Business Platform</span>
                     </a>
                 </div>
                 
                 <!-- Desktop Navigation -->
                 <div class="hidden md:flex items-center space-x-8">
-                    <a href="#features" class="text-gray-600 hover:text-indigo-600 transition-colors">Features</a>
-                    <a href="#plans" class="text-gray-600 hover:text-indigo-600 transition-colors">Pricing</a>
-                    <a href="#testimonials" class="text-gray-600 hover:text-indigo-600 transition-colors">Testimonials</a>
-                    <a href="#faq" class="text-gray-600 hover:text-indigo-600 transition-colors">FAQ</a>
+                    <a href="#features" class="text-gray-600 hover:text-blue-600 transition-colors">Features</a>
+                    <a href="#plans" class="text-gray-600 hover:text-blue-600 transition-colors">Pricing</a>
+                    <a href="#testimonials" class="text-gray-600 hover:text-blue-600 transition-colors">Testimonials</a>
+                    <a href="#faq" class="text-gray-600 hover:text-blue-600 transition-colors">FAQ</a>
                 </div>
                 
                 <!-- Login/Signup Buttons -->
                 <div class="hidden md:flex items-center space-x-4">
-                    <a href="{% url 'accounts:login' %}" class="text-indigo-600 hover:text-indigo-800 font-medium">Log In</a>
-                    <a href="{% url 'accounts:register' %}" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors font-medium">Sign Up</a>
+                    {% if user.is_authenticated %}
+                        <div class="flex items-center space-x-4">
+                            <span class="text-blue-600">Hello, {{ user.first_name }}</span>
+                            <a href="{% url 'accounts:vendor_dashboard' %}" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-sm">
+                                My Dashboard
+                            </a>
+                        </div>
+                    {% else %}
+                        <a href="{% url 'accounts:login' %}" class="text-blue-600 hover:text-blue-800 font-medium">Log In</a>
+                        <a href="{% url 'accounts:register' %}" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-sm">Sign Up</a>
+                    {% endif %}
                 </div>
                 
                 <!-- Mobile menu button -->
@@ -119,41 +146,50 @@
         <!-- Mobile menu -->
         <div class="mobile-menu hidden bg-white shadow-md z-50 absolute top-16 inset-x-0 rounded-b-lg">
             <div class="px-2 pt-2 pb-4 space-y-1">
-                <a href="#features" class="block px-3 py-2 rounded-md text-gray-700 hover:bg-indigo-50 hover:text-indigo-700">Features</a>
-                <a href="#plans" class="block px-3 py-2 rounded-md text-gray-700 hover:bg-indigo-50 hover:text-indigo-700">Pricing</a>
-                <a href="#testimonials" class="block px-3 py-2 rounded-md text-gray-700 hover:bg-indigo-50 hover:text-indigo-700">Testimonials</a>
-                <a href="#faq" class="block px-3 py-2 rounded-md text-gray-700 hover:bg-indigo-50 hover:text-indigo-700">FAQ</a>
+                <a href="#features" class="block px-3 py-2 rounded-md text-gray-700 hover:bg-blue-50 hover:text-blue-700">Features</a>
+                <a href="#plans" class="block px-3 py-2 rounded-md text-gray-700 hover:bg-blue-50 hover:text-blue-700">Pricing</a>
+                <a href="#testimonials" class="block px-3 py-2 rounded-md text-gray-700 hover:bg-blue-50 hover:text-blue-700">Testimonials</a>
+                <a href="#faq" class="block px-3 py-2 rounded-md text-gray-700 hover:bg-blue-50 hover:text-blue-700">FAQ</a>
                 <div class="pt-4 flex flex-col space-y-3 border-t border-gray-200">
-                    <a href="{% url 'accounts:login' %}" class="px-3 py-2 rounded-md text-indigo-600 font-medium">Log In</a>
-                    <a href="{% url 'accounts:register' %}" class="mx-3 py-2 bg-indigo-600 text-center text-white rounded-md font-medium">Sign Up</a>
+                    {% if user.is_authenticated %}
+                        <a href="{% url 'accounts:vendor_dashboard' %}" class="px-3 py-2 rounded-md text-white text-center bg-blue-600 font-medium shadow-sm">
+                            My Dashboard
+                        </a>
+                        <a href="{% url 'accounts:logout' %}" class="px-3 py-2 rounded-md text-blue-600 font-medium text-center border border-blue-600">
+                            Logout
+                        </a>
+                    {% else %}
+                        <a href="{% url 'accounts:login' %}" class="px-3 py-2 rounded-md text-blue-600 font-medium">Log In</a>
+                        <a href="{% url 'accounts:register' %}" class="mx-3 py-2 bg-blue-600 text-center text-white rounded-lg font-medium shadow-sm">Sign Up</a>
+                    {% endif %}
                 </div>
             </div>
         </div>
     </nav>
 
     <!-- Hero Section -->
-    <section class="hero-pattern pt-28 pb-20 md:pt-36 md:pb-24">
+    <section class="hero-gradient pt-28 pb-20 md:pt-36 md:pb-24 text-white">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex flex-col lg:flex-row items-center">
                 <div class="lg:w-1/2 lg:pr-12" data-aos="fade-right" data-aos-duration="1000">
-                    <h1 class="text-4xl sm:text-5xl md:text-6xl font-bold text-gray-900 leading-tight">
-                        Launch Your Online Store in <span class="text-indigo-600">Minutes</span>
+                    <h1 class="text-4xl sm:text-5xl md:text-6xl font-bold leading-tight">
+                        Digitize Your Small Business in <span class="text-yellow-300">Minutes</span>
                     </h1>
-                    <p class="mt-6 text-lg sm:text-xl text-gray-600 max-w-2xl">
-                        Create your own branded e-commerce platform with powerful tools, analytics, and AI product recommendations - all with zero technical skills required.
+                    <p class="mt-6 text-lg sm:text-xl text-white/90 max-w-2xl">
+                        Create your own branded e-commerce platform with powerful tools, analytics, and AI product recommendations - all without any technical skills.
                     </p>
                     <div class="mt-8 flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
-                        <a href="{% url 'accounts:register' %}" class="cta-button inline-flex justify-center items-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 md:text-lg">
-                            Get Started Free
+                        <a href="{% url 'accounts:register' %}" class="cta-button inline-flex justify-center items-center px-8 py-3 border border-transparent text-base font-medium rounded-lg text-blue-900 bg-white hover:bg-gray-100 md:text-lg shadow-lg">
+                            Start Selling Now
                         </a>
-                        <a href="#features" class="inline-flex justify-center items-center px-8 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 md:text-lg">
-                            Learn More
+                        <a href="#features" class="inline-flex justify-center items-center px-8 py-3 border border-white text-base font-medium rounded-lg text-white hover:bg-white/10 transition-colors md:text-lg">
+                            Explore Features
                         </a>
                     </div>
                 </div>
                 <div class="lg:w-1/2 mt-12 lg:mt-0" data-aos="fade-left" data-aos-duration="1000" data-aos-delay="300">
                     <div class="relative mx-auto w-full max-w-md">
-                        <div class="absolute inset-0 bg-gradient-to-r from-indigo-500 to-purple-600 shadow-lg transform -rotate-6 rounded-3xl"></div>
+                        <div class="absolute inset-0 bg-white/10 backdrop-blur-sm shadow-lg transform -rotate-6 rounded-3xl"></div>
                         <img src="https://images.unsplash.com/photo-1556742502-ec7c0e9f34b1?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=900&q=80" 
                              alt="Dashboard Preview" class="relative shadow-lg rounded-3xl w-full">
                     </div>
@@ -167,19 +203,19 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
                 <div class="p-4" data-aos="fade-up" data-aos-delay="100">
-                    <p class="text-3xl md:text-4xl font-bold text-indigo-600 count-up" data-target="5000">0</p>
-                    <p class="mt-2 text-lg text-gray-600">Vendors</p>
+                    <p class="text-3xl md:text-4xl font-bold text-blue-600 count-up" data-target="5000">0</p>
+                    <p class="mt-2 text-lg text-gray-600">Businesses</p>
                 </div>
                 <div class="p-4" data-aos="fade-up" data-aos-delay="200">
-                    <p class="text-3xl md:text-4xl font-bold text-indigo-600 count-up" data-target="2500000">0</p>
+                    <p class="text-3xl md:text-4xl font-bold text-blue-600 count-up" data-target="2500000">0</p>
                     <p class="mt-2 text-lg text-gray-600">Products Listed</p>
                 </div>
                 <div class="p-4" data-aos="fade-up" data-aos-delay="300">
-                    <p class="text-3xl md:text-4xl font-bold text-indigo-600 count-up" data-target="98">0</p>
+                    <p class="text-3xl md:text-4xl font-bold text-blue-600 count-up" data-target="98">0</p>
                     <p class="mt-2 text-lg text-gray-600">Satisfaction Rate</p>
                 </div>
                 <div class="p-4" data-aos="fade-up" data-aos-delay="400">
-                    <p class="text-3xl md:text-4xl font-bold text-indigo-600 count-up" data-target="15">0</p>
+                    <p class="text-3xl md:text-4xl font-bold text-blue-600 count-up" data-target="15">0</p>
                     <p class="mt-2 text-lg text-gray-600">Min Setup Time</p>
                 </div>
             </div>
@@ -190,17 +226,17 @@
     <section id="features" class="py-16 md:py-24 bg-gray-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center" data-aos="fade-up">
-                <h2 class="text-base text-indigo-600 font-semibold tracking-wide uppercase">Features</h2>
-                <p class="mt-2 text-3xl font-extrabold text-gray-900 sm:text-4xl">Everything You Need to Succeed Online</p>
+                <h2 class="text-base text-blue-600 font-semibold tracking-wide uppercase">Features</h2>
+                <p class="mt-2 text-3xl font-extrabold text-gray-900 sm:text-4xl">Digitize Your Business</p>
                 <p class="mt-4 max-w-2xl text-xl text-gray-500 mx-auto">
-                    Powerful tools to build, manage, and grow your e-commerce business with ease.
+                    Everything you need to build, manage, and grow your e-commerce business with ease
                 </p>
             </div>
 
             <div class="mt-12 md:mt-16 grid gap-8 md:grid-cols-2 lg:grid-cols-3">
                 <!-- Feature 1 -->
                 <div class="bg-white rounded-lg shadow-md p-6 feature-card" data-aos="fade-up" data-aos-delay="100">
-                    <div class="h-12 w-12 rounded-md bg-indigo-500 flex items-center justify-center mb-4">
+                    <div class="h-12 w-12 rounded-md bg-blue-500 flex items-center justify-center mb-4">
                         <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                         </svg>
@@ -211,7 +247,7 @@
 
                 <!-- Feature 2 -->
                 <div class="bg-white rounded-lg shadow-md p-6 feature-card" data-aos="fade-up" data-aos-delay="200">
-                    <div class="h-12 w-12 rounded-md bg-indigo-500 flex items-center justify-center mb-4">
+                    <div class="h-12 w-12 rounded-md bg-blue-500 flex items-center justify-center mb-4">
                         <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                         </svg>
@@ -222,40 +258,40 @@
 
                 <!-- Feature 3 -->
                 <div class="bg-white rounded-lg shadow-md p-6 feature-card" data-aos="fade-up" data-aos-delay="300">
-                    <div class="h-12 w-12 rounded-md bg-indigo-500 flex items-center justify-center mb-4">
+                    <div class="h-12 w-12 rounded-md bg-blue-500 flex items-center justify-center mb-4">
                         <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
                         </svg>
                     </div>
-                    <h3 class="text-xl font-medium text-gray-900">Detailed Analytics</h3>
+                    <h3 class="text-xl font-medium text-gray-900">Business Analytics</h3>
                     <p class="mt-4 text-gray-500">Gain powerful insights into your store's performance with comprehensive analytics and reporting tools.</p>
                 </div>
 
                 <!-- Feature 4 -->
                 <div class="bg-white rounded-lg shadow-md p-6 feature-card" data-aos="fade-up" data-aos-delay="400">
-                    <div class="h-12 w-12 rounded-md bg-indigo-500 flex items-center justify-center mb-4">
+                    <div class="h-12 w-12 rounded-md bg-blue-500 flex items-center justify-center mb-4">
                         <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
                         </svg>
                     </div>
-                    <h3 class="text-xl font-medium text-gray-900">Secure Payments</h3>
-                    <p class="mt-4 text-gray-500">Accept multiple payment methods securely with our integrated payment processing system.</p>
+                    <h3 class="text-xl font-medium text-gray-900">eSewa Integration</h3>
+                    <p class="mt-4 text-gray-500">Accept secure payments via eSewa, credit cards, and other local payment methods with our seamless integration.</p>
                 </div>
 
                 <!-- Feature 5 -->
                 <div class="bg-white rounded-lg shadow-md p-6 feature-card" data-aos="fade-up" data-aos-delay="500">
-                    <div class="h-12 w-12 rounded-md bg-indigo-500 flex items-center justify-center mb-4">
+                    <div class="h-12 w-12 rounded-md bg-blue-500 flex items-center justify-center mb-4">
                         <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
                         </svg>
                     </div>
-                    <h3 class="text-xl font-medium text-gray-900">Image Search</h3>
+                    <h3 class="text-xl font-medium text-gray-900">Visual Search</h3>
                     <p class="mt-4 text-gray-500">Let customers find products by uploading images, powered by advanced AI visual recognition technology.</p>
                 </div>
 
                 <!-- Feature 6 -->
                 <div class="bg-white rounded-lg shadow-md p-6 feature-card" data-aos="fade-up" data-aos-delay="600">
-                    <div class="h-12 w-12 rounded-md bg-indigo-500 flex items-center justify-center mb-4">
+                    <div class="h-12 w-12 rounded-md bg-blue-500 flex items-center justify-center mb-4">
                         <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
@@ -271,22 +307,31 @@
     <section id="plans" class="py-16 md:py-24 bg-white">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center" data-aos="fade-up">
-                <h2 class="text-base text-indigo-600 font-semibold tracking-wide uppercase">Pricing</h2>
+                <h2 class="text-base text-blue-600 font-semibold tracking-wide uppercase">Pricing</h2>
                 <p class="mt-2 text-3xl font-extrabold text-gray-900 sm:text-4xl">Choose Your Plan</p>
                 <p class="mt-4 max-w-2xl text-xl text-gray-500 mx-auto">
-                    Flexible pricing options to support your business at every stage of growth
+                    Flexible subscription options to support your business growth
                 </p>
             </div>
             
-            <div class="mt-12 space-y-4 sm:space-y-0 sm:grid sm:grid-cols-2 lg:grid-cols-3 sm:gap-6 xl:gap-8">
-                <!-- Free Plan -->
+            <!-- Subscription Toggle -->
+            <div class="flex justify-center mt-8">
+                <div class="subscription-toggle p-1 bg-gray-100 rounded-lg inline-flex" data-aos="fade-up">
+                    <button class="px-4 py-2 rounded-md text-sm font-medium subscription-period active" data-period="monthly">Monthly</button>
+                    <button class="px-4 py-2 rounded-md text-sm font-medium subscription-period" data-period="quarterly">Quarterly</button>
+                    <button class="px-4 py-2 rounded-md text-sm font-medium subscription-period" data-period="annual">Annual</button>
+                </div>
+            </div>
+            
+            <div class="mt-12 space-y-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-6 xl:gap-8">
+                <!-- Starter Plan -->
                 <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-6 md:p-8 flex flex-col pricing-card" data-aos="fade-up" data-aos-delay="100">
                     <div>
                         <h3 class="text-lg md:text-xl font-semibold text-gray-900">Starter</h3>
-                        <p class="mt-4 flex items-baseline">
+                        <div class="mt-4 subscription-price" data-monthly="Free" data-quarterly="Free" data-annual="Free">
                             <span class="text-4xl md:text-5xl font-extrabold text-gray-900">Free</span>
-                            <span class="ml-1 text-xl font-medium text-gray-500">/month</span>
-                        </p>
+                            <span class="ml-1 text-xl font-medium text-gray-500"></span>
+                        </div>
                         <p class="mt-4 text-gray-500">Perfect for new businesses getting started with online sales.</p>
                         
                         <ul class="mt-6 space-y-3">
@@ -318,25 +363,25 @@
                     </div>
                     
                     <div class="mt-8 sm:mt-auto">
-                        <a href="{% url 'accounts:register' %}" class="w-full inline-flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-indigo-600 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        <a href="{% url 'accounts:register' %}" class="w-full inline-flex justify-center py-2 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-blue-600 bg-blue-100 hover:bg-blue-200 transition-colors">
                             Start for Free
                         </a>
                     </div>
                 </div>
                 
                 <!-- Pro Plan -->
-                <div class="relative bg-white border-2 border-indigo-600 rounded-lg shadow-lg p-6 md:p-8 flex flex-col pricing-card pricing-popular" data-aos="fade-up" data-aos-delay="200">
+                <div class="relative bg-white border-2 border-blue-600 rounded-lg shadow-lg p-6 md:p-8 flex flex-col pricing-card pricing-popular" data-aos="fade-up" data-aos-delay="200">
                     <div class="absolute top-0 right-0 transform translate-x-1/4 -translate-y-1/4">
-                        <span class="bg-indigo-600 text-white text-xs px-3 py-1 rounded-full uppercase font-semibold tracking-wide shadow-md">
+                        <span class="bg-blue-600 text-white text-xs px-3 py-1 rounded-full uppercase font-semibold tracking-wide shadow-md">
                             Popular
                         </span>
                     </div>
                     <div>
                         <h3 class="text-lg md:text-xl font-semibold text-gray-900">Professional</h3>
-                        <p class="mt-4 flex items-baseline">
+                        <div class="mt-4 subscription-price" data-monthly="$49" data-quarterly="$139" data-annual="$470">
                             <span class="text-4xl md:text-5xl font-extrabold text-gray-900">$49</span>
                             <span class="ml-1 text-xl font-medium text-gray-500">/month</span>
-                        </p>
+                        </div>
                         <p class="mt-4 text-gray-500">For growing businesses ready to scale their online presence.</p>
                         
                         <ul class="mt-6 space-y-3">
@@ -356,7 +401,7 @@
                                 <svg class="flex-shrink-0 h-5 w-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
                                 </svg>
-                                <span class="ml-2 text-gray-500">AI product recommendations</span>
+                                <span class="ml-2 text-gray-500">AI recommendations</span>
                             </li>
                             <li class="flex">
                                 <svg class="flex-shrink-0 h-5 w-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
@@ -370,19 +415,13 @@
                                 </svg>
                                 <span class="ml-2 text-gray-500">3% transaction fee</span>
                             </li>
-                            <li class="flex">
-                                <svg class="flex-shrink-0 h-5 w-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                                </svg>
-                                <span class="ml-2 text-gray-500">Priority support</span>
-                            </li>
                         </ul>
                     </div>
                     
                     <div class="mt-8 sm:mt-auto">
-                        <a href="{% url 'accounts:register' %}" class="w-full inline-flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                            Get Started
-                        </a>
+                        <button onclick="showPaymentModal('Professional')" class="w-full inline-flex justify-center py-2 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors">
+                            Subscribe Now
+                        </button>
                     </div>
                 </div>
                 
@@ -390,10 +429,10 @@
                 <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-6 md:p-8 flex flex-col pricing-card" data-aos="fade-up" data-aos-delay="300">
                     <div>
                         <h3 class="text-lg md:text-xl font-semibold text-gray-900">Enterprise</h3>
-                        <p class="mt-4 flex items-baseline">
+                        <div class="mt-4 subscription-price" data-monthly="$199" data-quarterly="$549" data-annual="$1990">
                             <span class="text-4xl md:text-5xl font-extrabold text-gray-900">$199</span>
                             <span class="ml-1 text-xl font-medium text-gray-500">/month</span>
-                        </p>
+                        </div>
                         <p class="mt-4 text-gray-500">For established businesses with high volume sales and custom needs.</p>
                         
                         <ul class="mt-6 space-y-3">
@@ -407,7 +446,7 @@
                                 <svg class="flex-shrink-0 h-5 w-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
                                 </svg>
-                                <span class="ml-2 text-gray-500">Enterprise-grade analytics</span>
+                                <span class="ml-2 text-gray-500">Enterprise analytics</span>
                             </li>
                             <li class="flex">
                                 <svg class="flex-shrink-0 h-5 w-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
@@ -427,25 +466,13 @@
                                 </svg>
                                 <span class="ml-2 text-gray-500">1% transaction fee</span>
                             </li>
-                            <li class="flex">
-                                <svg class="flex-shrink-0 h-5 w-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                                </svg>
-                                <span class="ml-2 text-gray-500">24/7 dedicated support</span>
-                            </li>
-                            <li class="flex">
-                                <svg class="flex-shrink-0 h-5 w-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                                </svg>
-                                <span class="ml-2 text-gray-500">Custom integrations</span>
-                            </li>
                         </ul>
                     </div>
                     
                     <div class="mt-8 sm:mt-auto">
-                        <a href="{% url 'accounts:register' %}" class="w-full inline-flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-indigo-600 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                            Contact Sales
-                        </a>
+                        <button onclick="showPaymentModal('Enterprise')" class="w-full inline-flex justify-center py-2 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-blue-600 bg-blue-100 hover:bg-blue-200 transition-colors">
+                            Subscribe Now
+                        </button>
                     </div>
                 </div>
             </div>
@@ -456,14 +483,14 @@
     <section id="testimonials" class="py-16 md:py-24 bg-gray-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center" data-aos="fade-up">
-                <h2 class="text-base text-indigo-600 font-semibold tracking-wide uppercase">Testimonials</h2>
-                <p class="mt-2 text-3xl font-extrabold text-gray-900 sm:text-4xl">What Our Vendors Say</p>
+                <h2 class="text-base text-blue-600 font-semibold tracking-wide uppercase">Testimonials</h2>
+                <p class="mt-2 text-3xl font-extrabold text-gray-900 sm:text-4xl">What Our Users Say</p>
                 <p class="mt-4 max-w-2xl text-xl text-gray-500 mx-auto">
-                    Don't take our word for it - hear from the businesses thriving on our platform
+                    Success stories from businesses using our platform
                 </p>
             </div>
             
-            <div class="mt-12 grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+            <div class="mt-12 grid gap-8 md:grid-cols-3">
                 <!-- Testimonial 1 -->
                 <div class="bg-white p-6 rounded-lg shadow-md" data-aos="fade-up" data-aos-delay="100">
                     <div class="flex items-center mb-4">
@@ -482,7 +509,7 @@
                             <i class="fas fa-star"></i>
                         </div>
                     </div>
-                    <p class="text-gray-600">"Setting up my online boutique was incredibly easy with Clothy. The AI recommendations have increased my average order value by 28% in just two months. I couldn't be happier!"</p>
+                    <p class="text-gray-600">"Setting up my online boutique was incredibly easy with Clothy. The AI recommendations have increased my average order value by 28% in just two months!"</p>
                 </div>
                 
                 <!-- Testimonial 2 -->
@@ -503,7 +530,7 @@
                             <i class="fas fa-star-half-alt"></i>
                         </div>
                     </div>
-                    <p class="text-gray-600">"The image search feature is a game-changer for my electronics store. Customers can snap a photo of a gadget and find the exact model or similar alternatives instantly."</p>
+                    <p class="text-gray-600">"The image search feature is a game-changer for my electronics store. Customers can snap a photo of a gadget and find the exact model instantly."</p>
                 </div>
                 
                 <!-- Testimonial 3 -->
@@ -524,7 +551,7 @@
                             <i class="fas fa-star"></i>
                         </div>
                     </div>
-                    <p class="text-gray-600">"As a solo entrepreneur, I needed a platform that could handle everything while I focus on creating my jewelry. The analytics insights have helped me understand which designs are most popular and why."</p>
+                    <p class="text-gray-600">"The analytics insights have helped me understand which designs are most popular. The eSewa integration made it simple for local customers to pay."</p>
                 </div>
             </div>
         </div>
@@ -534,10 +561,10 @@
     <section id="faq" class="py-16 md:py-24 bg-white">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center" data-aos="fade-up">
-                <h2 class="text-base text-indigo-600 font-semibold tracking-wide uppercase">FAQ</h2>
+                <h2 class="text-base text-blue-600 font-semibold tracking-wide uppercase">FAQ</h2>
                 <p class="mt-2 text-3xl font-extrabold text-gray-900 sm:text-4xl">Frequently Asked Questions</p>
                 <p class="mt-4 max-w-2xl text-xl text-gray-500 mx-auto">
-                    Everything you need to know about our vendor platform
+                    Everything you need to know about our platform
                 </p>
             </div>
             
@@ -550,24 +577,18 @@
                 
                 <!-- FAQ Item 2 -->
                 <div class="mb-8" data-aos="fade-up" data-aos-delay="200">
-                    <h3 class="text-xl font-medium text-gray-900">Can I use my own domain name?</h3>
-                    <p class="mt-2 text-gray-600">Yes! While free plans come with a subdomain (yourstore.platform.com), Professional and Enterprise plans support custom domains that you own (yourstore.com).</p>
+                    <h3 class="text-xl font-medium text-gray-900">How does the subscription billing work?</h3>
+                    <p class="mt-2 text-gray-600">You can choose between monthly, quarterly (3-month), or annual (12-month) billing cycles. Longer subscriptions offer savings compared to monthly payments. All payments are securely processed via eSewa.</p>
                 </div>
                 
                 <!-- FAQ Item 3 -->
                 <div class="mb-8" data-aos="fade-up" data-aos-delay="300">
-                    <h3 class="text-xl font-medium text-gray-900">How does the AI product recommendation work?</h3>
-                    <p class="mt-2 text-gray-600">Our AI engine analyzes product images, descriptions, customer browsing patterns, and purchase history to suggest relevant products to your customers, increasing engagement and sales.</p>
+                    <h3 class="text-xl font-medium text-gray-900">How does the eSewa integration work?</h3>
+                    <p class="mt-2 text-gray-600">Our platform seamlessly connects with eSewa for both your subscription payments and your customer transactions. All transaction details are available in your dashboard for easy reconciliation.</p>
                 </div>
                 
                 <!-- FAQ Item 4 -->
                 <div class="mb-8" data-aos="fade-up" data-aos-delay="400">
-                    <h3 class="text-xl font-medium text-gray-900">What payment methods can my customers use?</h3>
-                    <p class="mt-2 text-gray-600">We support various payment methods including credit/debit cards, eSewa, and cash on delivery. All transactions are securely processed and monitored for fraud protection.</p>
-                </div>
-                
-                <!-- FAQ Item 5 -->
-                <div class="mb-8" data-aos="fade-up" data-aos-delay="500">
                     <h3 class="text-xl font-medium text-gray-900">Can I upgrade or downgrade my plan later?</h3>
                     <p class="mt-2 text-gray-600">Absolutely! You can change your subscription plan at any time. When upgrading, you'll gain immediate access to new features. When downgrading, changes take effect at the end of your billing cycle.</p>
                 </div>
@@ -576,17 +597,17 @@
     </section>
 
     <!-- CTA Section -->
-    <section class="gradient-bg py-16 md:py-20">
+    <section class="hero-gradient py-16 md:py-20 text-white">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center" data-aos="fade-up">
-            <h2 class="text-3xl md:text-4xl font-bold text-white">Ready to Start Selling Online?</h2>
-            <p class="mt-4 text-xl text-indigo-100 max-w-2xl mx-auto">
+            <h2 class="text-3xl md:text-4xl font-bold">Ready to Digitize Your Business?</h2>
+            <p class="mt-4 text-xl text-blue-100 max-w-2xl mx-auto">
                 Join thousands of successful vendors already growing their business with Clothy.
             </p>
             <div class="mt-8 flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4">
-                <a href="{% url 'accounts:register' %}" class="cta-button inline-flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-indigo-700 bg-white hover:bg-gray-100 md:text-lg">
-                    Sign Up Free
+                <a href="{% url 'accounts:register' %}" class="cta-button inline-flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-lg text-blue-700 bg-white hover:bg-gray-100 md:text-lg shadow-lg">
+                    Get Started Free
                 </a>
-                <a href="#features" class="inline-flex items-center justify-center px-8 py-3 border border-white text-base font-medium rounded-md text-white hover:bg-indigo-700 md:text-lg">
+                <a href="#features" class="inline-flex items-center justify-center px-8 py-3 border border-white text-base font-medium rounded-lg text-white hover:bg-white/10 transition-colors md:text-lg">
                     Learn More
                 </a>
             </div>
@@ -602,7 +623,7 @@
                     <div class="flex items-center">
                         <span class="text-2xl font-bold text-white">Clothy</span>
                     </div>
-                    <p class="mt-4 text-sm">The all-in-one e-commerce platform for modern businesses. Sell online with powerful tools, beautiful storefronts, and AI recommendations that boost sales.</p>
+                    <p class="mt-4 text-sm">The all-in-one e-commerce platform for small businesses. Sell online with powerful tools, beautiful storefronts, and AI recommendations that boost sales.</p>
                     <div class="mt-6 flex space-x-4">
                         <a href="#" class="text-gray-400 hover:text-white">
                             <i class="fab fa-facebook-f"></i>
@@ -626,7 +647,6 @@
                         <li><a href="#features" class="text-gray-400 hover:text-white">Features</a></li>
                         <li><a href="#plans" class="text-gray-400 hover:text-white">Pricing</a></li>
                         <li><a href="#" class="text-gray-400 hover:text-white">Integrations</a></li>
-                        <li><a href="#" class="text-gray-400 hover:text-white">API</a></li>
                     </ul>
                 </div>
                 
@@ -635,8 +655,7 @@
                     <h3 class="text-sm font-semibold text-white uppercase tracking-wider">Company</h3>
                     <ul class="mt-4 space-y-2">
                         <li><a href="#" class="text-gray-400 hover:text-white">About</a></li>
-                        <li><a href="#" class="text-gray-400 hover:text-white">Blog</a></li>
-                        <li><a href="#" class="text-gray-400 hover:text-white">Careers</a></li>
+                        <li><a href="#testimonials" class="text-gray-400 hover:text-white">Testimonials</a></li>
                         <li><a href="#" class="text-gray-400 hover:text-white">Contact</a></li>
                     </ul>
                 </div>
@@ -647,6 +666,46 @@
             </div>
         </div>
     </footer>
+
+   <!-- New eSewa form that matches the working product payment form -->
+
+<div id="paymentModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 items-center justify-center">
+    <div class="bg-white rounded-lg p-6 max-w-md w-full">
+        <div class="flex justify-between mb-4">
+            <h2 class="text-xl font-semibold">Complete Your Subscription</h2>
+            <button id="closeModalBtn" class="text-gray-500 hover:text-gray-700">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+        
+        <div class="mb-4">
+            <p class="text-gray-600">You're subscribing to:</p>
+            <h3 id="modal-plan-name" class="text-lg font-medium"></h3>
+            <p class="text-sm text-gray-500">Duration: <span id="modal-duration"></span></p>
+        </div>
+        
+        <div class="border-t border-gray-200 mt-3 pt-3">
+            <div class="flex justify-between">
+                <span>Amount:</span>
+                <span id="modal-amount"></span>
+            </div>
+            <div class="border-t border-gray-200 mt-3 pt-3 flex justify-between">
+                <span class="font-medium">Total:</span>
+                <span id="modal-total" class="font-bold text-blue-600"></span>
+            </div>
+        </div>
+        
+        <!-- Simple Payment Button -->
+        <div class="mt-6">
+            <button id="subscribe-btn" type="button" class="w-full bg-green-500 text-white py-3 rounded-lg font-medium hover:bg-green-600 transition-colors flex items-center justify-center">
+                <img src="https://esewa.com.np/common/images/esewa_logo.png" alt="eSewa" class="h-6 mr-2">
+                Pay with eSewa
+            </button>
+        </div>
+    </div>
+</div>
 
     <!-- Scripts -->
     <script>
@@ -701,6 +760,49 @@
                 observer.observe(el);
             });
             
+            // Subscription toggle
+            const subscriptionToggles = document.querySelectorAll('.subscription-period');
+            const subscriptionPrices = document.querySelectorAll('.subscription-price');
+            
+            subscriptionToggles.forEach(toggle => {
+                toggle.addEventListener('click', function() {
+                    // Update toggle active state
+                    subscriptionToggles.forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    const period = this.getAttribute('data-period');
+                    
+                    // Update prices
+                    subscriptionPrices.forEach(price => {
+                        const priceValue = price.getAttribute(`data-${period}`);
+                        const isShowingFreePlan = priceValue === "Free";
+                        
+                        // Update price display
+                        const priceSpan = price.querySelector('span:first-child');
+                        const periodSpan = price.querySelector('span:last-child');
+                        
+                        priceSpan.textContent = priceValue;
+                        
+                        // Update period display
+                        if (isShowingFreePlan) {
+                            periodSpan.textContent = '';
+                        } else {
+                            switch(period) {
+                                case 'monthly':
+                                    periodSpan.textContent = '/month';
+                                    break;
+                                case 'quarterly':
+                                    periodSpan.textContent = '/quarter';
+                                    break;
+                                case 'annual':
+                                    periodSpan.textContent = '/year';
+                                    break;
+                            }
+                        }
+                    });
+                });
+            });
+            
             // Smooth scrolling for anchor links
             document.querySelectorAll('a[href^="#"]').forEach(anchor => {
                 anchor.addEventListener('click', function (e) {
@@ -716,7 +818,132 @@
                 });
             });
             
+
+            // Payment Modal
+            const paymentModal = document.getElementById('paymentModal'); // Fix: use correct ID
+            const closeModalBtn = document.getElementById('closeModalBtn'); // Fix: use correct ID
+
+            // Modified showPaymentModal function
+            window.showPaymentModal = function(plan) {
+            {% if user.is_authenticated %}
+                const modalPlanName = document.getElementById('modal-plan-name');
+                const modalDuration = document.getElementById('modal-duration');
+                const modalAmount = document.getElementById('modal-amount');
+                const modalTotal = document.getElementById('modal-total');
+                const subscribeBtn = document.getElementById('subscribe-btn');
+                
+                const activePeriod = document.querySelector('.subscription-period.active').getAttribute('data-period');
+                let durationText, amount, planId;
+                {% else %}
+                    // Redirect to login with next parameter
+                window.location.href = "{% url 'accounts:login' %}?next={% url 'accounts:subscription_plans' %}";
+                {% endif %}
+                
+                // Set plan name
+                modalPlanName.textContent = plan;
+                
+                // Set duration, amount, and plan ID based on selected period and plan
+                switch(plan) {
+                    case 'Professional':
+                        switch(activePeriod) {
+                            case 'monthly': 
+                                planId = 1; // Replace with actual plan ID
+                                amount = 49; 
+                                durationText = 'Monthly'; 
+                                break;
+                            case 'quarterly': 
+                                planId = 2; // Replace with actual plan ID
+                                amount = 139; 
+                                durationText = 'Quarterly (3 months)'; 
+                                break;
+                            case 'annual': 
+                                planId = 3; // Replace with actual plan ID
+                                amount = 470; 
+                                durationText = 'Annual (12 months)';
+                                break;
+                        }
+                        break;
+                    case 'Enterprise':
+                        switch(activePeriod) {
+                            case 'monthly': 
+                                planId = 4; // Replace with actual plan ID
+                                amount = 199; 
+                                durationText = 'Monthly'; 
+                                break;
+                            case 'quarterly': 
+                                planId = 5; // Replace with actual plan ID
+                                amount = 549; 
+                                durationText = 'Quarterly (3 months)'; 
+                                break;
+                            case 'annual': 
+                                planId = 6; // Replace with actual plan ID
+                                amount = 1990; 
+                                durationText = 'Annual (12 months)';
+                                break;
+                        }
+                        break;
+                }
+                
+                modalDuration.textContent = durationText;
+                modalAmount.textContent = `$${amount}`;
+                modalTotal.textContent = `$${amount}`;
+                
+                // Update the subscribe button to include the plan ID
+                subscribeBtn.setAttribute('data-plan-id', planId);
+                
+                // Show modal
+                paymentModal.classList.remove('hidden');
+                paymentModal.classList.add('flex');
+                
+
+                
+                subscribeBtn.onclick = function() {
+                    // Show loading state
+                    const originalText = subscribeBtn.innerHTML;
+                    subscribeBtn.innerHTML = '<span class="animate-spin mr-2">↻</span> Processing...';
+                    subscribeBtn.disabled = true;
+                    
+                    // Get the plan ID
+                    const planId = subscribeBtn.getAttribute('data-plan-id');
+                    
+                    // Create form for direct submission - similar to product payment
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = `/esewa/subscription/payment/${planId}/`;
+                    
+                    // Add CSRF token
+                    const csrfInput = document.createElement('input');
+                    csrfInput.type = 'hidden';
+                    csrfInput.name = 'csrfmiddlewaretoken';
+                    csrfInput.value = '{{ csrf_token }}';
+                    form.appendChild(csrfInput);
+                    
+                    // Add to document and submit
+                    document.body.appendChild(form);
+                    form.submit();
+                };
+            }
+
+            // Close modal
+            if (closeModalBtn) {
+                closeModalBtn.addEventListener('click', function() {
+                    paymentModal.classList.add('hidden');
+                    paymentModal.classList.remove('flex');
+                });
+            }
+
+            // Close modal when clicking outside
+            if (paymentModal) {
+                paymentModal.addEventListener('click', function(e) {
+                    if (e.target === paymentModal) {
+                        paymentModal.classList.add('hidden');
+                        paymentModal.classList.remove('flex');
+                    }
+                });
+            }
         });
+    
+
     </script>
 </body>
 </html>

@@ -2,12 +2,31 @@ import json
 from django.http import HttpResponse
 from django.shortcuts import render, redirect
 from django.contrib.auth import login, authenticate
+from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from .forms import RegistrationForm, LoginForm, VendorProfileForm, VendorSettingForm
 from .models import Vendor, OTP, VendorProfile, StorePhoto, VendorSetting, CoverPhoto, Subdomain
 from .utils import generate_otp, send_otp_to_email
+from django.utils import timezone
+from django.http import JsonResponse
+from .models import Subscription, SubscriptionPlan, SubscriptionPayment
+from products.utils import EsewaPayment
+import time
+import json
+from django.urls import reverse
+import uuid
+import base64
+from django.utils import timezone
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.shortcuts import get_object_or_404, redirect
+from django.contrib import messages
 
 
+from .models import Subscription, SubscriptionPlan, SubscriptionPayment
+# Make sure EsewaPayment class is imported and working
+
+# First, modify your register function to add the free trial
 def register(request):
     if request.method == "POST":
         form = RegistrationForm(request.POST)
@@ -16,6 +35,16 @@ def register(request):
             vendor.set_password(form.cleaned_data['password1'])
             vendor.is_verified = False
             vendor.save()
+
+            # Create a 10-day free trial subscription for the new vendor
+            end_date = timezone.now() + timezone.timedelta(days=10)
+            Subscription.objects.create(
+                vendor=vendor,
+                status='trial',
+                start_date=timezone.now(),
+                end_date=end_date,
+                is_trial=True
+            )
 
             otp = generate_otp()
             send_otp_to_email(vendor.email, otp)
@@ -26,6 +55,240 @@ def register(request):
         form = RegistrationForm()
 
     return render(request, 'accounts/register.html', {'form': form})
+
+# Add this view to handle subscription selection and payment initiation
+@login_required
+def subscription_plans(request):
+    # Get all subscription plans
+    plans = {
+        'monthly': SubscriptionPlan.objects.filter(period='monthly'),
+        'quarterly': SubscriptionPlan.objects.filter(period='quarterly'),
+        'annual': SubscriptionPlan.objects.filter(period='annual'),
+    }
+    
+    # Get vendor's current subscription
+    try:
+        current_subscription = request.user.subscription
+    except:
+        # Create a trial subscription if none exists
+        end_date = timezone.now() + timezone.timedelta(days=10)
+        current_subscription = Subscription.objects.create(
+            vendor=request.user,
+            status='trial',
+            start_date=timezone.now(),
+            end_date=end_date,
+            is_trial=True
+        )
+    
+    context = {
+        'plans': plans,
+        'subscription': current_subscription,
+        'active_tab': 'subscription'
+    }
+    
+    return render(request, 'accounts/subscription_plans.html', context)
+
+
+
+@login_required
+def subscription_esewa_payment(request, plan_id):
+    try:
+        # Get the plan
+        plan = get_object_or_404(SubscriptionPlan, id=plan_id)
+        print(f"Found plan: {plan.name}, price: {plan.price}")
+        
+        # Generate a transaction ID
+        import time
+        transaction_id = f"SUB-{request.user.id}-{plan.id}-{int(time.time())}"
+        
+        # Store payment data in session
+        request.session['subscription_payment'] = {
+            'plan_id': plan.id,
+            'transaction_id': transaction_id,
+            'amount': str(plan.price)
+        }
+        
+        # Create a simple data object for the payment class
+        class SubscriptionData:
+            def __init__(self, transaction_id, price):
+                self.transaction_id = transaction_id
+                self.price = price
+        
+        subscription_data = SubscriptionData(transaction_id, plan.price)
+        
+        # Use the specialized subscription payment handler
+        from .utils import EsewaSubscriptionPayment
+        esewa = EsewaSubscriptionPayment()
+        payment_url, params = esewa.generate_payment_data(subscription_data)
+        
+        print(f"Payment params: {params}")
+        print(f"Payment URL: {payment_url}")
+        
+        # Render the template with payment data - properly formatted for v2 API
+        return render(request, 'accounts/subscription_redirect.html', {
+            'payment_url': payment_url,
+            'params': params
+        })
+        
+    except Exception as e:
+        print(f"ERROR in subscription_esewa_payment: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        messages.error(request, f"Error initiating payment: {str(e)}")
+        return redirect('accounts:subscription_plans')
+
+# Add this view to handle successful eSewa payment@csrf_exempt
+@csrf_exempt
+def subscription_payment_success(request):
+    try:
+        print("eSewa success callback received")
+        print(f"Request GET data: {request.GET}")
+        
+        # eSewa returns these parameters
+        ref_id = request.GET.get('refId', '')
+        transaction_id = request.GET.get('oid', '')
+        amount = request.GET.get('amt', '')
+        
+        print(f"Payment details - refId: {ref_id}, oid: {transaction_id}, amount: {amount}")
+        
+        # Get subscription data from session
+        subscription_data = request.session.get('subscription_payment')
+        print(f"Session data: {subscription_data}")
+        
+        if not subscription_data:
+            messages.error(request, "No pending subscription payment found")
+            return redirect('accounts:subscription_plans')
+        
+        # Get the plan
+        plan_id = subscription_data.get('plan_id')
+        plan = get_object_or_404(SubscriptionPlan, id=plan_id)
+        
+        # Get or create subscription record
+        try:
+            subscription = Subscription.objects.get(vendor=request.user)
+        except Subscription.DoesNotExist:
+            subscription = Subscription(vendor=request.user)
+        
+        # Update subscription details
+        now = timezone.now()
+        subscription.plan = plan
+        subscription.status = 'active'
+        subscription.is_trial = False
+        subscription.start_date = now
+        subscription.transaction_id = ref_id  # Use the eSewa reference ID
+        subscription.last_payment_date = now
+        
+        # Calculate end date based on plan period
+        if plan.period == 'monthly':
+            subscription.end_date = now + timezone.timedelta(days=30)
+        elif plan.period == 'quarterly':
+            subscription.end_date = now + timezone.timedelta(days=90)
+        elif plan.period == 'annual':
+            subscription.end_date = now + timezone.timedelta(days=365)
+        
+        subscription.save()
+        
+        # Record the payment with robust error handling
+        try:
+            # Convert request.GET to dict for JSON serialization
+            response_dict = {key: request.GET.get(key) for key in request.GET.keys()}
+            
+            # Create payment record
+            payment = SubscriptionPayment.objects.create(
+                subscription=subscription,
+                amount=float(amount) if amount else 0.00,
+                transaction_id=ref_id,
+                status='completed',
+                payment_method='esewa',
+                response_data=response_dict
+            )
+            
+            print(f"Payment record created successfully: {payment.id}")
+        except Exception as payment_error:
+            print(f"ERROR creating payment record: {str(payment_error)}")
+            import traceback
+            traceback.print_exc()
+        
+        # Enable subdomain
+        try:
+            vendor_settings = VendorSetting.objects.get(vendor=request.user)
+            subdomain = Subdomain.objects.filter(vendor=request.user).first()
+            
+            if subdomain and not vendor_settings.is_subdomain_active:
+                vendor_settings.is_subdomain_active = True
+                vendor_settings.save()
+                
+                # Create notification
+                Notification.objects.create(
+                    vendor=request.user,
+                    message=f"Your subscription has been renewed. Your subdomain {subdomain.subdomain}.platform is active again.",
+                    notification_type='subscription_update'
+                )
+        except (VendorSetting.DoesNotExist, Subdomain.DoesNotExist):
+            pass
+        
+        # Clear session data
+        if 'subscription_payment' in request.session:
+            del request.session['subscription_payment']
+        
+        # Show success message and redirect to dashboard
+        messages.success(request, f"You have successfully subscribed to the {plan.name} plan!")
+        return redirect('accounts:vendor_dashboard')
+        
+    except Exception as e:
+        print(f"ERROR in subscription_payment_success: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        messages.error(request, f"Error processing payment: {str(e)}")
+        return redirect('accounts:subscription_plans')
+
+# Add this view to handle failed eSewa payment
+@csrf_exempt
+def subscription_payment_failure(request):
+    # Clear session data
+    if 'pending_subscription' in request.session:
+        del request.session['pending_subscription']
+        
+    messages.error(request, "Subscription payment failed or was cancelled.")
+    return redirect('accounts:subscription_plans')
+
+
+
+def check_subscription_middleware(get_response):
+    def middleware(request):
+        if request.user.is_authenticated and hasattr(request.user, 'subscription'):
+            subscription = request.user.subscription
+            
+            # Check if subscription is expired
+            if subscription.end_date < timezone.now() and subscription.status != 'expired':
+                subscription.status = 'expired'
+                subscription.save()
+                
+                # Disable subdomain
+                try:
+                    vendor_settings = VendorSetting.objects.get(vendor=request.user)
+                    if vendor_settings.is_subdomain_active:
+                        vendor_settings.is_subdomain_active = False
+                        vendor_settings.save()
+                        
+                        # Create notification for vendor
+                        Notification.objects.create(
+                            vendor=request.user,
+                            message="Your subscription has expired. Your subdomain has been deactivated.",
+                            notification_type='subscription_update'
+                        )
+                except VendorSetting.DoesNotExist:
+                    pass
+                
+                # If not on subscription page, redirect to it with a message
+                if request.path != reverse('accounts:subscription_plans') and 'admin' not in request.path:
+                    messages.error(request, "Your subscription has expired. Please renew to continue using all features.")
+                    return redirect('accounts:subscription_plans')
+        
+        response = get_response(request)
+        return response
+    
+    return middleware  # This return statement was missing
 
 def verify_otp(request, email):
     if request.method == "POST":
@@ -451,7 +714,10 @@ def vendor_products(request):
     }
     return render(request, 'accounts/vendor_products.html', context)
 
-# Keep only these product-related views and update them
+
+
+
+
 
 @login_required
 def vendor_product_edit(request, pk):
@@ -463,10 +729,30 @@ def vendor_product_edit(request, pk):
         if form.is_valid():
             product = form.save()
             
-            # Handle product images
+            # Handle product images with Cloudinary
             if request.FILES.getlist('product_images'):
                 for image in request.FILES.getlist('product_images'):
-                    ProductImage.objects.create(product=product, image=image)
+                    # Upload to Cloudinary
+                    cloudinary_response = upload_product_image(
+                        image, 
+                        vendor_id=request.user.id, 
+                        product_id=product.id
+                    )
+                    
+                    if cloudinary_response:
+                        # Create ProductImage with Cloudinary data
+                        ProductImage.objects.create(
+                            product=product,
+                            image=image,  # Keep for backward compatibility
+                            image_url=cloudinary_response['url'],
+                            public_id=cloudinary_response['public_id']
+                        )
+                    else:
+                        # Fall back to regular upload if Cloudinary fails
+                        ProductImage.objects.create(
+                            product=product,
+                            image=image
+                        )
 
                 try:
                     vector_db.index_product_images(request.user.id, [product])
@@ -474,10 +760,8 @@ def vendor_product_edit(request, pk):
                 except Exception as e:
                     print(f"Error updating index: {str(e)}")
                     
-            # Handle color variants
+            # Handle color and size variants (existing code)
             product.color_variant.set(request.POST.getlist('color_variants'))
-            
-            # Handle size variants
             product.size_variant.set(request.POST.getlist('size_variants'))
 
             messages.success(request, 'Product updated successfully!')
@@ -487,13 +771,14 @@ def vendor_product_edit(request, pk):
     else:
         form = ProductForm(instance=product)
     
+    # Your existing render code
     context = {
         'form': form,
         'product': product,
         'category_form': CategoryForm(),
         'color_form': ProductColorVariantForm(),
         'size_form': ProductSizeVariantForm(),
-        'categories': Category.objects.all(),  # Add this line
+        'categories': Category.objects.all(),
         'images': product.product_images.all(),
         'colors': product.color_variant.all(),
         'sizes': product.size_variant.all(),
@@ -648,6 +933,7 @@ def add_size_variant(request):
         'message': 'Invalid form data'
     }, status=400)
 
+
 @login_required
 def vendor_product_create(request):
     if request.method == 'POST':
@@ -657,9 +943,30 @@ def vendor_product_create(request):
             product.vendor = request.user
             product.save()
             
+            # Handle uploaded images with Cloudinary
             images = request.FILES.getlist('product_images')
-            for img in images:
-                ProductImage.objects.create(product=product, image=img)
+            for image in images:
+                # Upload to Cloudinary
+                cloudinary_response = upload_product_image(
+                    image, 
+                    vendor_id=request.user.id, 
+                    product_id=product.id
+                )
+                
+                if cloudinary_response:
+                    # Create ProductImage with Cloudinary data
+                    ProductImage.objects.create(
+                        product=product,
+                        image=image,  # Keep for backward compatibility
+                        image_url=cloudinary_response['url'],
+                        public_id=cloudinary_response['public_id']
+                    )
+                else:
+                    # Fall back to regular upload if Cloudinary fails
+                    ProductImage.objects.create(
+                        product=product,
+                        image=image
+                    )
 
             try:
                 vector_db.index_product_images(request.user.id, [product])
@@ -719,25 +1026,90 @@ def vendor_product_create(request):
         'size_form': ProductSizeVariantForm(),
         'categories': Category.objects.filter(vendor=request.user),  # Add this line to get vendor's categories
         'active_tab': 'category',
-        'active_tab': 'products',
+        # 'active_tab': 'products',
     })
     
         
     
 
+from products.utils import upload_product_image, delete_product_image
+from products.models import ProductImage
+# Import other required modules
+
+# Add Cloudinary upload to add_product_images function
 @login_required
 def add_product_images(request, pk):
     if request.method == 'POST':
         product = get_object_or_404(Product, pk=pk, vendor=request.user)
         try:
             for image in request.FILES.getlist('product_images'):
-                ProductImage.objects.create(
-                    product=product,
-                    image=image
+                # Upload to Cloudinary
+                cloudinary_response = upload_product_image(
+                    image, 
+                    vendor_id=request.user.id, 
+                    product_id=product.id
                 )
+                
+                if cloudinary_response:
+                    # Create ProductImage with Cloudinary data
+                    ProductImage.objects.create(
+                        product=product,
+                        image=image,  # Keep for backward compatibility
+                        image_url=cloudinary_response['url'],
+                        public_id=cloudinary_response['public_id']
+                    )
+                else:
+                    # Fall back to regular upload if Cloudinary fails
+                    ProductImage.objects.create(
+                        product=product,
+                        image=image
+                    )
+                    
+            # Update vector index if needed
+            try:
+                vector_db.index_product_images(request.user.id, [product])
+                print(f"Vector index updated after adding images for product {product.id}")
+            except Exception as e:
+                print(f"Error updating index: {str(e)}")
+                
             return JsonResponse({'status': 'success'})
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+    return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
+
+# Update the delete_product_image view to handle Cloudinary
+@login_required
+def delete_product_image(request, image_id):
+    if request.method == 'POST':
+        try:
+            image = get_object_or_404(ProductImage, 
+                                    id=image_id, 
+                                    product__vendor=request.user)
+            
+            product = image.product
+            
+            # Delete from Cloudinary if public_id exists
+            if image.public_id:
+                delete_product_image(image.public_id)
+            
+            # Delete from database
+            image.delete()
+            
+            if product.product_images.exists():
+                try:
+                    vector_db.index_product_images(request.user.id, [product])
+                    print(f"Vector index updated after image deletion for product {product.id}")
+                except Exception as e:
+                    print(f"Error updating index: {str(e)}")
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Image deleted successfully!'
+            })
+        except Exception as e:
+            return JsonResponse({
+                'status': 'error',
+                'message': str(e)
+            }, status=400)
     return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
 
 
@@ -1879,9 +2251,10 @@ def admin_subdomain_requests(request):
 
 
 
+# In accounts/views.py (line 2199)
 def landing_page(request):
     """Display the landing page for vendors"""
-    return render(request, 'C:/Users/Asus/Desktop/level-6/Final Year Project & Professionalism/Final_Year_Project\Backend\accounts\templates\accounts\landingpage.html')
+    return render(request, 'accounts/landingpage.html')
 
 
 # Add CollectionImage to this import statement
@@ -1889,3 +2262,179 @@ from .models import Vendor, OTP, VendorProfile, StorePhoto, VendorSetting, Cover
 from .utils import generate_otp, send_otp_to_email
 
 
+
+
+
+@login_required
+def subscription_plans(request):
+    """View to display available subscription plans"""
+    # Get all subscription plans
+    plans = {
+        'monthly': SubscriptionPlan.objects.filter(period='monthly'),
+        'quarterly': SubscriptionPlan.objects.filter(period='quarterly'),
+        'annual': SubscriptionPlan.objects.filter(period='annual'),
+    }
+    
+    # Get vendor's current subscription
+    try:
+        current_subscription = Subscription.objects.get(vendor=request.user)
+    except Subscription.DoesNotExist:
+        # Create a trial subscription if none exists
+        end_date = timezone.now() + timezone.timedelta(days=10)
+        current_subscription = Subscription.objects.create(
+            vendor=request.user,
+            status='trial',
+            start_date=timezone.now(),
+            end_date=end_date,
+            is_trial=True
+        )
+    
+    # Calculate days remaining in subscription
+    now = timezone.now()
+    if current_subscription.end_date > now:
+        days_remaining = (current_subscription.end_date - now).days
+    else:
+        days_remaining = 0
+        # Update subscription status if it has expired
+        if current_subscription.status != 'expired':
+            current_subscription.status = 'expired'
+            current_subscription.save()
+            
+            # Disable subdomain if subscription expired
+            try:
+                vendor_settings = VendorSetting.objects.get(vendor=request.user)
+                if vendor_settings.is_subdomain_active:
+                    vendor_settings.is_subdomain_active = False
+                    vendor_settings.save()
+                    
+                    # Create notification for vendor
+                    Notification.objects.create(
+                        vendor=request.user,
+                        message="Your subscription has expired. Your subdomain has been deactivated.",
+                        notification_type='subscription_update'
+                    )
+            except VendorSetting.DoesNotExist:
+                pass
+    
+    # Don't assign to the property, pass it to the context instead
+    context = {
+        'plans': plans,
+        'subscription': current_subscription,
+        'days_remaining': days_remaining,  # Pass as separate context variable
+        'active_tab': 'subscription'
+    }
+    
+    return render(request, 'accounts/subscription_plans.html', context)
+
+
+
+
+@login_required
+def vendor_subscription_tab(request):
+    """View to display subscription details in vendor dashboard"""
+    try:
+        # Get vendor's subscription
+        subscription = get_object_or_404(Subscription, vendor=request.user)
+        
+        from .utils import sync_subscription_and_subdomain_status
+        sync_subscription_and_subdomain_status(request.user)
+        
+        # Calculate days remaining
+        now = timezone.now()
+        if subscription.end_date > now:
+            days_remaining = (subscription.end_date - now).days
+        else:
+            days_remaining = 0
+            
+        # Get subdomain information
+        try:
+            vendor_settings = VendorSetting.objects.get(vendor=request.user)
+            subdomain = Subdomain.objects.filter(vendor=request.user).first()
+            subdomain_active = vendor_settings.is_subdomain_active and subdomain is not None
+        except (VendorSetting.DoesNotExist, Subdomain.DoesNotExist):
+            subdomain_active = False
+            subdomain = None
+        
+        # Get payment history - Force evaluation to debug
+        payment_records = list(SubscriptionPayment.objects.filter(
+            subscription=subscription
+        ).order_by('-payment_date'))
+        
+        print(f"Found {len(payment_records)} payment records for {request.user.email}")
+        
+        # Context with all necessary information
+        context = {
+            'subscription': subscription,
+            'days_remaining': days_remaining,
+            'subdomain': subdomain,
+            'subdomain_active': subdomain_active,
+            'payment_records': payment_records,
+            'active_tab': 'subscription'
+        }
+        
+    except Subscription.DoesNotExist:
+        subscription = None
+        context = {
+            'subscription': None,
+            'active_tab': 'subscription'
+        }
+    
+    return render(request, 'accounts/subscription_tab.html', context)
+
+
+
+
+@login_required
+def subscription_payment_process(request, plan_id):
+    """Process subscription payment"""
+    try:
+        # Get the subscription plan
+        plan = get_object_or_404(SubscriptionPlan, id=plan_id)
+        
+        # Get the period from the request
+        period = request.GET.get('period', 'monthly')
+        
+        # Determine price based on period
+        if period == 'monthly':
+            price = plan.price  # Base price is monthly
+        elif period == 'quarterly':
+            if plan.name == "Professional":
+                price = 139.00
+            elif plan.name == "Enterprise":
+                price = 549.00
+            else:
+                price = 0.00
+        elif period == 'annual':
+            if plan.name == "Professional":
+                price = 470.00
+            elif plan.name == "Enterprise":
+                price = 1990.00
+            else:
+                price = 0.00
+        else:
+            price = plan.price  # Default to monthly
+        
+        # Generate a transaction UUID
+        transaction_uuid = str(uuid.uuid4())
+        
+        # Store payment info in session
+        request.session['subscription_payment'] = {
+            'plan_id': plan.id,
+            'period': period,
+            'price': float(price),
+            'transaction_uuid': transaction_uuid
+        }
+        
+        # Create context with payment data
+        context = {
+            'plan': plan,
+            'period': period,
+            'price': price,
+            'transaction_uuid': transaction_uuid
+        }
+        
+        return render(request, 'accounts/subscription_payment.html', context)
+        
+    except Exception as e:
+        messages.error(request, f"Error processing subscription: {str(e)}")
+        return redirect('accounts:subscription_plans')

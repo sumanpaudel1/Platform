@@ -14,8 +14,7 @@ logger = logging.getLogger(__name__)
 
 class CLIPPineconeSearch:
     """CLIP-based semantic search using Pinecone instead of Weaviate"""
-    
-    
+
     def get_category_name(self, product):
         """Safely get category name regardless of model structure"""
         if not product.category:

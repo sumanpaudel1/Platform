@@ -124,9 +124,9 @@
                 {% for item in order.items.all %}
                 <div class="flex items-center p-4 bg-gray-50 rounded-lg">
                     <div class="flex-shrink-0 w-20 h-20">
-                        <img src="{{ item.product.product_images.first.image.url }}"
-                             alt="{{ item.product.name }}"
-                             class="w-full h-full object-cover rounded-lg">
+                        <img src="{% if item.product.product_images.first.image_url %}{{ item.product.product_images.first.image_url }}{% else %}{{ item.product.product_images.first.image.url }}{% endif %}"
+                        alt="{{ item.product.name }}"
+                        class="w-full h-full object-cover rounded-lg">
                     </div>
                     <div class="ml-4 flex-1">
                         <div class="flex justify-between">

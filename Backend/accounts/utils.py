@@ -2,7 +2,16 @@ import random
 from django.core.mail import send_mail
 from django.conf import settings
 import logging
-from accounts.models import VendorSetting, Vendor
+from accounts.models import VendorSetting, Vendor, Subscription, Subdomain, Notification
+import hmac
+import hashlib
+import base64
+import uuid
+import time
+import string
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 logger = logging.getLogger(__name__)
 
@@ -76,3 +85,185 @@ def send_customer_otp_to_email(email, otp, vendor):
     except Exception as e:
         logger.error(f"Error sending customer OTP email: {str(e)}")
         raise
+    
+
+
+
+from functools import wraps
+from django.shortcuts import redirect
+from django.contrib import messages
+from django.utils import timezone
+
+def check_product_limit(request):
+    """Check if vendor has reached product limit based on subscription"""
+    try:
+        from products.models import Product
+        
+        # Get subscription
+        subscription = request.user.subscription
+        
+        # Default limit for free tier
+        product_limit = 10
+        
+        # If subscription has a plan, get its limit
+        if subscription.plan:
+            product_limit = subscription.plan.max_products
+        
+        # Count products
+        product_count = Product.objects.filter(vendor=request.user).count()
+        
+        # Return remaining limit and whether limit is reached
+        return {
+            'limit': product_limit,
+            'used': product_count,
+            'remaining': product_limit - product_count,
+            'limit_reached': product_count >= product_limit
+        }
+    except Exception as e:
+        # If any error occurs, assume limit not reached
+        return {
+            'limit': 10,
+            'used': 0,
+            'remaining': 10, 
+            'limit_reached': False
+        }
+
+def check_subscription_product_limit(view_func):
+    """Decorator to check product limit on add product views"""
+    @wraps(view_func)
+    def _wrapped_view(request, *args, **kwargs):
+        # Only check for product creation (POST without pk)
+        if request.method == 'POST' and not kwargs.get('pk'):
+            product_limit_info = check_product_limit(request)
+            
+            if product_limit_info['limit_reached']:
+                messages.error(
+                    request,
+                    f"You've reached your product limit ({product_limit_info['used']}/{product_limit_info['limit']}). "
+                    "Please upgrade your subscription to add more products."
+                )
+                return redirect('accounts:subscription_plans')
+                
+        return view_func(request, *args, **kwargs)
+    return _wrapped_view
+
+
+
+
+
+
+
+import hmac
+import hashlib
+import base64
+import uuid
+import time
+import random
+import string
+from datetime import datetime
+
+class EsewaSubscriptionPayment:
+    def __init__(self):
+        self.merchant_id = "EPAYTEST"
+        # Use the modern v2 API endpoint
+        self.test_url = "https://rc-epay.esewa.com.np/api/epay/main/v2/form"
+        self.secret_key = "8gBm/:&EnhH.1/q"
+
+    def generate_signature(self, total_amount, transaction_uuid, product_code):
+        # Create signature string in exact format required
+        message = f"total_amount={total_amount},transaction_uuid={transaction_uuid},product_code={product_code}"
+        
+        # Generate HMAC signature
+        hmac_obj = hmac.new(
+            key=self.secret_key.encode(),
+            msg=message.encode(),
+            digestmod=hashlib.sha256
+        )
+        signature = base64.b64encode(hmac_obj.digest()).decode()
+        return signature
+
+    def generate_payment_data(self, subscription_data):
+        """
+        Generate payment parameters for eSewa subscription payments
+        
+        Args:
+            subscription_data: An object with transaction_id and price attributes
+            
+        Returns:
+            tuple: (payment_url, params)
+        """
+        # Format amount to 2 decimal places
+        amount = "{:.2f}".format(float(subscription_data.price))
+        
+        # Use the v2 parameter format
+        params = {
+            'amt': amount,
+            'pdc': '0',
+            'psc': '0', 
+            'txAmt': '0',
+            'tAmt': amount,
+            'pid': subscription_data.transaction_id,
+            'scd': self.merchant_id,
+            'su': 'http://127.0.0.1:8080/esewa/subscription/success/',
+            'fu': 'http://127.0.0.1:8080/esewa/subscription/failure/',
+        }
+        
+        # Add signature for v2 API
+        params['signature'] = self.generate_signature(
+            total_amount=amount,
+            transaction_uuid=subscription_data.transaction_id,
+            product_code=self.merchant_id
+        )
+        
+        params['signed_field_names'] = "total_amount,transaction_uuid,product_code"
+        
+        return self.test_url, params
+    
+    
+    
+
+
+
+def sync_subscription_and_subdomain_status(vendor):
+    """
+    Ensures that the subdomain status matches the subscription status
+    """
+    try:
+        # Get subscription and vendor settings
+        subscription = Subscription.objects.get(vendor=vendor)
+        vendor_settings = VendorSetting.objects.get(vendor=vendor)
+        subdomain = Subdomain.objects.filter(vendor=vendor).first()
+        
+        # Check if subscription is active
+        now = timezone.now()
+        subscription_active = subscription.status in ['active', 'trial'] and subscription.end_date > now
+        
+        # If subscription is active but subdomain isn't (and a subdomain exists)
+        if subscription_active and not vendor_settings.is_subdomain_active and subdomain and vendor_settings.subdomain:
+            vendor_settings.is_subdomain_active = True
+            vendor_settings.save()
+            
+            # Create notification
+            Notification.objects.create(
+                vendor=vendor,
+                message=f"Your subdomain {vendor_settings.subdomain}.platform has been activated.",
+                notification_type='subdomain_update'
+            )
+            return True
+        
+        # If subscription is not active but subdomain is
+        elif not subscription_active and vendor_settings.is_subdomain_active:
+            vendor_settings.is_subdomain_active = False
+            vendor_settings.save()
+            
+            # Create notification
+            Notification.objects.create(
+                vendor=vendor,
+                message="Your subdomain has been deactivated due to subscription status.",
+                notification_type='subdomain_update'
+            )
+            return True
+            
+        return False
+    except (Subscription.DoesNotExist, VendorSetting.DoesNotExist):
+        return False

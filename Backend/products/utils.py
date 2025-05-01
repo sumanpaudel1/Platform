@@ -56,3 +56,64 @@ class EsewaPayment:
         
         # Store original order ID in session or somewhere to retrieve after payment
         return self.test_url, params
+    
+
+
+
+
+import cloudinary
+import cloudinary.uploader
+from django.conf import settings
+
+# Configure Cloudinary using your existing CLOUDINARY_STORAGE dictionary
+cloudinary.config(
+    cloud_name=settings.CLOUDINARY_STORAGE['CLOUD_NAME'],
+    api_key=settings.CLOUDINARY_STORAGE['API_KEY'],
+    api_secret=settings.CLOUDINARY_STORAGE['API_SECRET'],
+    secure=True
+)
+
+def upload_product_image(image_file, vendor_id, product_id=None):
+    try:
+        # Create a folder structure based on CLOUDINARY_STORAGE prefix
+        prefix = settings.CLOUDINARY_STORAGE.get('PREFIX', 'platform/products')
+        folder = f"{prefix}/{vendor_id}"
+        if product_id:
+            folder = f"{folder}/{product_id}"
+            
+        # Upload to Cloudinary with automatic format and quality
+        result = cloudinary.uploader.upload(
+            image_file,
+            folder=folder,
+            resource_type="image",
+            use_filename=True,
+            unique_filename=True,
+            transformation=[
+                {"quality": "auto:good", "fetch_format": "auto"}
+            ]
+        )
+        
+        return {
+            'url': result['secure_url'],
+            'public_id': result['public_id']
+        }
+    except Exception as e:
+        print(f"Cloudinary upload error: {str(e)}")
+        return None
+
+def delete_product_image(public_id):
+    """
+    Delete a product image from Cloudinary
+    
+    Args:
+        public_id: Public ID of the image to delete
+        
+    Returns:
+        bool: True if deleted successfully, False otherwise
+    """
+    try:
+        result = cloudinary.uploader.destroy(public_id)
+        return result.get('result') == 'ok'
+    except Exception as e:
+        print(f"Cloudinary delete error: {str(e)}")
+        return False

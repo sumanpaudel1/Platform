@@ -71,7 +71,7 @@
                         class="block relative h-[250px]"> <!-- Fixed height for image container -->
                             <div class="w-full h-full overflow-hidden">
                                 {% if product.product_images.first %}
-                                <img src="{{ product.product_images.first.image.url }}"
+                                <img src="{% if product.product_images.first.image_url %}{{ product.product_images.first.image_url }}{% else %}{{ product.product_images.first.image.url }}{% endif %}"
                                     alt="{{ product.name }}"
                                     class="w-full h-full object-cover transform group-hover:scale-105 transition duration-300">
                                 {% endif %}

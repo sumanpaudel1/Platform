@@ -19,6 +19,8 @@ from django.urls import path, include
 from products import views
 from django.conf import settings
 from django.conf.urls.static import static
+from products import views as products_views  # Fixed import name
+from accounts import views as accounts_views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -26,4 +28,14 @@ urlpatterns = [
     path('accounts/', include('allauth.urls')),
     path('', include('products.urls', namespace='products')),
     path('', include('ai_features.urls', namespace='ai_features')),
+    
+        path('esewa/success/', include([
+        path('', accounts_views.subscription_payment_success, name='subscription_success'),
+        path('', products_views.esewa_payment_success, name='product_success'),
+    ])),
+    path('esewa/failure/', include([
+        path('', accounts_views.subscription_payment_failure, name='subscription_failure'),
+        path('', products_views.esewa_payment_failure, name='product_failure'),
+    ])),
+    
 ]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

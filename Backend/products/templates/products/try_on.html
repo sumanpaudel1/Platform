@@ -1,0 +1,284 @@
+{% block title %}Virtual Try-On{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header -->
+    <div class="text-center mb-10">
+        <h1 class="text-3xl font-extrabold tracking-tight text-gray-900 sm:text-4xl">
+            Virtual Try-On
+        </h1>
+        <p class="mt-3 max-w-2xl mx-auto text-xl text-gray-500 sm:mt-4">
+            Try on {{ product_name }} with our AI-powered virtual fitting room
+        </p>
+    </div>
+
+    <!-- Main Content -->
+    <div class="bg-white overflow-hidden shadow rounded-lg divide-y divide-gray-200">
+        <!-- Steps -->
+        <div class="px-6 py-5 bg-gray-50">
+            <div class="flex items-center justify-center">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 h-10 w-10 flex items-center justify-center rounded-full bg-blue-600 text-white font-bold">
+                        1
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-900">Select Model</p>
+                    </div>
+                </div>
+                <div class="w-16 h-0.5 bg-gray-200 mx-4"></div>
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 h-10 w-10 flex items-center justify-center rounded-full bg-gray-200 text-gray-500 font-bold">
+                        2
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-500">View Result</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Content -->
+        <div class="p-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Product Preview -->
+                <div class="lg:col-span-1 space-y-4">
+                    <h2 class="text-lg font-medium text-gray-900">Selected Product</h2>
+                    <div class="border border-gray-200 rounded-lg overflow-hidden bg-gray-50 flex items-center justify-center p-4" style="height: 400px;">
+                        <img src="{{ product_image }}" alt="{{ product_name }}" class="max-h-full max-w-full object-contain">
+                    </div>
+                    <div class="text-center">
+                        <h3 class="text-lg font-medium text-gray-900">{{ product_name }}</h3>
+                    </div>
+                </div>
+                
+                <!-- Model Selection -->
+                <div class="lg:col-span-2">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-lg font-medium text-gray-900">Choose a Model</h2>
+                        <p class="text-sm text-gray-500">Select a person to try this item on</p>
+                    </div>
+                    
+                    <form id="tryOnForm" action="{% url 'ai_features:process_try_on' %}" method="post" class="space-y-6">
+                        {% csrf_token %}
+                        <input type="hidden" name="product_image_path" value="{{ product_image }}">
+                        <input type="hidden" name="model_id" id="selectedModel">
+                        
+                        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            {% for model in models %}
+                            <div class="model-option rounded-lg border-2 border-transparent hover:border-blue-500 cursor-pointer transition-all" 
+                                 data-model-id="{{ model.id }}" onclick="selectModel(this)">
+                                <div class="aspect-w-2 aspect-h-3 relative overflow-hidden rounded-t-lg">
+                                    <img src="{{ model.path }}" alt="Model" class="object-cover w-full h-full">
+                                    <div class="selected-indicator opacity-0 absolute inset-0 bg-blue-500 bg-opacity-10 flex items-center justify-center">
+                                        <div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center">
+                                            <svg class="w-5 h-5 text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                            </svg>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="py-2 text-center">
+                                    <span class="text-sm font-medium text-gray-700">{{ model.id }}</span>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="flex justify-center">
+                            <button type="submit" id="submitBtn" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                                <svg class="w-5 h-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                </svg>
+                                Generate Try-On Result
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Section (initially hidden) -->
+        <div id="resultsSection" class="p-6 hidden">
+            <div class="text-center">
+                <!-- Loading Spinner -->
+                <div id="loadingSpinner" class="py-12">
+                    <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
+                    <p class="mt-4 text-gray-600">Processing your virtual try-on request...</p>
+                    <p class="mt-2 text-sm text-gray-500">This may take a moment as we generate your personalized result</p>
+                </div>
+
+                <!-- Results Container -->
+                <div id="resultContainer" class="hidden">
+                    <h2 class="text-xl font-bold text-gray-900 mb-6">Your Try-On Result</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                        <div class="md:col-span-1">
+                            <div class="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                                <h3 class="text-sm font-medium text-gray-500 mb-2">Original Product</h3>
+                                <img id="originalProductImg" src="{{ product_image }}" alt="Original Product" class="max-w-full mx-auto">
+                            </div>
+                        </div>
+                        <div class="md:col-span-1">
+                            <div class="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                                <h3 class="text-sm font-medium text-gray-500 mb-2">Selected Model</h3>
+                                <img id="selectedModelImg" src="" alt="Selected Model" class="max-w-full mx-auto">
+                            </div>
+                        </div>
+                        <div class="md:col-span-1">
+                            <div class="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                                <h3 class="text-sm font-medium text-gray-500 mb-2">Try-On Result</h3>
+                                <img id="resultImg" src="" alt="Try-On Result" class="max-w-full mx-auto">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-8 flex justify-center space-x-4">
+                        <a id="downloadBtn" href="#" download class="inline-flex items-center px-4 py-2 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700">
+                            <svg class="w-5 h-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                            Download Result
+                        </a>
+                        <button id="tryAnotherBtn" class="inline-flex items-center px-4 py-2 border border-gray-300 text-base font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50">
+                            <svg class="w-5 h-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            Try Another Model
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Error Container -->
+                <div id="errorContainer" class="hidden py-8">
+                    <div class="mx-auto max-w-md bg-red-50 border border-red-200 rounded-md p-4">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <h3 class="text-sm font-medium text-red-800">Error Processing Try-On</h3>
+                                <p id="errorMessage" class="mt-2 text-sm text-red-700"></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-6">
+                        <button id="tryAgainBtn" class="inline-flex items-center px-4 py-2 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700">
+                            Try Again
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Model selection
+    function selectModel(element) {
+        // Get model ID
+        const modelId = element.dataset.modelId;
+        document.getElementById('selectedModel').value = modelId;
+        
+        // Update visual selection
+        document.querySelectorAll('.model-option').forEach(option => {
+            option.classList.remove('border-blue-500', 'bg-blue-50');
+            option.querySelector('.selected-indicator').classList.add('opacity-0');
+        });
+        
+        element.classList.add('border-blue-500', 'bg-blue-50');
+        element.querySelector('.selected-indicator').classList.remove('opacity-0');
+        
+        // Enable submit button
+        document.getElementById('submitBtn').disabled = false;
+    }
+
+    // Form submission
+    document.getElementById('tryOnForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Show results section with loading spinner
+        document.getElementById('resultsSection').classList.remove('hidden');
+        document.getElementById('loadingSpinner').classList.remove('hidden');
+        document.getElementById('resultContainer').classList.add('hidden');
+        document.getElementById('errorContainer').classList.add('hidden');
+        
+        // Disable button
+        const submitBtn = document.getElementById('submitBtn');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = `
+            <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Processing...
+        `;
+        
+        // Scroll to results section
+        document.getElementById('resultsSection').scrollIntoView({
+            behavior: 'smooth'
+        });
+        
+        // Submit the form via AJAX
+        const formData = new FormData(this);
+        
+        fetch(this.action, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Hide loading spinner
+            document.getElementById('loadingSpinner').classList.add('hidden');
+            
+            if (data.status === 'success') {
+                // Show result
+                document.getElementById('resultImg').src = data.result_url;
+                document.getElementById('downloadBtn').href = data.result_url;
+                document.getElementById('selectedModelImg').src = "/media/viton/models/" + data.model_image;
+                
+                document.getElementById('resultContainer').classList.remove('hidden');
+            } else {
+                // Show error
+                document.getElementById('errorMessage').textContent = data.message || 'An unknown error occurred';
+                document.getElementById('errorContainer').classList.remove('hidden');
+            }
+            
+            // Reset button
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+        })
+        .catch(error => {
+            // Hide loading spinner
+            document.getElementById('loadingSpinner').classList.add('hidden');
+            
+            // Show error
+            document.getElementById('errorMessage').textContent = 'Network error: ' + error.message;
+            document.getElementById('errorContainer').classList.remove('hidden');
+            
+            // Reset button
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+        });
+    });
+    
+    // Try another button
+    document.getElementById('tryAnotherBtn').addEventListener('click', function() {
+        document.getElementById('resultsSection').classList.add('hidden');
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
+    });
+    
+    // Try again button
+    document.getElementById('tryAgainBtn').addEventListener('click', function() {
+        document.getElementById('errorContainer').classList.add('hidden');
+        document.getElementById('resultsSection').classList.add('hidden');
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
+    });
+</script>
+{% endblock %}

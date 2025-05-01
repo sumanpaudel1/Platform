@@ -63,10 +63,12 @@ urlpatterns = [
      path('api/store-buy-now/', views.store_buy_now_data, name='store_buy_now_data'),
      
      path('api/orders/<str:order_id>/payment-details/', views.get_payment_details, name='order_payment_details'),
+     path('try-on-redirect/', views.try_on_redirect, name='try_on_redirect'),
      
 #      path('<str:subdomain>/debug-pinecone/', views.debug_pinecone, name='debug_pinecone'),
 #      # Add this line right after the debug-pinecone URL
 #    path('<str:subdomain>/debug-category/', views.debug_category, name='debug_category'),
+
 
 
 ]

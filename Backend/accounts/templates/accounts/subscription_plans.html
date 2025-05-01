@@ -1,0 +1,270 @@
+{% extends 'accounts/base_customer.html' %}
+{% load static %}
+
+{% block title %}Subscription Plans{% endblock %}
+
+{% block content %}
+<div class="container px-4 py-8 mx-auto">
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold">Subscription Plans</h1>
+        
+        {% if subscription %}
+        <div class="mt-4 p-4 rounded-lg {% if subscription.status == 'expired' %}bg-red-100 border border-red-300{% elif subscription.status == 'trial' %}bg-blue-100 border border-blue-300{% else %}bg-green-100 border border-green-300{% endif %}">
+            <div class="flex flex-col md:flex-row items-start md:items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-semibold">
+                        {% if subscription.is_trial %}
+                        Free Trial
+                        {% elif subscription.plan %}
+                        {{ subscription.plan.name }} Plan ({{ subscription.plan.get_period_display }})
+                        {% else %}
+                        No Active Plan
+                        {% endif %}
+                    </h2>
+                    <p class="mt-1">
+                        Status: <span class="font-medium capitalize">{{ subscription.get_status_display }}</span>
+                    </p>
+                    <p>
+                        {% if subscription.status == 'expired' %}
+                        Your subscription has expired. Please select a plan below to continue.
+                        {% elif subscription.status == 'trial' %}
+                        Your free trial ends in {{ subscription.days_remaining }} days.
+                        {% else %}
+                        Your subscription is active until {{ subscription.end_date|date:"F j, Y" }} ({{ subscription.days_remaining }} days remaining).
+                        {% endif %}
+                    </p>
+                </div>
+                
+                <!-- Show remaining days in circle -->
+                {% if subscription.status != 'expired' %}
+                <div class="mt-4 md:mt-0">
+                    <div class="w-20 h-20 rounded-full bg-white border-4 {% if subscription.days_remaining < 3 %}border-red-500{% elif subscription.days_remaining < 7 %}border-yellow-500{% else %}border-green-500{% endif %} flex items-center justify-center">
+                        <div class="text-center">
+                            <div class="text-xl font-bold">{{ subscription.days_remaining }}</div>
+                            <div class="text-xs">days left</div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Subscription Toggle -->
+    <div class="flex justify-center mt-8">
+        <div class="bg-gray-100 rounded-lg p-1 inline-flex">
+            <button class="px-4 py-2 rounded-md subscription-period active" data-period="monthly">Monthly</button>
+            <button class="px-4 py-2 rounded-md subscription-period" data-period="quarterly">Quarterly</button>
+            <button class="px-4 py-2 rounded-md subscription-period" data-period="annual">Annual</button>
+        </div>
+    </div>
+    
+    <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Starter Plan -->
+        <div class="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+            <h3 class="text-xl font-semibold">Starter</h3>
+            <div class="mt-4 subscription-price" data-monthly="Free" data-quarterly="Free" data-annual="Free">
+                <span class="text-4xl font-bold">Free</span>
+            </div>
+            <p class="mt-2 text-gray-600">Perfect for new businesses getting started.</p>
+            
+            <ul class="mt-6 space-y-3">
+                <li class="flex items-center">
+                    <svg class="h-5 w-5 text-green-500" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    <span class="ml-2">Up to 10 products</span>
+                </li>
+                <li class="flex items-center">
+                    <svg class="h-5 w-5 text-green-500" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    <span class="ml-2">Basic storefront</span>
+                </li>
+                <li class="flex items-center">
+                    <svg class="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                    </svg>
+                    <span class="ml-2 text-gray-500">No analytics</span>
+                </li>
+                <li class="flex items-center">
+                    <svg class="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                    </svg>
+                    <span class="ml-2 text-gray-500">No AI recommendations</span>
+                </li>
+                <li class="flex items-center">
+                    <svg class="h-5 w-5 text-green-500" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    <span class="ml-2">8% transaction fee</span>
+                </li>
+            </ul>
+            
+            <button type="button" class="mt-6 w-full py-2 px-4 bg-blue-100 text-blue-700 font-medium rounded-md hover:bg-blue-200">
+                Current Plan
+            </button>
+        </div>
+
+        <!-- Professional Plan -->
+        <div class="bg-white rounded-lg shadow-lg p-6 border-2 border-blue-500 relative transform scale-105 z-10">
+            <div class="absolute top-0 right-0 bg-blue-500 text-white text-xs py-1 px-3 rounded-bl-lg rounded-tr-lg">
+                POPULAR
+            </div>
+            <h3 class="text-xl font-semibold">Professional</h3>
+            <div class="mt-4 subscription-price" data-monthly="$49" data-quarterly="$139" data-annual="$470">
+                <span class="text-4xl font-bold">$49</span>
+                <span class="text-gray-600">/month</span>
+            </div>
+            <p class="mt-2 text-gray-600">For growing businesses ready to scale.</p>
+            
+            <ul class="mt-6 space-y-3">
+                <li class="flex items-center">
+                    <svg class="h-5 w-5 text-green-500" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    <span class="ml-2">Up to 500 products</span>
+                </li>
+                <li class="flex items-center">
+                    <svg class="h-5 w-5 text-green-500" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    <span class="ml-2">Advanced analytics</span>
+                </li>
+                <li class="flex items-center">
+                    <svg class="h-5 w-5 text-green-500" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    <span class="ml-2">AI recommendations</span>
+                </li>
+                <li class="flex items-center">
+                    <svg class="h-5 w-5 text-green-500" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    <span class="ml-2">3% transaction fee</span>
+                </li>
+            </ul>
+            
+            <button type="button" data-plan-id="1" onclick="subscribeToPlan(this)" class="mt-6 w-full py-2 px-4 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700">
+                Select Plan
+            </button>
+        </div>
+
+        <!-- Enterprise Plan -->
+        <div class="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+            <h3 class="text-xl font-semibold">Enterprise</h3>
+            <div class="mt-4 subscription-price" data-monthly="$199" data-quarterly="$549" data-annual="$1,990">
+                <span class="text-4xl font-bold">$199</span>
+                <span class="text-gray-600">/month</span>
+            </div>
+            <p class="mt-2 text-gray-600">For established businesses with high volume.</p>
+            
+            <ul class="mt-6 space-y-3">
+                <li class="flex items-center">
+                    <svg class="h-5 w-5 text-green-500" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    <span class="ml-2">Unlimited products</span>
+                </li>
+                <li class="flex items-center">
+                    <svg class="h-5 w-5 text-green-500" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    <span class="ml-2">Enterprise analytics</span>
+                </li>
+                <li class="flex items-center">
+                    <svg class="h-5 w-5 text-green-500" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    <span class="ml-2">Advanced AI features</span>
+                </li>
+                <li class="flex items-center">
+                    <svg class="h-5 w-5 text-green-500" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    <span class="ml-2">1% transaction fee</span>
+                </li>
+            </ul>
+            <button type="button" data-plan-id="2" onclick="subscribeToPlan(this)" class="mt-6 w-full py-2 px-4 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700">
+                Select Plan
+            </button>
+        </div>
+    </div>
+    
+    <!-- eSewa Payment Form (hidden) -->
+    <form id="esewa-form" method="POST" action="https://rc-epay.esewa.com.np/epay/main" class="hidden">
+        <input type="hidden" id="esewa-amount" name="amount" value="100">
+        <input type="hidden" id="esewa-tax-amount" name="tax_amount" value="0">
+        <input type="hidden" id="esewa-total-amount" name="total_amount" value="100">
+        <input type="hidden" id="esewa-transaction-uuid" name="transaction_uuid" value="">
+        <input type="hidden" name="product_code" value="CLOTHY-SUB">
+        <input type="hidden" name="product_service_charge" value="0">
+        <input type="hidden" name="product_delivery_charge" value="0">
+        <input type="hidden" name="success_url" value="{% url 'accounts:subscription_payment_success' %}">
+        <input type="hidden" name="failure_url" value="{% url 'accounts:subscription_payment_failure' %}">
+    </form>
+</div>
+
+<!-- JavaScript for subscription functionality -->
+<script>
+    // Subscription toggle
+    document.addEventListener('DOMContentLoaded', function() {
+        const subscriptionToggles = document.querySelectorAll('.subscription-period');
+        const subscriptionPrices = document.querySelectorAll('.subscription-price');
+        
+        subscriptionToggles.forEach(toggle => {
+            toggle.addEventListener('click', function() {
+                // Update toggle active state
+                subscriptionToggles.forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+                
+                const period = this.getAttribute('data-period');
+                
+                // Update prices
+                subscriptionPrices.forEach(price => {
+                    const priceValue = price.getAttribute(`data-${period}`);
+                    const isShowingFreePlan = priceValue === "Free";
+                    
+                    // Update price display
+                    const priceSpan = price.querySelector('span:first-child');
+                    const periodSpan = price.querySelector('span:last-child');
+                    
+                    priceSpan.textContent = priceValue;
+                    
+                    // Update period display
+                    if (isShowingFreePlan) {
+                        if (periodSpan) periodSpan.textContent = '';
+                    } else if (periodSpan) {
+                        switch(period) {
+                            case 'monthly':
+                                periodSpan.textContent = '/month';
+                                break;
+                            case 'quarterly':
+                                periodSpan.textContent = '/quarter';
+                                break;
+                            case 'annual':
+                                periodSpan.textContent = '/year';
+                                break;
+                        }
+                    }
+                });
+            });
+        });
+    });
+    function subscribeToPlan(button) {
+        // Show loading state
+        button.innerHTML = '<span class="animate-spin inline-block mr-2">↻</span> Processing...';
+        button.disabled = true;
+        
+        // Get the plan ID from button
+        const planId = button.getAttribute('data-plan-id');
+        
+        // Get the active period
+        const activePeriod = document.querySelector('.subscription-period.active').getAttribute('data-period');
+        
+        // Navigate to the subscription process page with period parameter
+        window.location.href = `/esewa/subscription/payment/${planId}/?period=${activePeriod}`;
+    }
+</script>
+{% endblock %}

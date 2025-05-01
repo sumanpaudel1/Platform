@@ -19,11 +19,10 @@
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden group" 
         data-item="{{ item.product.id }}">
        <div class="relative h-48">
-           {% if item.product.product_images.first %}
-           <img src="{{ item.product.product_images.first.image.url }}" 
-                alt="{{ item.product.name }}"
-                class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105">
-           {% endif %}
+        {% if item.product.product_images.first %}
+        <img src="{% if item.product.product_images.first.image_url %}{{ item.product.product_images.first.image_url }}{% else %}{{ item.product.product_images.first.image.url }}{% endif %}"
+             alt="{{ item.product.name }}" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105">
+        {% endif %}
            <button onclick="removeFromWishlist({{ item.product.id }})"
                    class="absolute top-2 right-2 w-8 h-8 bg-white rounded-full shadow-md
                           flex items-center justify-center text-gray-400 

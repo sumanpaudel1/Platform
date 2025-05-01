@@ -1,0 +1,43 @@
+{% extends 'accounts/base_customer.html' %}
+
+{% block content %}
+<div class="flex items-center justify-center min-h-screen">
+    <div class="bg-white p-8 rounded-lg shadow-md max-w-md w-full">
+        <div class="text-center">
+            <h2 class="text-2xl font-semibold mb-4">Redirecting to eSewa...</h2>
+            <p class="text-gray-600 mb-6">Please do not close this window.</p>
+            
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+        </div>
+
+        <!-- Modern form compatible with eSewa v2 API -->
+        <form id="esewa-form" method="POST" action="{{ payment_url }}" class="hidden">
+            {% csrf_token %}
+            <input type="hidden" name="amount" value="{{ params.amt }}">
+            <input type="hidden" name="tax_amount" value="{{ params.txAmt }}">
+            <input type="hidden" name="total_amount" value="{{ params.tAmt }}">
+            <input type="hidden" name="transaction_uuid" value="{{ params.pid }}">
+            <input type="hidden" name="product_code" value="{{ params.scd }}">
+            <input type="hidden" name="product_service_charge" value="{{ params.psc }}">
+            <input type="hidden" name="product_delivery_charge" value="{{ params.pdc }}">
+            <input type="hidden" name="success_url" value="{{ params.su }}">
+            <input type="hidden" name="failure_url" value="{{ params.fu }}">
+            {% if params.signature %}
+            <input type="hidden" name="signature" value="{{ params.signature }}">
+            <input type="hidden" name="signed_field_names" value="{{ params.signed_field_names }}">
+            {% endif %}
+        </form>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log("Redirecting to eSewa at: {{ payment_url }}");
+        console.log("Using parameters:", {{ params|safe }});
+        
+        setTimeout(function() {
+            document.getElementById('esewa-form').submit();
+        }, 1500);
+    });
+</script>
+{% endblock %}

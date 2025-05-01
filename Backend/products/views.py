@@ -244,7 +244,8 @@ def product_detail(request, subdomain, slug):
     context = {
         'vendor': vendor,
         'product': product,
-        'related_products': similar_products
+        'related_products': similar_products,
+        'flask_server_url': 'https://5000-gpu-t4-s-1d60yj0vdo03r-c.asia-southeast1-0.prod.colab.dev',
     }
     return render(request, 'products/product_detail.html', context)
 
@@ -2098,3 +2099,38 @@ def product_list(request, subdomain):
         
         
         
+
+
+
+import requests
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+
+@csrf_exempt
+def try_on_redirect(request):
+    """Handle the Virtual Try-On button click"""
+    if request.method == 'POST':
+        # Get cloth image URL from request
+        cloth_image_url = request.POST.get('cloth_image_url')
+        flask_server_url = request.POST.get('flask_server_url')
+        
+        if not cloth_image_url or not flask_server_url:
+            return JsonResponse({'error': 'Missing parameters'}, status=400)
+        
+        # Download the image from Cloudinary
+        response = requests.get(cloth_image_url)
+        if response.status_code != 200:
+            return JsonResponse({'error': 'Failed to download image'}, status=400)
+        
+        # Forward the image to Flask server
+        files = {'cloth_file': ('cloth.jpg', response.content)}
+        flask_response = requests.post(f"{flask_server_url}/cloth_image", files=files)
+        
+        if flask_response.status_code != 200:
+            return JsonResponse({'error': 'Flask server error', 'details': flask_response.text}, status=400)
+        
+        # Redirect to Flask app URL with the cloth image parameter
+        redirect_url = f"{flask_server_url}?cloth_image=cloth.jpg"
+        return JsonResponse({'redirect_url': redirect_url})
+    
+    return JsonResponse({'error': 'Invalid request method'}, status=400)

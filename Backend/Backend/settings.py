@@ -44,6 +44,8 @@ INSTALLED_APPS = [
     'allauth.socialaccount.providers.google',
     'django.contrib.sites',
     # 'social_django',
+    'cloudinary_storage',
+    'cloudinary',
 
 ]
 
@@ -61,6 +63,7 @@ MIDDLEWARE = [
     # 'django_hosts.middleware.HostsResponseMiddleware',
     'allauth.account.middleware.AccountMiddleware',
     'Backend.middleware.VendorMiddleware',  # Corrected middleware class name
+    'accounts.views.check_subscription_middleware',
 ]
 
 ROOT_URLCONF = 'Backend.urls'
@@ -275,3 +278,35 @@ PINECONE_CLIP_INDEX = "product-search-clip"
 
 
 SIMILARITY_THRESHOLD = 60.0
+
+
+
+
+import cloudinary
+import cloudinary.uploader
+import cloudinary.api
+
+
+
+
+
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': 'duqv5tndp',
+    'API_KEY': '994439842742773',
+    'API_SECRET': 'q0Xsz_EKWXWVgE5vRADGUxt8pNc'
+}
+
+# For just product images, set a specific folder
+CLOUDINARY_STORAGE = {
+    **CLOUDINARY_STORAGE,
+    'PREFIX': 'platform/products'  # All product images will be stored in this folder
+}
+
+# Use Cloudinary only for ProductImage model
+CLOUDINARY_STORAGE = {
+    **CLOUDINARY_STORAGE,
+    'EXCLUDE_DELETE_ORPHANED_MEDIA_PATHS': ()
+}
+
+# Default file storage remains as is for other media
+DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
