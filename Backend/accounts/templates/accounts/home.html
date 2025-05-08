@@ -131,7 +131,6 @@
                                     </button>
                                     {% endif %}
                                 </div>
-                                <!-- Replace the current notifications dropdown content with this -->
                                 <div class="max-h-96 overflow-y-auto" id="notificationsList">
                                     {% if notifications %}
                                         {% for notification in notifications %}
@@ -146,11 +145,11 @@
                                                        class="text-sm text-gray-600 {% if not notification.is_read %}font-semibold{% endif %}">
                                                         {{ notification.message }}
                                                     </a>
-                                                {% else %}
+                                                    {% else %}
                                                     <span class="text-sm text-gray-600 {% if not notification.is_read %}font-semibold{% endif %}">
                                                         {{ notification.message }}
                                                     </span>
-                                                {% endif %}
+                                                    {% endif %}
                                                 </div>
                                                 <p class="text-xs text-gray-400 mt-1">{{ notification.created_at|timesince }} ago</p>
                                             </div>
@@ -261,7 +260,7 @@
             event.preventDefault(); // Prevent default link behavior
             
             // Get the link's href for redirection after marking as read
-            const actionUrl = event.currentTarget.getAttribute('data-action-url');
+            const link = event.currentTarget.getAttribute('href');
             
             fetch(`/api/notifications/${notificationId}/mark-read/`, {
                 method: 'POST',
@@ -294,14 +293,20 @@
                         }
                     }
                     
-                    // Redirect to the order details page
-                    window.location.href = link;
+                    // Redirect to the correct URL using the link we captured earlier
+                    if (link) {
+                        window.location.href = link;
+                    }
                 } else {
                     console.error('Failed to mark notification as read');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
+                // On error, still navigate to prevent user frustration
+                if (link) {
+                    window.location.href = link;
+                }
             });
         }
 
@@ -338,69 +343,82 @@
             });
         }
 
-        // Function to fetch notifications via AJAX
-        function fetchNotifications() {
-            fetch('/api/notifications/', {
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            })
-            .then(response => {
-                if (!response.ok) {
-                    // If unauthorized, stop polling
-                    if (response.status === 401) {
-                        clearInterval(notificationInterval);
-                        return null;
+// Function to fetch notifications via AJAX
+function fetchNotifications() {
+    fetch('/api/notifications/', {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            // If unauthorized, stop polling
+            if (response.status === 401) {
+                clearInterval(notificationInterval);
+                return null;
+            }
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data && data.status === 'success') {
+            // Update notification count
+            updateNotificationCount(data.unread_count);
+            
+            // Update notification list
+            const notificationsList = document.getElementById('notificationsList');
+            
+            if (data.notifications.length > 0) {
+                let notificationsHTML = '';
+                
+                data.notifications.forEach(notification => {
+                    let notificationLink = '';
+                    
+                    // Create correct link based on notification type
+                    if (notification.order_id) {
+                        notificationLink = `/vendor/orders/${notification.order_id}/`;
+                    } else {
+                        notificationLink = '#'; // Default for notifications without links
                     }
-                    throw new Error('Network response was not ok');
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.status === 'success') {
-                    // Update notification count
-                    updateNotificationCount(data.unread_count);
                     
-                    // Update notification list
-                    const notificationsList = document.getElementById('notificationsList');
-                    
-                    if (data.notifications.length > 0) {
-                        let notificationsHTML = '';
-                        
-                        data.notifications.forEach(notification => {
-                            notificationsHTML += `
-                                <div class="notification-item ${!notification.is_read ? 'bg-blue-50' : ''} 
-                                        hover:bg-gray-50 transition-colors duration-150"
-                                    data-notification-id="${notification.id}">
-                                    <div class="block px-4 py-3">
-                                        <div class="flex justify-between items-start">
-                                            <a href="/vendor/orders/${notification.order_id}/" 
+                    notificationsHTML += `
+                        <div class="notification-item ${!notification.is_read ? 'bg-blue-50' : ''} 
+                                hover:bg-gray-50 transition-colors duration-150"
+                            data-notification-id="${notification.id}">
+                            <div class="block px-4 py-3">
+                                <div class="flex justify-between items-start">
+                                    ${notificationLink !== '#' ? 
+                                        `<a href="${notificationLink}" 
                                             onclick="markNotificationAsRead(${notification.id}, event)"
                                             class="text-sm text-gray-600 ${!notification.is_read ? 'font-semibold' : ''}">
-                                                ${notification.message}
-                                            </a>
-                                            ${!notification.is_read ? '<span class="h-2 w-2 bg-blue-600 rounded-full flex-shrink-0 ml-2"></span>' : ''}
-                                        </div>
-                                        <p class="text-xs text-gray-400 mt-1">${notification.time_ago} ago</p>
-                                    </div>
+                                            ${notification.message}
+                                        </a>` : 
+                                        `<span class="text-sm text-gray-600 ${!notification.is_read ? 'font-semibold' : ''}">
+                                            ${notification.message}
+                                        </span>`
+                                    }
                                 </div>
-                            `;
-                        });
-                        
-                        notificationsList.innerHTML = notificationsHTML;
-                    } else {
-                        notificationsList.innerHTML = `
-                            <div class="px-4 py-3 text-sm text-gray-500">
-                                No new notifications
+                                <p class="text-xs text-gray-400 mt-1">${notification.time_ago} ago</p>
                             </div>
-                        `;
-                    }
-                }
-            })
-            .catch(error => {
-                console.error('Error fetching notifications:', error);
-            });
+                        </div>
+                    `;
+                });
+                
+                notificationsList.innerHTML = notificationsHTML;
+            } else {
+                notificationsList.innerHTML = `
+                    <div class="px-4 py-3 text-sm text-gray-500">
+                        No new notifications
+                    </div>
+                `;
+            }
         }
+    })
+    .catch(error => {
+        console.error('Error fetching notifications:', error);
+    });
+}
 
         // Function to update notification count
         function updateNotificationCount(count) {

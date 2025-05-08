@@ -37,15 +37,23 @@ from accounts.models import StorePhoto
 
 
 
+from django.views.decorators.cache import cache_page
 
+@cache_page(60 * 15)
 @vendor_login_required
 def vendor_home(request, subdomain):
     try:
-        subdomain = subdomain.replace('.platform', '')
-        subdomain_obj = get_object_or_404(Subdomain, subdomain=subdomain)
-        vendor = subdomain_obj.vendor
-        
+        if hasattr(request, 'cleaned_subdomain') and request.cleaned_subdomain:
+            subdomain = request.cleaned_subdomain
+            vendor = request.vendor
+        else:
+            # Fallback to original behavior
+            subdomain = subdomain.replace('.platform', '')
+            subdomain_obj = get_object_or_404(Subdomain, subdomain=subdomain)
+            vendor = subdomain_obj.vendor
+            
         customer = request.customer
+        vendor = request.vendor
         
         customer = None
         if request.session.get('customer_id'):
@@ -59,7 +67,10 @@ def vendor_home(request, subdomain):
                 print("Customer not found in database")
         
         # Get all products and new arrivals
-        products = Product.objects.filter(vendor=vendor)
+        products = Product.objects.filter(vendor=vendor)\
+            .select_related('category')\
+            .prefetch_related('product_images')
+            
         new_arrivals = products.order_by('-created_at')[:8]
         
         from ai_features.services import get_recommended_products_for_homepage

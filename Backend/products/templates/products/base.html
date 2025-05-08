@@ -558,6 +558,28 @@ uploadArea.addEventListener('drop', (e) => {
         handleImageSearch(input);
     }
 });
+function navigateTo(url, targetContainerId) {
+    // Show loading indicator
+    document.getElementById(targetContainerId).innerHTML = 
+        '<div class="flex justify-center"><i class="fas fa-spinner fa-spin text-4xl my-8"></i></div>';
+        
+    fetch(url)
+        .then(response => response.text())
+        .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const content = doc.getElementById(targetContainerId).innerHTML;
+            document.getElementById(targetContainerId).innerHTML = content;
+            
+            // Update URL without page refresh
+            history.pushState(null, '', url);
+        })
+        .catch(error => {
+            console.error('Navigation error:', error);
+            // On error, fall back to traditional navigation
+            window.location.href = url;
+        });
+}
 </script>
 
 
