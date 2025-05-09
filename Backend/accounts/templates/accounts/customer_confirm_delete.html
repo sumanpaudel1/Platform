@@ -1,0 +1,16 @@
+{% extends 'accounts/customer_base.html' %}
+{% block content %}
+  <div class="max-w-md mx-auto p-6 bg-white rounded shadow">
+    <h2 class="text-xl font-semibold mb-4">Confirm Account Deletion</h2>
+    <form method="post">
+      {% csrf_token %}
+      <p class="mb-4 text-red-600">This is irreversible. All your order history and data will be lost.</p>
+      <button type="submit"
+              class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
+        Yes, Delete My Customer Account
+      </button>
+      <a href="{% url 'accounts:customer_profile' subdomain=vendor.subdomain %}"
+         class="ml-4 text-gray-600 hover:underline">Cancel</a>
+    </form>
+  </div>
+{% endblock %}

@@ -2468,3 +2468,39 @@ def vendor_reply(request, subdomain, review_id):
         rev.reply = request.POST.get('reply','').strip()
         rev.save()
     return redirect('accounts:vendor_reviews', subdomain=subdomain)
+
+
+
+
+from django.contrib.auth import logout
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render, redirect, get_object_or_404
+from .models import Customer, Subdomain
+
+@login_required
+def vendor_delete_account(request):
+    """Show confirmation; on POST delete the Vendor user and log out."""
+    if request.method == "POST":
+        user = request.user
+        logout(request)
+        user.delete()
+        return redirect("accounts:landing_page")
+    return render(request, "accounts/vendor_confirm_delete.html")
+
+
+def customer_delete_account(request, subdomain):
+    """
+    Show confirmation; on POST delete the logged-in Customer (session based),
+    flush session and redirect to register.
+    """
+    sub = subdomain.replace(".platform", "")
+    vendor = get_object_or_404(Subdomain, subdomain=sub).vendor
+    cust_id = request.session.get("customer_id")
+    customer = get_object_or_404(Customer, id=cust_id)
+    if request.method == "POST":
+        request.session.flush()
+        customer.delete()
+        return redirect("accounts:customer_register", subdomain=subdomain)
+    return render(request, "accounts/customer_confirm_delete.html", {
+        "vendor": vendor
+    })

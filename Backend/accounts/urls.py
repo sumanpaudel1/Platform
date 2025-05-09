@@ -117,7 +117,15 @@ urlpatterns = [
     '<str:subdomain>.platform/vendor/reviews/reply/<int:review_id>/',
     views.vendor_reply,
     name='vendor_reply'
-  ),  
+  ),
+   
+    path("home/delete-account/", views.vendor_delete_account,
+         name="vendor_delete_account"),
+
+    # Customer
+    path("<str:subdomain>.platform/customer/delete-account/",
+         views.customer_delete_account,
+         name="customer_delete_account"), 
 ]
 
     # path('home/products/<int:product_id>/add-color/', views.add_product_color, name='add_product_color'),
