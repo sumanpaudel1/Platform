@@ -1,6 +1,9 @@
 from django.urls import path
 from .views import vendor_home, product_detail,  product_create, wishlist_view, add_to_cart, update_cart, remove_from_cart, cart_view, toggle_wishlist
 from . import views
+from django.conf import settings
+from django.conf.urls.static import static
+
 app_name = 'products'
 
 
@@ -64,6 +67,11 @@ urlpatterns = [
      
      path('api/orders/<str:order_id>/payment-details/', views.get_payment_details, name='order_payment_details'),
      path('try-on-redirect/', views.try_on_redirect, name='try_on_redirect'),
+     path(
+     '<str:subdomain>.platform/review/<str:order_id>/<int:product_id>/',
+     views.submit_review,
+     name='submit_review'
+     ),
      
 #      path('<str:subdomain>/debug-pinecone/', views.debug_pinecone, name='debug_pinecone'),
 #      # Add this line right after the debug-pinecone URL

@@ -1,0 +1,76 @@
+{% extends 'accounts/home.html' %}
+{% block dashboard_content %}
+<div class="container mx-auto px-6 py-8">
+  <h1 class="text-2xl font-bold mb-6">Customer Reviews</h1>
+  <div class="grid gap-6">
+    {% for rev in reviews %}
+    <div class="bg-white rounded-lg shadow-md overflow-hidden">
+      <div class="flex">
+        <!-- Product thumbnail + link -->
+        <a href="{% url 'products:product_detail' subdomain=subdomain slug=rev.product.slug %}"
+           target="_blank" class="block flex-shrink-0">
+          {% with img=rev.product.product_images.first %}
+            {% if img %}
+            <img src="{{ img.image.url }}" 
+                 class="h-24 w-24 object-cover" 
+                 alt="{{ rev.product.name }}">
+            {% else %}
+            <div class="h-24 w-24 bg-gray-100 flex items-center justify-center">
+              <i class="fas fa-box-open text-gray-400 text-3xl"></i>
+            </div>
+            {% endif %}
+          {% endwith %}
+        </a>
+        <div class="p-6 flex-1">
+          <!-- Product name -->
+          <a href="{% url 'products:product_detail' subdomain=subdomain slug=rev.product.slug %}"
+             target="_blank"
+             class="text-lg font-semibold text-gray-900 hover:underline">
+            {{ rev.product.name }}
+          </a>
+          <!-- Star rating -->
+          <div class="flex items-center text-amber-400 mt-1">
+            {% for i in "12345" %}
+              <i class="fas fa-star {% if forloop.counter <= rev.rating %}text-yellow-400{% else %}text-gray-300{% endif %}"></i>
+            {% endfor %}
+            <span class="ml-2 text-sm text-gray-500">{{ rev.created_at|date:"M d, Y" }}</span>
+          </div>
+          <!-- Comment -->
+          {% if rev.comment %}
+          <p class="mt-4 text-gray-700">{{ rev.comment }}</p>
+          {% endif %}
+          <!-- Review images -->
+          {% if rev.images.all %}
+          <div class="flex space-x-2 mt-4">
+            {% for img in rev.images.all %}
+            <a href="{{ img.image.url }}" target="_blank">
+              <img src="{{ img.image.url }}" 
+                   class="h-16 w-16 object-cover rounded-lg border" 
+                   alt="Review image">
+            </a>
+            {% endfor %}
+          </div>
+          {% endif %}
+          <!-- Reply form -->
+          <form action="{% url 'accounts:vendor_reply' subdomain=subdomain review_id=rev.id %}"
+                method="post" class="mt-6 space-y-2">
+            {% csrf_token %}
+            <label class="block text-sm font-medium text-gray-700">Your Reply</label>
+            <textarea name="reply"
+                      rows="3"
+                      class="w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                      placeholder="Write your reply…">{{ rev.reply }}</textarea>
+            <button type="submit"
+                    class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">
+              {% if rev.reply %}Update Reply{% else %}Post Reply{% endif %}
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+    {% empty %}
+    <p class="text-gray-600">No reviews yet.</p>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

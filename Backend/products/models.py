@@ -346,3 +346,35 @@ cloudinary_count = ProductImage.objects.exclude(image_url__isnull=True).count()
 total_count = ProductImage.objects.count()
 
 print(f"Images with Cloudinary URLs: {cloudinary_count}/{total_count} ({cloudinary_count/total_count*100:.2f}%)")
+
+
+
+
+from accounts.models import Customer
+from django.db import models
+from django.utils import timezone
+from django.core.validators import RegexValidator
+from datetime import timedelta
+
+
+class Review(models.Model):
+    customer   = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name="reviews")
+    product    = models.ForeignKey("Product",  on_delete=models.CASCADE, related_name="reviews")
+    order      = models.ForeignKey("Order",    on_delete=models.CASCADE, related_name="reviews")
+    rating     = models.PositiveSmallIntegerField()  # 1–5
+    comment    = models.TextField(blank=True)
+    is_anonymous = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    reply = models.TextField(blank=True)  
+
+    class Meta:
+        unique_together = [("customer","order","product")]
+
+    def display_name(self):
+        if self.is_anonymous:
+            return "Anonymous"
+        return f"{self.customer.first_name} {self.customer.last_name}"
+
+class ReviewImage(models.Model):
+    review = models.ForeignKey(Review, on_delete=models.CASCADE, related_name="images")
+    image  = models.ImageField(upload_to="reviews/")

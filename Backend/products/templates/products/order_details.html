@@ -146,6 +146,71 @@
                         </div>
                     </div>
                 </div>
+               
+                    {% if order.status == 'delivered' and item.product.id not in reviewed_products %}
+                        <button type="button"
+                                data-modal-target="#review-modal-{{ item.product.id }}"
+                                class="px-3 py-1 bg-blue-600 text-white rounded">
+                        Give Review
+                        </button>
+
+                        <!-- Review Modal -->
+                        <div id="review-modal-{{ item.product.id }}"class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                        <div class="bg-white rounded-lg p-6 w-full max-w-md">
+                            <h2 class="text-xl font-bold mb-4">Review {{ item.product.name }}</h2>
+                        <form
+                            action="{% url 'products:submit_review' subdomain=subdomain order_id=order.order_id product_id=item.product.id %}"
+                            method="post"
+                            enctype="multipart/form-data"
+                        >
+                            {% csrf_token %}
+                            <!-- Star Rating -->
+                            <div class="flex space-x-1 mb-4">
+                                {% for i in "12345" %}
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="rating" value="{{ forloop.counter }}"
+                                        class="hidden" required>
+                                    <i class="fa fa-star text-gray-300 hover:text-yellow-400 rating-star"
+                                    data-value="{{ forloop.counter }}"></i>
+                                </label>
+                                {% endfor %}
+                            </div>
+
+                            <!-- Comment -->
+                            <textarea name="comment"
+                                        rows="4"
+                                        class="w-full border rounded p-2 mb-4"
+                                        placeholder="Write your review…"></textarea>
+
+                            <!-- Anonymous -->
+                            <div class="mb-4">
+                                <label class="flex items-center space-x-2">
+                                <input type="checkbox" name="is_anonymous">
+                                <span>Post anonymously</span>
+                                </label>
+                            </div>
+
+                            <!-- Optional Images -->
+                            <div class="mb-4">
+                                <input type="file" name="images" multiple accept="image/*">
+                            </div>
+
+                            <!-- Buttons -->
+
+                            <div class="flex justify-end space-x-2">
+                                <button type="button" class="modal-close px-4 py-2 bg-gray-200 rounded">
+                                Cancel
+                                </button>
+
+                                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">
+                                Submit
+                                </button>
+                            </div>
+                            </form>
+                        </div>
+                        </div>
+                    {% endif %}
+
                 {% endfor %}
             </div>
         </div>
@@ -337,4 +402,32 @@
     
         
         </script>
+
+<script>
+  // open modal
+  document.querySelectorAll('[data-modal-target]').forEach(btn=>
+    btn.addEventListener('click',()=> {
+      document
+        .querySelector(btn.dataset.modalTarget)
+        .classList.remove('hidden')
+    })
+  );
+  // close modal
+  document.querySelectorAll('.modal-close').forEach(btn=>
+    btn.addEventListener('click',()=> {
+      btn.closest('.fixed').classList.add('hidden')
+    })
+  );
+  // star‐rating visuals
+  document.querySelectorAll('.rating-star').forEach(star=>
+    star.addEventListener('click',()=>{
+      const v = +star.dataset.value,
+            row = star.closest('.flex');
+      row.querySelectorAll('i').forEach(s=>
+        s.classList.toggle('text-yellow-400', +s.dataset.value<=v)
+      );
+      row.querySelector(`input[value="${v}"]`).checked = true;
+    })
+  );
+</script>
 {% endblock %}

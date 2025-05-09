@@ -2438,3 +2438,33 @@ def subscription_payment_process(request, plan_id):
     except Exception as e:
         messages.error(request, f"Error processing subscription: {str(e)}")
         return redirect('accounts:subscription_plans')
+    
+    
+
+
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render, get_object_or_404, redirect
+from products.models import Review
+
+@login_required
+def vendor_reviews(request, subdomain):
+    # list all reviews for this vendor’s products
+    reviews = Review.objects.filter(
+        product__vendor=request.user
+    ).select_related('customer','product').prefetch_related('images')
+    return render(request, 'accounts/vendor_reviews.html', {
+        'reviews': reviews,
+        'subdomain': subdomain
+    })
+
+@login_required
+def vendor_reply(request, subdomain, review_id):
+    if request.method == 'POST':
+        rev = get_object_or_404(
+            Review, 
+            id=review_id, 
+            product__vendor=request.user
+        )
+        rev.reply = request.POST.get('reply','').strip()
+        rev.save()
+    return redirect('accounts:vendor_reviews', subdomain=subdomain)

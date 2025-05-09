@@ -14,7 +14,8 @@ from .services import (
     get_similar_products_for_product
 )
 from .tasks import index_vendor_products
-
+from django.db.models import Avg, Count
+from products.models import Review
 import os
 import io
 from ai_features.clip_pineconesearch import CLIPPineconeSearch

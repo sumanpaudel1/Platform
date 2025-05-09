@@ -107,7 +107,17 @@ urlpatterns = [
     # In urls.py
 
 # Add these paths to your urlpatterns
-path('esewa/subscription/payment/<int:plan_id>/', views.subscription_payment_process, name='subscription_payment_process'),   
+  path('esewa/subscription/payment/<int:plan_id>/', views.subscription_payment_process, name='subscription_payment_process'), 
+  path(
+    '<str:subdomain>.platform/vendor/reviews/',
+    views.vendor_reviews,
+    name='vendor_reviews'
+  ),
+  path(
+    '<str:subdomain>.platform/vendor/reviews/reply/<int:review_id>/',
+    views.vendor_reply,
+    name='vendor_reply'
+  ),  
 ]
 
     # path('home/products/<int:product_id>/add-color/', views.add_product_color, name='add_product_color'),

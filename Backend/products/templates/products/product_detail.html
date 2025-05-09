@@ -240,83 +240,83 @@
             </div>
         </div>
     </div>
-
-    <!-- Reviews Section -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div class="border-t pt-16">
-            <h2 class="text-3xl font-bold text-gray-900 mb-8">Customer Reviews</h2>
-            
-            <!-- Review Summary -->
-            <div class="bg-gray-50 rounded-2xl p-8 mb-12">
-                <div class="flex flex-col md:flex-row justify-between items-start md:items-center">
-                    <div class="mb-6 md:mb-0">
-                        <h3 class="text-2xl font-bold text-gray-900">4.8/5</h3>
-                        <div class="flex text-yellow-400 text-sm mt-1">
-                            {% for i in "12345" %}
-                            <i class="fas fa-star"></i>
-                            {% endfor %}
-                        </div>
-                        <p class="text-sm text-gray-500 mt-2">Based on 121 reviews</p>
-                    </div>
-                    <div class="flex-1 max-w-lg w-full">
-                        <div class="space-y-2">
-                            {% for i in "54321" %}
-                            <div class="flex items-center gap-4">
-                                <span class="text-sm w-8">{{ i }} star</span>
-                                <div class="flex-1 bg-gray-200 rounded-full h-2.5">
-                                    <div class="bg-[var(--primary)] h-2.5 rounded-full" 
-                                         style="width: {% widthratio forloop.revcounter 1 20 %}%"></div>
-                                </div>
-                            </div>
-                            {% endfor %}
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Review List -->
-            <div class="grid gap-8 md:grid-cols-2">
-                <!-- Review Card 1 -->
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                    <div class="flex items-center gap-4 mb-4">
-                        <div class="w-12 h-12 bg-[var(--primary)] rounded-full flex items-center justify-center text-white font-bold">JD</div>
-                        <div>
-                            <h4 class="font-medium">John Doe</h4>
-                            <div class="flex items-center gap-2 text-sm text-yellow-400">
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star-half-alt"></i>
-                            </div>
-                        </div>
-                    </div>
-                    <p class="text-gray-600">Absolutely love this product! The quality is amazing and it looks even better in person.</p>
-                </div>
-
-                <!-- Review Card 2 -->
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                    <div class="flex items-center gap-4 mb-4">
-                        <div class="w-12 h-12 bg-pink-500 rounded-full flex items-center justify-center text-white font-bold">AS</div>
-                        <div>
-                            <h4 class="font-medium">Alice Smith</h4>
-                            <div class="flex items-center gap-2 text-sm text-yellow-400">
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                            </div>
-                        </div>
-                    </div>
-                    <p class="text-gray-600">Fast delivery and perfect fit. Will definitely purchase again!</p>
-                </div>
+    <div class="max-w-7xl mx-auto px-4 lg:px-8 py-16">
+    <h2 class="text-3xl font-bold mb-6">Customer Reviews ({{ product.reviews.count }})</h2>
+    <!-- Average -->
+    {% with avg=product.reviews.aggregate|default:0 %}
+    <div class="flex items-center mb-8">
+    {% for i in "12345" %}
+        <i class="fas fa-star
+            {% if forloop.counter <= avg_rating|floatformat:0 %}
+            text-yellow-400
+            {% else %}
+            text-gray-300
+            {% endif %}"
+        ></i>
+    {% endfor %}
+    <span class="ml-2 text-gray-600">({{ avg_rating|floatformat:1 }} avg)</span>
+    </div>
+    {% if product.reviews.count > 0 %}
+      <div class="text-sm text-gray-500 mb-4">
+        <span class="font-medium">{{ product.reviews.count }}</span> reviews
+      </div>
+    {% endif %}
+    {% if user_can_review %}
+      <p class="text-sm text-gray-500 mb-4">You can leave a review for this product.</p>
+    {% else %}
+      <p class="text-sm text-gray-500 mb-4">You can only leave a review for products purchased in the last {{ eligible_days }} days.</p>
+    {% endif %}
+    {% endwith %}
+    <!-- List -->
+    <div class="grid md:grid-cols-2 gap-8 mb-12">
+    {% for rev in product.reviews.all %}
+        <div class="p-6 border rounded-lg">
+        <!-- 1. Dynamic stars -->
+        <div class="flex items-center mb-2">
+            <strong>{{ rev.display_name }}</strong>
+            <div class="flex ml-4 text-amber-400">
+            {% for i in "12345" %}
+                <i class="{% if forloop.counter <= rev.rating %}fas fa-star{% else %}far fa-star{% endif %}"></i>
+            {% endfor %}
             </div>
         </div>
+
+        <!-- 2. Comment -->
+        {% if rev.comment %}
+            <p class="mb-2">{{ rev.comment }}</p>
+        {% endif %}
+
+        <!-- 3. Images -->
+        {% if rev.images.all %}
+            <div class="flex space-x-2 mb-2">
+            {% for img in rev.images.all %}
+                <img src="{{ img.image.url }}" class="h-16 w-16 object-cover rounded">
+            {% endfor %}
+            </div>
+        {% endif %}
+
+        <!-- 4. Date -->
+        <small class="text-gray-500">{{ rev.created_at|date:"M d, Y" }}</small>
+
+        <!-- 5. Vendor reply -->
+        {% if rev.reply %}
+            <div class="mt-4 p-4 bg-indigo-50 border-l-4 border-indigo-500 rounded-md">
+            <h4 class="text-indigo-700 font-semibold">Vendor Reply:</h4>
+            <p class="mt-1 text-gray-800">{{ rev.reply }}</p>
+            </div>
+        {% endif %}
+        </div>
+    {% empty %}
+        <p class="col-span-2 text-gray-600">No reviews yet.</p>
+    {% endfor %}
     </div>
+    <!-- Leave a review button -->
+    {% comment %} {% if request.session.customer_id and user_can_review %}
+      <a href="{% url 'products:submit_review' subdomain=subdomain order_id=eligible_order_id product_id=product.id %}"
+         class="px-4 py-2 bg-blue-600 text-white rounded">Write a Review</a>
+    {% endif %} {% endcomment %}
+  </div>
 </div>
-
-
 
 
 <div class="mt-16">

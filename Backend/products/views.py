@@ -26,7 +26,8 @@ from accounts.models import Vendor, Customer
 from accounts.urls import urlpatterns
 from accounts.views import customer_login
 
-
+from django.db.models import Avg, Count
+from .models import Review
 
 from functools import wraps
 from django.shortcuts import redirect
@@ -76,7 +77,10 @@ def vendor_home(request, subdomain):
         from ai_features.services import get_recommended_products_for_homepage
         recommended_products = get_recommended_products_for_homepage(vendor)
         
-        
+        stats = Review.objects \
+                    .filter(product__vendor=vendor) \
+                    .aggregate(avg=Avg("rating"), cnt=Count("id"))
+
         # Get store photos safely
         store_photos = StorePhoto.objects.filter(vendor=vendor).order_by('-is_primary', '-uploaded_at')
         store_photo = store_photos.first()  # Changed from [0] to first()
@@ -103,6 +107,9 @@ def vendor_home(request, subdomain):
             ).distinct().count(),
             'years_in_business': (timezone.now().year - vendor.date_joined.year),
             'store_photos': store_photo,  
+            
+            "vendor_avg": stats["avg"] or 0,
+            "vendor_reviews": stats["cnt"]
         }
         
         if vendor.settings.instagram:
@@ -258,6 +265,28 @@ def product_detail(request, subdomain, slug):
         'related_products': similar_products,
         'flask_server_url': 'https://5000-gpu-t4-s-1d60yj0vdo03r-c.asia-southeast1-0.prod.colab.dev',
     }
+    
+    reviews = product.reviews.all()
+    agg = reviews.aggregate(rating__avg=Avg("rating"))
+    avg = agg["rating__avg"] or 0
+    # determine if customer can review
+    customer_id = request.session.get("customer_id")
+    can_review = False; eid=None
+    if customer_id:
+        ords = Order.objects.filter(customer_id=customer_id, vendor=vendor, status="delivered",
+                                    items__product=product).distinct()
+        for o in ords:
+            if not reviews.filter(order=o, customer_id=customer_id).exists():
+                can_review=True; eid=o.order_id; break
+
+    context.update({
+      "reviews": reviews,
+      "avg_rating": avg,
+      "user_can_review": can_review,
+      "eligible_order_id": eid,
+      "subdomain": subdomain,
+    })
+    
     return render(request, 'products/product_detail.html', context)
 
 
@@ -1327,13 +1356,20 @@ def order_detail(request, subdomain, order_id):
             and timezone.now() < order.cancel_deadline
         )
         
+        reviewed_products = set(
+        Review.objects
+              .filter(order=order, customer_id=customer_id)
+              .values_list('product_id', flat=True)
+    )
         context = {
             'order': order,
             'vendor': vendor,
             'customer': customer,
             'can_cancel': can_cancel,
             'items': order.items.all(),
-            'time_left_for_cancel': order.time_left_for_cancel
+            'time_left_for_cancel': order.time_left_for_cancel,
+            'reviewed_products': reviewed_products,
+            'subdomain': subdomain,
         }
         
         return render(request, 'products/order_details.html', context)
@@ -2186,3 +2222,33 @@ def try_on_redirect(request):
             return JsonResponse({'error': str(e)}, status=500)
     
     return JsonResponse({'error': 'Invalid request method'}, status=400)
+
+
+
+from .forms import ReviewForm
+from .models import Review
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import get_object_or_404
+
+
+def submit_review(request, subdomain, order_id, product_id):
+    order   = get_object_or_404(Order, order_id=order_id,
+                customer_id=request.session.get("customer_id"), status="delivered")
+    product = get_object_or_404(Product, id=product_id, vendor=order.vendor)
+    # prevent dup
+    if Review.objects.filter(order=order,product=product,
+                             customer_id=request.session["customer_id"]).exists():
+        return redirect("products:product_detail", subdomain=subdomain, slug=product.slug)
+
+    if request.method=="POST":
+        form=ReviewForm(request.POST, request.FILES)
+        if form.is_valid():
+            form.save(customer=order.customer, product=product, order=order)
+            return redirect("products:product_detail", subdomain=subdomain, slug=product.slug)
+    else:
+        form=ReviewForm()
+    return render(request,"products/submit_review.html", {
+        "form":form, "product":product, "order":order, "subdomain":subdomain
+    })
+    
+    
