@@ -2145,3 +2145,44 @@ def try_on_redirect(request):
         return JsonResponse({'redirect_url': redirect_url})
     
     return JsonResponse({'error': 'Invalid request method'}, status=400)
+
+
+
+
+
+import urllib.parse
+import json
+import logging
+
+logger = logging.getLogger(__name__)
+
+@csrf_exempt
+def try_on_redirect(request):
+    """Handle the Virtual Try-On button click"""
+    if request.method == 'POST':
+        # Get cloth image URL from request
+        cloth_image_url = request.POST.get('cloth_image_url')
+        product_name = request.POST.get('product_name', 'Product')
+        
+        # Use the specific Colab URL from settings or use the one provided in request
+        flask_server_url = "https://5000-gpu-t4-s-4zjbc1qi43wu-a.asia-southeast1-1.prod.colab.dev"
+        
+        if not cloth_image_url:
+            return JsonResponse({'error': 'Missing cloth image URL'}, status=400)
+        
+        try:
+            # Fix malformed URL - ensure https:// has double slash
+            if cloth_image_url.startswith('https:/') and not cloth_image_url.startswith('https://'):
+                cloth_image_url = cloth_image_url.replace('https:/', 'https://')
+            
+            # Create the full Flask server try-on URL with the cloth image URL as a parameter
+            redirect_url = f"{flask_server_url}/try-on?image_url={urllib.parse.quote(cloth_image_url)}&product_name={urllib.parse.quote(product_name)}"
+            
+            # Return the redirect URL to the client
+            return JsonResponse({'redirect_url': redirect_url})
+            
+        except Exception as e:
+            logger.error(f"Try-on redirect error: {str(e)}")
+            return JsonResponse({'error': str(e)}, status=500)
+    
+    return JsonResponse({'error': 'Invalid request method'}, status=400)

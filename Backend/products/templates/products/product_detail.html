@@ -215,7 +215,8 @@
                     <button id="tryOnBtn"
                     class="w-full h-14 border-2 border-[var(--accent)] text-[var(--accent)] 
                            rounded-xl hover:bg-[var(--accent)] hover:text-white transition-all duration-300
-                           flex items-center justify-center gap-2 font-medium shadow-sm mt-2 try-on-btn">
+                           flex items-center justify-center gap-2 font-medium shadow-sm mt-2 try-on-btn"
+                    data-product-name="{{ product.name }}">
                     <i class="fas fa-tshirt"></i>
                     <span>Virtual Try-On</span>
                     <span class="text-xs ml-1 bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded">AI</span>
@@ -845,9 +846,15 @@ function toggleWishlist(productId) {
 
 
     document.getElementById('tryOnBtn').addEventListener('click', function() {
-            // Get the Cloudinary image URL
-            const clothImageUrl = document.querySelector('.product-image img').src;
-            const flaskServerUrl = "{{ flask_server_url }}";
+        // First show the confirmation popup
+        showTryOnConfirmation().then(confirmed => {
+            if (!confirmed) return; // User cancelled
+            
+            // Get the Cloudinary image URL - using main product image
+            const clothImageUrl = document.getElementById('mainImage').src;
+            // Use the specific Colab URL
+            const flaskServerUrl = "https://5000-gpu-t4-s-4zjbc1qi43wu-a.asia-southeast1-1.prod.colab.dev";
+            const productName = this.dataset.productName || "{{ product.name }}";
             
             // Show loading state
             this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
@@ -862,7 +869,8 @@ function toggleWishlist(productId) {
                 },
                 body: new URLSearchParams({
                     'cloth_image_url': clothImageUrl,
-                    'flask_server_url': flaskServerUrl
+                    'flask_server_url': flaskServerUrl,
+                    'product_name': productName
                 })
             })
             .then(response => response.json())
@@ -871,7 +879,7 @@ function toggleWishlist(productId) {
                     // Open the Flask app in a new tab
                     window.open(data.redirect_url, '_blank');
                 } else {
-                    alert('Error: ' + (data.error || 'Unknown error'));
+                    showNotification('Error: ' + (data.error || 'Unknown error'), 'error');
                 }
                 // Reset button
                 this.innerHTML = '<i class="fas fa-tshirt"></i><span>Virtual Try-On</span><span class="text-xs ml-1 bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded">AI</span>';
@@ -879,12 +887,13 @@ function toggleWishlist(productId) {
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('Failed to process request');
+                showNotification('Failed to process request', 'error');
                 // Reset button
                 this.innerHTML = '<i class="fas fa-tshirt"></i><span>Virtual Try-On</span><span class="text-xs ml-1 bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded">AI</span>';
                 this.disabled = false;
             });
         });
+    });
 
 
 // Show confirmation popup for Virtual Try-On
@@ -1004,6 +1013,27 @@ function showTryOnConfirmation() {
         }
     });
 }
+
+
+
+// Add near the try-on button click handler
+function debugTryOn() {
+    const clothImageUrl = document.getElementById('mainImage').src;
+    const productName = document.getElementById('tryOnBtn').dataset.productName;
+    
+    console.log("Image URL:", clothImageUrl);
+    console.log("Product Name:", productName);
+    console.log("Flask Server:", "https://5000-gpu-t4-s-4zjbc1qi43wu-a.asia-southeast1-1.prod.colab.dev");
+    
+    // Test connection to Flask server
+    fetch("https://5000-gpu-t4-s-4zjbc1qi43wu-a.asia-southeast1-1.prod.colab.dev/api/check")
+        .then(res => res.json())
+        .then(data => console.log("Server connection:", data))
+        .catch(err => console.error("Server connection error:", err));
+}
+
+// Add a debug button in your HTML if needed
+// <button onclick="debugTryOn()" type="button">Debug Try-On</button>
 
     </script>
 
