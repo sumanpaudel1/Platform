@@ -727,7 +727,7 @@ def vendor_product_edit(request, pk):
     if request.method == 'POST':
         form = ProductForm(request.POST, request.FILES, instance=product)
         if form.is_valid():
-            product = form.save()
+            form.save()
             
             # Handle product images with Cloudinary
             if request.FILES.getlist('product_images'):
@@ -1387,6 +1387,10 @@ def customer_login(request, subdomain):
     subdomain_obj = get_object_or_404(Subdomain, subdomain=sub)
     vendor = subdomain_obj.vendor
 
+    logout(request)
+    request.session.flush()
+    request.session.cycle_key()
+    
     if request.method == "POST":
         email = request.POST.get('email')
         password = request.POST.get('password')
@@ -1966,7 +1970,30 @@ def vendor_dashboard(request):
         orders = Order.objects.filter(vendor=request.user)
         total_orders = orders.count()
         recent_orders = orders.select_related('customer').order_by('-created_at')[:5]
+        recent_notes  = Notification.objects.filter(
+                        vendor=request.user
+                    ).order_by('-created_at')[:5]
         
+        
+        activities = []
+        for o in recent_orders:
+            activities.append({
+                'type':    'order',
+                'message': f"New order #{o.order_id} by {o.customer.first_name}",
+                'created_at': o.created_at
+            })
+        for n in recent_notes:
+            activities.append({
+                'type':    'notification',
+                'message': n.message,
+                'created_at': n.created_at
+            })
+            
+        recent_activities = sorted(
+            activities,
+            key=lambda x: x['created_at'],
+            reverse=True
+        )[:5]
         # Revenue calculations
         total_revenue = orders.filter(status='delivered').aggregate(
             total=Sum('total_amount')
@@ -2031,7 +2058,8 @@ def vendor_dashboard(request):
             'order_status_data': order_status_data,
             'order_status_labels': ['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'],
             'current_date': timezone.now(),
-            'active_tab': 'dashboard'  # Add this to highlight dashboard tab
+            'active_tab': 'dashboard' , # Add this to highlight dashboard tab
+            'recent_activities': recent_activities
         }
         
         return render(request, 'accounts/vendor_dashboard.html', context)
@@ -2039,7 +2067,7 @@ def vendor_dashboard(request):
     except Exception as e:
         print(f"Dashboard Error: {str(e)}")  # Add debug print
         messages.error(request, f"Error loading dashboard: {str(e)}")
-        return redirect('accounts:Dashboard')
+        return redirect('accounts:vendor_dashboard')
     
     
   

@@ -1023,10 +1023,10 @@ function debugTryOn() {
     
     console.log("Image URL:", clothImageUrl);
     console.log("Product Name:", productName);
-    console.log("Flask Server:", "https://5000-gpu-t4-s-4zjbc1qi43wu-a.asia-southeast1-1.prod.colab.dev");
+    console.log("Flask Server:", "https://5000-gpu-t4-s-33x421jerp3v7-a.us-west4-1.prod.colab.dev");
     
     // Test connection to Flask server
-    fetch("https://5000-gpu-t4-s-4zjbc1qi43wu-a.asia-southeast1-1.prod.colab.dev/api/check")
+    fetch("https://5000-gpu-t4-s-33x421jerp3v7-a.us-west4-1.prod.colab.dev/api/check")
         .then(res => res.json())
         .then(data => console.log("Server connection:", data))
         .catch(err => console.error("Server connection error:", err));

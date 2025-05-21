@@ -603,12 +603,14 @@ def toggle_wishlist(request):
         return JsonResponse({'status': 'error', 'message': 'Login required'}, status=401)
     
     try:
-        data = json.loads(request.body)
-        product_id = data.get('product_id')
+        
+        if product_id is None:
+            data = json.loads(request.body)
+            product_id = data.get('product_id')
         product = get_object_or_404(Product, id=product_id)
         
         # Get customer from session (NOT from request.user)
-        customer = get_object_or_404(Customer, id=request.session.get('customer_id'))
+        customer = get_object_or_404(Customer, id=request.session['customer_id'])
         
         # Check if product is already in wishlist
         wishlist_item = Wishlist.objects.filter(customer=customer, product=product).first()
@@ -640,12 +642,7 @@ def toggle_wishlist(request):
 
 
 
-
-
-
-
-
-
+from django.views.decorators.http import require_http_methods
 
 #place order and send email confirmation
 
@@ -2201,7 +2198,7 @@ def try_on_redirect(request):
         product_name = request.POST.get('product_name', 'Product')
         
         # Use the specific Colab URL from settings or use the one provided in request
-        flask_server_url = "https://5000-gpu-t4-s-4zjbc1qi43wu-a.asia-southeast1-1.prod.colab.dev"
+        flask_server_url = "https://5000-gpu-t4-s-33x421jerp3v7-a.us-west4-1.prod.colab.dev"
         
         if not cloth_image_url:
             return JsonResponse({'error': 'Missing cloth image URL'}, status=400)

@@ -216,37 +216,26 @@
             </div>
         </div>
 
-        <!-- Recent Activities -->
-        <div class="bg-white rounded-lg shadow">
-            <div class="p-6 border-b border-gray-200">
-                <h2 class="text-lg font-medium text-gray-900">Recent Activities</h2>
-            </div>
+            <!-- Recent Activity -->
+            <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-medium text-gray-900 mb-4">Recent Activity</h2>
             <div class="divide-y divide-gray-200">
-                {% for activity in recent_activities %}
-                <div class="p-4">
-                    <div class="flex items-start space-x-3">
-                        <div class="flex-shrink-0">
-                            <span class="inline-flex items-center justify-center h-8 w-8 rounded-full 
-                                {% if activity.type == 'order' %}bg-blue-100
-                                {% elif activity.type == 'product' %}bg-green-100
-                                {% else %}bg-gray-100{% endif %}">
-                                <span class="text-sm font-medium leading-none 
-                                    {% if activity.type == 'order' %}text-blue-800
-                                    {% elif activity.type == 'product' %}text-green-800
-                                    {% else %}text-gray-800{% endif %}">
-                                    {{ activity.type|first|upper }}
-                                </span>
-                            </span>
-                        </div>
-                        <div class="min-w-0 flex-1">
-                            <p class="text-sm text-gray-900">{{ activity.message }}</p>
-                            <p class="text-xs text-gray-500">{{ activity.created_at|timesince }} ago</p>
-                        </div>
+                {% for act in recent_activities %}
+                <div class="py-4 flex items-start space-x-3">
+                    <span class="inline-flex items-center justify-center h-8 w-8 rounded-full
+                                {% if act.type == 'order' %}bg-blue-100 text-blue-800{% else %}bg-green-100 text-green-800{% endif %}">
+                    {{ act.type|first|upper }}
+                    </span>
+                    <div class="min-w-0 flex-1">
+                    <p class="text-sm text-gray-900">{{ act.message }}</p>
+                    <p class="text-xs text-gray-500">{{ act.created_at|date:"M d, Y H:i" }}</p>
                     </div>
                 </div>
+                {% empty %}
+                <div class="p-4 text-gray-500">No recent activity.</div>
                 {% endfor %}
             </div>
-        </div>
+            </div>
     </div>
 </div>
 

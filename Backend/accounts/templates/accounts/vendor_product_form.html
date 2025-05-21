@@ -500,60 +500,45 @@ function removeSelectedImage(index) {
 }
 
 // Update form submission handler
-document.getElementById('productForm').addEventListener('submit', function(e) {
-    e.preventDefault();
+    document.getElementById('productForm').addEventListener('submit', function(e) {
+        e.preventDefault();
 
-    const formData = new FormData();
-    
-    // Add all form fields
-    const formFields = this.querySelectorAll('input, select, textarea');
-    formFields.forEach(field => {
-        if (field.type !== 'file' && field.name) {
-            formData.append(field.name, field.value);
-        }
+        // build FormData off the <form> element itself
+        // so only checked radios/checkboxes get in
+        const formData = new FormData(this);
+
+        // Add any newly‐selected images
+        selectedImages.forEach(file => {
+            formData.append('product_images', file);
+        });
+
+        // Add variants (still need these manual ones)
+        document.querySelectorAll('input[name="color_variants"]:checked')
+          .forEach(i => formData.append('color_variants', i.value));
+        document.querySelectorAll('input[name="size_variants"]:checked')
+          .forEach(i => formData.append('size_variants', i.value));
+
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+        fetch(this.action, {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-CSRFToken': csrfToken }
+        })
+        .then(resp => resp.text())
+        .then(html => {
+            if (html.includes('success')) {
+                showNotification('success','Product saved successfully');
+                window.location.href = "{% url 'accounts:vendor_products' %}";
+            } else {
+                showNotification('error','Error saving product');
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            showNotification('error','Error saving product');
+        });
     });
-
-    // Add selected images
-    selectedImages.forEach(file => {
-        formData.append('product_images', file);
-    });
-
-    // Add checked variants
-    document.querySelectorAll('input[name="color_variants"]:checked').forEach(input => {
-        formData.append('color_variants', input.value);
-    });
-    
-    document.querySelectorAll('input[name="size_variants"]:checked').forEach(input => {
-        formData.append('size_variants', input.value);
-    });
-
-    // Add CSRF token
-    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-    formData.append('csrfmiddlewaretoken', csrfToken);
-
-    // Submit using fetch instead of form submission
-    fetch(this.action, {
-        method: 'POST',
-        body: formData,
-        headers: {
-            'X-CSRFToken': csrfToken
-        }
-    })
-    .then(response => response.text())
-    .then(html => {
-        if (html.includes('success')) {
-            showNotification('success', 'Product saved successfully');
-            window.location.href = "{% url 'accounts:vendor_products' %}";
-        } else {
-            showNotification('error', 'Error saving product');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showNotification('error', 'Error saving product');
-    });
-});
-
 
 
 //delete category

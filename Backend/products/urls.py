@@ -20,6 +20,7 @@ urlpatterns = [
     
     path('<str:subdomain>.platform/wishlist/', wishlist_view, name='wishlist'),
     path('api/wishlist/toggle/', toggle_wishlist, name='toggle_wishlist'),
+     path('api/wishlist/remove/<int:product_id>/', views.toggle_wishlist, name='toggle_wishlist_remove'),
     
     
     path('<str:subdomain>.platform/checkout/', views.checkout_view, name='checkout'),
@@ -72,6 +73,7 @@ urlpatterns = [
      views.submit_review,
      name='submit_review'
      ),
+     
      
 #      path('<str:subdomain>/debug-pinecone/', views.debug_pinecone, name='debug_pinecone'),
 #      # Add this line right after the debug-pinecone URL
