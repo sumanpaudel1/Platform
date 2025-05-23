@@ -98,8 +98,8 @@ urlpatterns = [
     # Remove any duplicate URLs and make sure you only have these three for payment
     # IMPORTANT: Remove any duplicate path entries and keep only these three for subscription payment
     path('esewa/subscription/payment/<int:plan_id>/', views.subscription_esewa_payment, name='subscription_esewa_payment'),
-    path('esewa/subscription/success/', views.subscription_payment_success, name='subscription_payment_success'),
-    path('esewa/subscription/failure/', views.subscription_payment_failure, name='subscription_payment_failure'),
+    path("esewa/subscription/success/", views.subscription_payment_success, name="subscription_payment_success"),
+    path("esewa/subscription/failure/", views.subscription_payment_failure, name="subscription_payment_failure"),
     path('dashboard/subscription/', views.vendor_subscription_tab, name='vendor_subscription_tab'),
     # In urls.py
 

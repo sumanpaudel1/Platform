@@ -177,7 +177,7 @@ def subscription_esewa_payment(request, plan_id):
         messages.error(request, f"Error processing payment: {str(e)}")
         return redirect('accounts:subscription_plans')
     
-    
+import json   
 
 @csrf_exempt
 def subscription_payment_success(request):
@@ -269,7 +269,17 @@ def subscription_payment_success(request):
             message=f"Your subscription to the {plan.name} plan ({plan.get_period_display()}) was successful!",
             notification_type='subscription_update'
         )
-        
+
+        SubscriptionPayment.objects.create(
+            subscription=subscription,
+            amount=float(amount) if amount else plan.price,
+            transaction_id=pid or transaction_id,
+            reference_id=refId or '',
+            payment_method='esewa',
+            status='completed',
+            payment_date=timezone.now(),
+            response_data=json.dumps(request.GET.dict()),   # ← store full payload
+        )
         # Clear session data
         if 'pending_subscription' in request.session:
             del request.session['pending_subscription']
@@ -2576,10 +2586,11 @@ def vendor_subscription_tab(request):
             subdomain = None
         
         # Get payment history - Force evaluation to debug
-        payment_records = list(SubscriptionPayment.objects.filter(
-            subscription=subscription
-        ).order_by('-payment_date'))
-        
+        # payment_records = SubscriptionPayment.objects.filter(
+        #     subscription=subscription
+        # ).order_by('-payment_date')
+        payment_records = SubscriptionPayment.objects.filter(subscription=subscription) 
+        print(f"Found {len(payment_records)} payment records…")
         print(f"Found {len(payment_records)} payment records for {request.user.email}")
         
         # Context with all necessary information
