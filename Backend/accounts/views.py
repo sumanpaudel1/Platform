@@ -25,7 +25,8 @@ from django.contrib import messages
 
 from .models import Subscription, SubscriptionPlan, SubscriptionPayment
 # Make sure EsewaPayment class is imported and working
-
+# Add this import at the top of your file, with your other imports
+from django.views.decorators.http import require_http_methods
 # First, modify your register function to add the free trial
 def register(request):
     if request.method == "POST":
@@ -89,168 +90,291 @@ def subscription_plans(request):
     return render(request, 'accounts/subscription_plans.html', context)
 
 
+import uuid
+from .utils import EsewaSubscriptionPayment
+from collections import namedtuple
 
 @login_required
 def subscription_esewa_payment(request, plan_id):
     try:
-        # Get the plan
-        plan = get_object_or_404(SubscriptionPlan, id=plan_id)
-        print(f"Found plan: {plan.name}, price: {plan.price}")
-        
-        # Generate a transaction ID
-        import time
-        transaction_id = f"SUB-{request.user.id}-{plan.id}-{int(time.time())}"
-        
-        # Store payment data in session
-        request.session['subscription_payment'] = {
-            'plan_id': plan.id,
-            'transaction_id': transaction_id,
-            'amount': str(plan.price)
-        }
-        
-        # Create a simple data object for the payment class
-        class SubscriptionData:
-            def __init__(self, transaction_id, price):
-                self.transaction_id = transaction_id
-                self.price = price
-        
-        subscription_data = SubscriptionData(transaction_id, plan.price)
-        
-        # Use the specialized subscription payment handler
-        from .utils import EsewaSubscriptionPayment
-        esewa = EsewaSubscriptionPayment()
-        payment_url, params = esewa.generate_payment_data(subscription_data)
-        
-        print(f"Payment params: {params}")
-        print(f"Payment URL: {payment_url}")
-        
-        # Render the template with payment data - properly formatted for v2 API
-        return render(request, 'accounts/subscription_redirect.html', {
-            'payment_url': payment_url,
-            'params': params
-        })
-        
-    except Exception as e:
-        print(f"ERROR in subscription_esewa_payment: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        messages.error(request, f"Error initiating payment: {str(e)}")
-        return redirect('accounts:subscription_plans')
-
-# Add this view to handle successful eSewa payment@csrf_exempt
-@csrf_exempt
-def subscription_payment_success(request):
-    try:
-        print("eSewa success callback received")
-        print(f"Request GET data: {request.GET}")
-        
-        # eSewa returns these parameters
-        ref_id = request.GET.get('refId', '')
-        transaction_id = request.GET.get('oid', '')
-        amount = request.GET.get('amt', '')
-        
-        print(f"Payment details - refId: {ref_id}, oid: {transaction_id}, amount: {amount}")
-        
-        # Get subscription data from session
-        subscription_data = request.session.get('subscription_payment')
-        print(f"Session data: {subscription_data}")
-        
-        if not subscription_data:
-            messages.error(request, "No pending subscription payment found")
-            return redirect('accounts:subscription_plans')
+        # Check if user already has an active subscription
+        if hasattr(request.user, 'subscription'):
+            subscription = request.user.subscription
+            if subscription.status == 'active' and subscription.end_date > timezone.now():
+                messages.info(request, "You already have an active subscription")
+                return redirect('accounts:vendor_subscription_tab')
         
         # Get the plan
-        plan_id = subscription_data.get('plan_id')
         plan = get_object_or_404(SubscriptionPlan, id=plan_id)
         
-        # Get or create subscription record
-        try:
-            subscription = Subscription.objects.get(vendor=request.user)
-        except Subscription.DoesNotExist:
-            subscription = Subscription(vendor=request.user)
+        # Get the selected period from query param
+        period = request.GET.get('period', 'monthly')
         
-        # Update subscription details
-        now = timezone.now()
-        subscription.plan = plan
-        subscription.status = 'active'
-        subscription.is_trial = False
-        subscription.start_date = now
-        subscription.transaction_id = ref_id  # Use the eSewa reference ID
-        subscription.last_payment_date = now
-        
-        # Calculate end date based on plan period
-        if plan.period == 'monthly':
-            subscription.end_date = now + timezone.timedelta(days=30)
-        elif plan.period == 'quarterly':
-            subscription.end_date = now + timezone.timedelta(days=90)
-        elif plan.period == 'annual':
-            subscription.end_date = now + timezone.timedelta(days=365)
-        
-        subscription.save()
-        
-        # Record the payment with robust error handling
-        try:
-            # Convert request.GET to dict for JSON serialization
-            response_dict = {key: request.GET.get(key) for key in request.GET.keys()}
-            
-            # Create payment record
-            payment = SubscriptionPayment.objects.create(
-                subscription=subscription,
-                amount=float(amount) if amount else 0.00,
-                transaction_id=ref_id,
-                status='completed',
-                payment_method='esewa',
-                response_data=response_dict
+        # Ensure we're using the correct period's plan
+        if plan.period != period:
+            matching_plans = SubscriptionPlan.objects.filter(
+                name=plan.name, 
+                period=period,
+                is_active=True
             )
             
-            print(f"Payment record created successfully: {payment.id}")
-        except Exception as payment_error:
-            print(f"ERROR creating payment record: {str(payment_error)}")
-            import traceback
-            traceback.print_exc()
+            if matching_plans.exists():
+                plan = matching_plans.first()
+            else:
+                messages.error(request, f"No active {period} plan found")
+                return redirect('accounts:subscription_plans')
         
-        # Enable subdomain
+        # Generate transaction ID
+        transaction_uuid = str(uuid.uuid4())
+        
+        # Store plan info in session for post-payment processing
+        request.session['pending_subscription'] = {
+            'plan_id': plan.id,
+            'transaction_id': transaction_uuid,
+            'period': period
+        }
+        
+        # Create a simple object to pass to the EsewaSubscriptionPayment class
+        SubscriptionData = namedtuple('SubscriptionData', ['transaction_id', 'price'])
+        sub_data = SubscriptionData(transaction_id=transaction_uuid, price=plan.price)
+        
+        # Get payment URL and parameters
+        esewa_payment = EsewaSubscriptionPayment()
+        payment_url, payment_params = esewa_payment.generate_payment_data(
+            sub_data, 
+            request.get_host()
+        )
+        
+        # Debug info
+        print(f"Processing payment for plan ID {plan_id}, period {period}")
+        print(f"Transaction UUID: {transaction_uuid}")
+        print(f"Plan price: {plan.price}")
+        print(f"Payment URL: {payment_url}")
+        print(f"Payment params: {payment_params}")
+        
+        # Option 1: Use subscription_redirect.html for POST method
+        url, params = EsewaSubscriptionPayment().generate_payment_data(sub_data, request.get_host())
+        return render(request, "accounts/subscription_redirect.html", {
+            "payment_url":    url,
+            "payment_params": params,
+            "plan":           plan,
+            "period":         period,
+        })
+        
+        # Option 2: Direct link approach if you prefer
+        # query_params = '&'.join([f"{k}={v}" for k, v in payment_params.items()])
+        # payment_link = f"{payment_url}?{query_params}"
+        
+        # return render(request, 'accounts/subscription_payment.html', {
+        #     'plan': plan,
+        #     'period': period,
+        #     'price': plan.price,
+        #     'payment_link': payment_link,
+        # })
+        
+    except Exception as e:
+        print(f"Error in subscription_esewa_payment: {str(e)}")
+        messages.error(request, f"Error processing payment: {str(e)}")
+        return redirect('accounts:subscription_plans')
+    
+    
+
+@csrf_exempt
+def subscription_payment_success(request):
+    print("SUCCESS HANDLER - Request parameters:", request.GET)
+    try:
+        # Get parameters from eSewa response
+        pid = request.GET.get('pid')
+        refId = request.GET.get('refId')
+        amount = request.GET.get('amt')
+        
+        print(f"eSewa returned: PID={pid}, refId={refId}, amount={amount}")
+        
+        # Get pending subscription from session
+        pending_subscription = request.session.get('pending_subscription')
+        if not pending_subscription:
+            messages.error(request, "No pending subscription found")
+            return redirect('accounts:subscription_plans')
+        
+        plan_id = pending_subscription.get('plan_id')
+        transaction_id = pending_subscription.get('transaction_id')
+        period = pending_subscription.get('period', 'monthly')
+        
+        print(f"Session data: plan_id={plan_id}, transaction_id={transaction_id}, period={period}")
+        
+        # Validate plan
+        try:
+            plan = SubscriptionPlan.objects.get(id=plan_id)
+        except SubscriptionPlan.DoesNotExist:
+            messages.error(request, "The selected plan does not exist")
+            return redirect('accounts:subscription_plans')
+            
+        # Create or update subscription
+        subscription, created = Subscription.objects.get_or_create(
+            vendor=request.user,
+            defaults={
+                'plan': plan,
+                'status': 'active',
+                'start_date': timezone.now(),
+                'is_trial': False,
+                'transaction_id': pid or transaction_id
+            }
+        )
+        
+        if not created:
+            subscription.plan = plan
+            subscription.status = 'active'
+            subscription.start_date = timezone.now()
+            subscription.is_trial = False
+            subscription.transaction_id = pid or transaction_id
+        
+        # Set end date based on plan period
+        if plan.period == 'monthly':
+            subscription.end_date = subscription.start_date + timezone.timedelta(days=30)
+        elif plan.period == 'quarterly':
+            subscription.end_date = subscription.start_date + timezone.timedelta(days=90)
+        elif plan.period == 'annual':
+            subscription.end_date = subscription.start_date + timezone.timedelta(days=365)
+            
+        subscription.save()
+        
+        # Create payment record
+        SubscriptionPayment.objects.create(
+            subscription=subscription,
+            amount=float(amount) if amount else plan.price,
+            transaction_id=pid or transaction_id,
+            reference_id=refId or '',
+            payment_method='esewa',
+            status='completed'
+        )
+        
+        # Enable subdomain if it exists
         try:
             vendor_settings = VendorSetting.objects.get(vendor=request.user)
-            subdomain = Subdomain.objects.filter(vendor=request.user).first()
-            
-            if subdomain and not vendor_settings.is_subdomain_active:
+            if vendor_settings.subdomain and not vendor_settings.is_subdomain_active:
                 vendor_settings.is_subdomain_active = True
                 vendor_settings.save()
                 
-                # Create notification
-                Notification.objects.create(
+                # Ensure subdomain record exists
+                Subdomain.objects.get_or_create(
                     vendor=request.user,
-                    message=f"Your subscription has been renewed. Your subdomain {subdomain.subdomain}.platform is active again.",
-                    notification_type='subscription_update'
+                    defaults={'subdomain': vendor_settings.subdomain}
                 )
-        except (VendorSetting.DoesNotExist, Subdomain.DoesNotExist):
+        except VendorSetting.DoesNotExist:
             pass
         
-        # Clear session data
-        if 'subscription_payment' in request.session:
-            del request.session['subscription_payment']
+        # Create notification
+        Notification.objects.create(
+            vendor=request.user,
+            message=f"Your subscription to the {plan.name} plan ({plan.get_period_display()}) was successful!",
+            notification_type='subscription_update'
+        )
         
-        # Show success message and redirect to dashboard
-        messages.success(request, f"You have successfully subscribed to the {plan.name} plan!")
-        return redirect('accounts:vendor_dashboard')
+        # Clear session data
+        if 'pending_subscription' in request.session:
+            del request.session['pending_subscription']
+        
+        messages.success(request, "Subscription payment successful!")
+        return redirect('accounts:vendor_subscription_tab')
         
     except Exception as e:
-        print(f"ERROR in subscription_payment_success: {str(e)}")
-        import traceback
-        traceback.print_exc()
+        print(f"Error in subscription_payment_success: {str(e)}")
         messages.error(request, f"Error processing payment: {str(e)}")
         return redirect('accounts:subscription_plans')
 
-# Add this view to handle failed eSewa payment
+# IMPORTANT: Remove the duplicate function - keep only this one
 @csrf_exempt
 def subscription_payment_failure(request):
+    print("FAILURE HANDLER - Request parameters:", request.GET)
     # Clear session data
     if 'pending_subscription' in request.session:
         del request.session['pending_subscription']
-        
+    
     messages.error(request, "Subscription payment failed or was cancelled.")
     return redirect('accounts:subscription_plans')
+
+
+@require_http_methods(["POST"])
+def process_payment(request, subdomain):
+    # Get order details from session or request
+    order_id = request.POST.get('order_id')
+    order = get_object_or_404(Order, id=order_id)
+    
+    # Generate a unique transaction ID
+    transaction_uuid = f"{order.id}-{str(uuid.uuid4())[:8]}"
+    
+    # Save this in session for later verification
+    request.session['pending_order_payment'] = {
+        'order_id': order.id,
+        'transaction_id': transaction_uuid
+    }
+    
+    # Prepare context for eSewa payment
+    context = {
+        'order': order,
+        'price': order.total_amount,
+        'transaction_uuid': transaction_uuid,
+    }
+    
+    return render(request, 'products/payment.html', context)
+
+
+
+
+
+ 
+
+
+
+
+@csrf_exempt
+def payment_success(request):
+    try:
+        # Get data from eSewa
+        pid = request.GET.get('pid')
+        amount = request.GET.get('amt')
+        refId = request.GET.get('refId')
+        
+        # Get pending order from session
+        pending_payment = request.session.get('pending_order_payment')
+        if not pending_payment:
+            messages.error(request, "No pending payment found")
+            return redirect('products:home')
+            
+        order_id = pending_payment.get('order_id')
+        transaction_id = pending_payment.get('transaction_id')
+        
+        # Find the order
+        order = get_object_or_404(Order, id=order_id)
+        
+        # Update order status
+        order.payment_status = True
+        order.status = 'processing'  # Change as needed
+        order.save()
+        
+        # Create payment record
+        Payment.objects.create(
+            order=order,
+            amount=amount,
+            transaction_id=refId,
+            payment_method='esewa',
+            status='completed'
+        )
+        
+        # Clear session
+        del request.session['pending_order_payment']
+        
+        # Add notification/send email
+        
+        messages.success(request, "Payment successful!")
+        return redirect('products:order_confirmation', order_id=order.id)
+        
+    except Exception as e:
+        messages.error(request, f"Error processing payment: {str(e)}")
+        return redirect('products:checkout')
+
+
+
 
 
 
@@ -2296,63 +2420,131 @@ from .utils import generate_otp, send_otp_to_email
 @login_required
 def subscription_plans(request):
     """View to display available subscription plans"""
-    # Get all subscription plans
+    # Get all subscription plans grouped by period
     plans = {
-        'monthly': SubscriptionPlan.objects.filter(period='monthly'),
-        'quarterly': SubscriptionPlan.objects.filter(period='quarterly'),
-        'annual': SubscriptionPlan.objects.filter(period='annual'),
+        'monthly': SubscriptionPlan.objects.filter(period='monthly', is_active=True),
+        'quarterly': SubscriptionPlan.objects.filter(period='quarterly', is_active=True),
+        'annual': SubscriptionPlan.objects.filter(period='annual', is_active=True),
     }
     
     # Get vendor's current subscription
     try:
         current_subscription = Subscription.objects.get(vendor=request.user)
-    except Subscription.DoesNotExist:
-        # Create a trial subscription if none exists
-        end_date = timezone.now() + timezone.timedelta(days=10)
-        current_subscription = Subscription.objects.create(
-            vendor=request.user,
-            status='trial',
-            start_date=timezone.now(),
-            end_date=end_date,
-            is_trial=True
+        
+        # Calculate days remaining
+        now = timezone.now()
+        if current_subscription.end_date > now:
+            days_remaining = (current_subscription.end_date - now).days
+        else:
+            days_remaining = 0
+            # Update subscription status if it has expired
+            if current_subscription.status != 'expired':
+                current_subscription.status = 'expired'
+                current_subscription.save()
+                
+                # Disable subdomain if subscription expired
+                try:
+                    vendor_settings = VendorSetting.objects.get(vendor=request.user)
+                    if vendor_settings.is_subdomain_active:
+                        vendor_settings.is_subdomain_active = False
+                        vendor_settings.save()
+                        
+                        # Create notification
+                        Notification.objects.create(
+                            vendor=request.user,
+                            message="Your subscription has expired. Your subdomain has been deactivated.",
+                            notification_type='subscription_update'
+                        )
+                except VendorSetting.DoesNotExist:
+                    pass
+        
+        # Check if free trial has been used before
+        has_used_trial = current_subscription.is_trial or (
+            not current_subscription.is_trial and 
+            Subscription.objects.filter(vendor=request.user, is_trial=True).exists()
         )
-    
-    # Calculate days remaining in subscription
-    now = timezone.now()
-    if current_subscription.end_date > now:
-        days_remaining = (current_subscription.end_date - now).days
-    else:
+        
+    except Subscription.DoesNotExist:
+        current_subscription = None
         days_remaining = 0
-        # Update subscription status if it has expired
-        if current_subscription.status != 'expired':
-            current_subscription.status = 'expired'
-            current_subscription.save()
-            
-            # Disable subdomain if subscription expired
-            try:
-                vendor_settings = VendorSetting.objects.get(vendor=request.user)
-                if vendor_settings.is_subdomain_active:
-                    vendor_settings.is_subdomain_active = False
-                    vendor_settings.save()
-                    
-                    # Create notification for vendor
-                    Notification.objects.create(
-                        vendor=request.user,
-                        message="Your subscription has expired. Your subdomain has been deactivated.",
-                        notification_type='subscription_update'
-                    )
-            except VendorSetting.DoesNotExist:
-                pass
+        has_used_trial = False
     
-    # Don't assign to the property, pass it to the context instead
     context = {
         'plans': plans,
         'subscription': current_subscription,
-        'days_remaining': days_remaining,  # Pass as separate context variable
+        'days_remaining': days_remaining,
+        'show_free_trial': True,  # Always show free trial box
+        'free_trial_days': 10,
+        'has_used_trial': has_used_trial,  # Pass this to template to disable button if needed
         'active_tab': 'subscription'
     }
     
     return render(request, 'accounts/subscription_plans.html', context)
+
+
+@login_required
+def start_trial(request):
+    """Start a 10-day free trial for the vendor"""
+    if request.method == 'POST':
+        try:
+            # Check if they're eligible (expired or no subscription)
+            subscription = None
+            try:
+                subscription = Subscription.objects.get(vendor=request.user)
+                if subscription.status != 'expired':
+                    messages.error(request, "You already have an active subscription")
+                    return redirect('accounts:subscription_plans')
+            except Subscription.DoesNotExist:
+                pass
+            
+            # Create new trial subscription
+            now = timezone.now()
+            end_date = now + timezone.timedelta(days=10)
+            
+            # Update or create
+            if subscription:
+                subscription.status = 'trial'
+                subscription.start_date = now
+                subscription.end_date = end_date
+                subscription.is_trial = True
+                subscription.save()
+            else:
+                Subscription.objects.create(
+                    vendor=request.user,
+                    status='trial',
+                    start_date=now,
+                    end_date=end_date,
+                    is_trial=True
+                )
+            
+            # Enable subdomain if it exists
+            try:
+                vendor_settings = VendorSetting.objects.get(vendor=request.user)
+                if vendor_settings.subdomain and not vendor_settings.is_subdomain_active:
+                    vendor_settings.is_subdomain_active = True
+                    vendor_settings.save()
+                    
+                    # Ensure subdomain record exists
+                    Subdomain.objects.get_or_create(
+                        vendor=request.user,
+                        defaults={'subdomain': vendor_settings.subdomain}
+                    )
+            except VendorSetting.DoesNotExist:
+                pass
+            
+            # Create notification
+            Notification.objects.create(
+                vendor=request.user,
+                message="Your 10-day free trial has started!",
+                notification_type='subscription_update'
+            )
+            
+            messages.success(request, "Your 10-day free trial has been activated!")
+            
+        except Exception as e:
+            messages.error(request, f"Error starting trial: {str(e)}")
+            
+    return redirect('accounts:subscription_plans')
 
 
 
@@ -2532,3 +2724,6 @@ def customer_delete_account(request, subdomain):
     return render(request, "accounts/customer_confirm_delete.html", {
         "vendor": vendor
     })
+    
+    
+    

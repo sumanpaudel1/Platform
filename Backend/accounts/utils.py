@@ -164,60 +164,47 @@ from datetime import datetime
 
 class EsewaSubscriptionPayment:
     def __init__(self):
-        self.merchant_id = "EPAYTEST"
-        # Use the modern v2 API endpoint
-        self.test_url = "https://rc-epay.esewa.com.np/api/epay/main/v2/form"
-        self.secret_key = "8gBm/:&EnhH.1/q"
+        self.merchant_id  = "EPAYTEST"
+        self.test_url     = "https://rc-epay.esewa.com.np/api/epay/main/v2/form"
+        self.secret_key   = "8gBm/:&EnhH.1/q"
 
     def generate_signature(self, total_amount, transaction_uuid, product_code):
-        # Create signature string in exact format required
-        message = f"total_amount={total_amount},transaction_uuid={transaction_uuid},product_code={product_code}"
-        
-        # Generate HMAC signature
-        hmac_obj = hmac.new(
-            key=self.secret_key.encode(),
-            msg=message.encode(),
-            digestmod=hashlib.sha256
-        )
-        signature = base64.b64encode(hmac_obj.digest()).decode()
-        return signature
+        msg = f"total_amount={total_amount},transaction_uuid={transaction_uuid},product_code={product_code}"
+        h = hmac.new(self.secret_key.encode(), msg.encode(), hashlib.sha256).digest()
+        return base64.b64encode(h).decode()
 
-    def generate_payment_data(self, subscription_data):
-        """
-        Generate payment parameters for eSewa subscription payments
-        
-        Args:
-            subscription_data: An object with transaction_id and price attributes
-            
-        Returns:
-            tuple: (payment_url, params)
-        """
-        # Format amount to 2 decimal places
-        amount = "{:.2f}".format(float(subscription_data.price))
-        
-        # Use the v2 parameter format
+    def generate_payment_data(self, subscription_data, host: str):
+        amount = f"{float(subscription_data.price):.2f}"
+        txn    = subscription_data.transaction_id
+        code   = self.merchant_id
+
+        # only these three get signed, just like in products.utils.EsewaPayment
+        signed = ["total_amount", "transaction_uuid", "product_code"]
+
         params = {
-            'amt': amount,
-            'pdc': '0',
-            'psc': '0', 
-            'txAmt': '0',
-            'tAmt': amount,
-            'pid': subscription_data.transaction_id,
-            'scd': self.merchant_id,
-            'su': 'http://127.0.0.1:8080/esewa/subscription/success/',
-            'fu': 'http://127.0.0.1:8080/esewa/subscription/failure/',
+            "amount":                  amount,
+            "tax_amount":              "0",
+            "total_amount":            amount,
+            "transaction_uuid":        txn,
+            "product_code":            code,
+            "product_service_charge":  "0",
+            "product_delivery_charge": "0",
+            "success_url":             f"http://{host}/esewa/subscription/success/",
+            "failure_url":             f"http://{host}/esewa/subscription/failure/",
+            "signed_field_names":      ",".join(signed),
         }
-        
-        # Add signature for v2 API
-        params['signature'] = self.generate_signature(
-            total_amount=amount,
-            transaction_uuid=subscription_data.transaction_id,
-            product_code=self.merchant_id
-        )
-        
-        params['signed_field_names'] = "total_amount,transaction_uuid,product_code"
-        
+
+        # build signature over exactly those three
+        msg = ",".join(f"{k}={params[k]}" for k in signed)
+        sig = hmac.new(
+            self.secret_key.encode(),
+            msg.encode(),
+            hashlib.sha256
+        ).digest()
+        params["signature"] = base64.b64encode(sig).decode()
+
         return self.test_url, params
+
     
     
     

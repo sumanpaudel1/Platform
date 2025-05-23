@@ -95,19 +95,16 @@ urlpatterns = [
     # Add these paths to your urlpatterns
     path('subscription/plans/', views.subscription_plans, name='subscription_plans'),
     # Add these to accounts/urls.py
+    # Remove any duplicate URLs and make sure you only have these three for payment
+    # IMPORTANT: Remove any duplicate path entries and keep only these three for subscription payment
     path('esewa/subscription/payment/<int:plan_id>/', views.subscription_esewa_payment, name='subscription_esewa_payment'),
-    path('esewa/subscription/success/', views.subscription_payment_success, name='subscription_esewa_success'),
-    path('esewa/subscription/failure/', views.subscription_payment_failure, name='subscription_esewa_failure'),
-        
-        # Add these URL patterns to match the template
-    path('payment/failure/', views.subscription_payment_failure, name='subscription_payment_failure'),  
-    # Add this to your urlpatterns list
-    path('subscription/payment/success/', views.subscription_payment_success, name='subscription_payment_success'), 
+    path('esewa/subscription/success/', views.subscription_payment_success, name='subscription_payment_success'),
+    path('esewa/subscription/failure/', views.subscription_payment_failure, name='subscription_payment_failure'),
     path('dashboard/subscription/', views.vendor_subscription_tab, name='vendor_subscription_tab'),
     # In urls.py
 
 # Add these paths to your urlpatterns
-  path('esewa/subscription/payment/<int:plan_id>/', views.subscription_payment_process, name='subscription_payment_process'), 
+
   path(
     '<str:subdomain>.platform/vendor/reviews/',
     views.vendor_reviews,
@@ -126,6 +123,9 @@ urlpatterns = [
     path("<str:subdomain>.platform/customer/delete-account/",
          views.customer_delete_account,
          name="customer_delete_account"), 
+    
+
+    path('subscription/start-trial/', views.start_trial, name='start_trial'),
 ]
 
     # path('home/products/<int:product_id>/add-color/', views.add_product_color, name='add_product_color'),
