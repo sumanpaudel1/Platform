@@ -61,7 +61,7 @@
                     
                     {% if product.cut_price %}
                     <div class="absolute top-4 left-4 bg-red-500 text-white px-4 py-2 rounded-full text-sm font-medium shadow-lg">
-                        SAVE {{ product.discount_percentage }}%
+                        SAVE {{ product.discount_percentage|floatformat:0 }}%
                     </div>
                     {% endif %}
                     
@@ -96,14 +96,27 @@
                 <div class="space-y-4">
                     <h1 class="text-4xl font-bold text-gray-900 tracking-tight">{{ product.name }}</h1>
                     <div class="flex items-center space-x-4">
-                        <div class="flex items-center">
-                            <div class="flex text-yellow-400 text-sm">
-                                {% for i in "12345" %}
-                                <i class="fas fa-star"></i>
+                            <div class="flex items-center">
+                            {% with stars=avg_rating|floatformat:0 %}
+                                <div class="flex text-sm">
+                                {% for _ in "12345" %}
+                                    <i class="{% if forloop.counter <= stars %}
+                                                fas fa-star text-yellow-400
+                                            {% else %}
+                                                far fa-star text-gray-300
+                                            {% endif %}"></i>
                                 {% endfor %}
+                                </div>
+                            {% endwith %}
+
+                            {% if product.reviews.count %}
+                                <span class="ml-2 text-sm text-gray-500">
+                                ({{ product.reviews.count }} reviews · avg {{ avg_rating|floatformat:1 }})
+                                </span>
+                            {% else %}
+                                <span class="ml-2 text-sm text-gray-500">(No reviews yet)</span>
+                            {% endif %}
                             </div>
-                            <span class="ml-2 text-sm text-gray-500">(121 reviews)</span>
-                        </div>
                         <span class="text-green-600 text-sm font-medium">In Stock</span>
                     </div>
                 </div>

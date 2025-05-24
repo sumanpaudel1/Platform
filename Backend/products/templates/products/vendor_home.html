@@ -227,9 +227,6 @@
 </section>
 
 
-
-
-
 <!-- Enhanced Featured Products With Modern UI and Animations -->
 <section id="featured" class="py-20 bg-white">
     <div class="container mx-auto px-6">
@@ -313,20 +310,20 @@
                             </div>
                             
                             <!-- Star Rating -->
-                            <div class="flex items-center text-sm text-amber-400">
-                            {% for i in "12345" %}
-                                {% with score=product.avg_rating|default:0 %}
-                                {% if forloop.counter <= score|floatformat:0 %}
-                                    <i class="fas fa-star"></i>
-                                {% elif forloop.counter <= score|add:"0.5"|floatformat:0 %}
-                                    <i class="fas fa-star-half-alt"></i>
-                                {% else %}
-                                    <i class="far fa-star"></i>
-                                {% endif %}
+                                {% with avg=product.avg_rating|default:0|floatformat:0 %}
+                                <div class="flex items-center space-x-1 text-sm">
+                                    {% for _ in "12345" %}
+                                    <i class="{% if forloop.counter <= avg %}
+                                                fas fa-star text-yellow-400
+                                                {% else %}
+                                                far fa-star text-gray-300
+                                                {% endif %}"></i>
+                                    {% endfor %}
+                                    {% if product.review_count %}
+                                    <span class="text-gray-500 text-xs">({{ product.review_count }})</span>
+                                    {% endif %}
+                                </div>
                                 {% endwith %}
-                            {% endfor %}
-                            <span class="ml-2 text-gray-500 text-xs">({{ product.review_count }})</span>
-                            </div>
                         </div>
                     </div>
                     
@@ -494,10 +491,10 @@
                                 {% endif %}
                                 
                                 <!-- Sale Badge -->
-                                {% if product.cut_price %}
-                                    <div class="absolute top-3 left-3 bg-red-500 text-white px-3 py-1 rounded-full text-xs font-medium">
-                                        {{ product.discount_percentage|floatformat:0 }}% OFF
-                                    </div>
+                                {% if product.cut_price and product.discount_percentage > 0 %}
+                                <div class="badge">
+                                    {{ product.discount_percentage|floatformat:0 }}% OFF
+                                </div>
                                 {% endif %}
                                 
                                 <!-- Stock Status Badge -->
@@ -843,7 +840,7 @@
             {% endif %}
         </div>
         
-        <!-- Instagram Feed with 4 Posts -->
+        {% comment %} <!-- Instagram Feed with 4 Posts -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
             {% if instagram_posts %}
                 {% for post in instagram_posts|slice:":4" %}
@@ -890,7 +887,7 @@
                     </p>
                 </div>
             {% endif %}
-        </div>
+        </div> {% endcomment %}
         
         <!-- Instagram Follow Button -->
         <div class="text-center mt-10 animate-on-scroll">

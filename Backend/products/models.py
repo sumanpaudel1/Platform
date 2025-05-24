@@ -80,6 +80,12 @@ class Product(models.Model):
                 print(f"Product {self.id} automatically indexed for image search")
             except Exception as e:
                 print(f"Error indexing product {self.id}: {e}")
+                
+    @property
+    def discount_percentage(self):
+        if self.cut_price and self.cut_price > self.price:
+            return ((self.cut_price - self.price) / self.cut_price) * 100
+        return 0
 
     def __str__(self):
         return self.name

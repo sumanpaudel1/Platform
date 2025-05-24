@@ -5,7 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from accounts.models import Subdomain
-from .models import Product, Category, Cart, Wishlist, ColorVariant
+from .models import Product, Category, Cart, Wishlist, ColorVariant, SizeVariant
 from accounts.models import Vendor,VendorSetting ,Subdomain
 from datetime import datetime
 from django.conf import settings
@@ -68,8 +68,13 @@ def vendor_home(request, subdomain):
                 print("Customer not found in database")
         
         # Get all products and new arrivals
-        products = Product.objects.filter(vendor=vendor)\
-            .select_related('category')\
+        products = Product.objects.filter(vendor=vendor) \
+            .annotate(
+            avg_rating=Avg('reviews__rating'),
+            review_count=Count('reviews')
+            ) \
+            .prefetch_related('reviews') \
+            .select_related('category') \
             .prefetch_related('product_images')
             
         new_arrivals = products.order_by('-created_at')[:8]
@@ -110,6 +115,7 @@ def vendor_home(request, subdomain):
             
             "vendor_avg": stats["avg"] or 0,
             "vendor_reviews": stats["cnt"]
+            
         }
         
         if vendor.settings.instagram:
@@ -232,6 +238,8 @@ def product_detail(request, subdomain, slug):
         'size_variant'
     ), slug=slug, vendor=vendor)
     
+    agg = product.reviews.aggregate(avg=Avg('rating'))
+    avg_rating = agg['avg'] or 0
     
     # Get similar products using AI-based recommendation
     similar_products = []
@@ -264,6 +272,7 @@ def product_detail(request, subdomain, slug):
         'product': product,
         'related_products': similar_products,
         'flask_server_url': 'https://5000-gpu-t4-s-1d60yj0vdo03r-c.asia-southeast1-0.prod.colab.dev',
+        'avg_rating': avg_rating,
     }
     
     reviews = product.reviews.all()
@@ -589,56 +598,60 @@ def wishlist_view(request, subdomain):
 
 
 
-from django.http import JsonResponse
 import json
+import logging
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404
+from django.views.decorators.http import require_http_methods
+from .models import Wishlist, Product
+from accounts.models import Customer
+
+logger = logging.getLogger(__name__)
 
 @require_http_methods(["POST"])
-def toggle_wishlist(request):
-    """Toggle product in wishlist"""
-    # Change this:
-    # if not request.user.is_authenticated:
-    
-    # To this:
-    if not request.session.get('customer_id'):
+def toggle_wishlist(request, product_id=None):
+    """
+    Toggle a product in the wishlist.
+    If product_id is passed in the URL, use it; otherwise read from JSON body.
+    """
+    # 1) Must be logged in via session
+    customer_id = request.session.get('customer_id')
+    if not customer_id:
         return JsonResponse({'status': 'error', 'message': 'Login required'}, status=401)
-    
-    try:
-        
-        if product_id is None:
-            data = json.loads(request.body)
-            product_id = data.get('product_id')
-        product = get_object_or_404(Product, id=product_id)
-        
-        # Get customer from session (NOT from request.user)
-        customer = get_object_or_404(Customer, id=request.session['customer_id'])
-        
-        # Check if product is already in wishlist
-        wishlist_item = Wishlist.objects.filter(customer=customer, product=product).first()
-        
-        if wishlist_item:
-            # Remove from wishlist
-            wishlist_item.delete()
-            message = f"{product.name} removed from wishlist"
-            added = False
-        else:
-            # Add to wishlist
-            Wishlist.objects.create(customer=customer, product=product, vendor=product.vendor)
-            message = f"{product.name} added to wishlist"
-            added = True
-            
-        # Get updated wishlist count
-        wishlist_count = Wishlist.objects.filter(customer=customer).count()
-            
-        return JsonResponse({
-            'status': 'success', 
-            'message': message, 
-            'added': added,
-            'wishlist_count': wishlist_count
-        })
-        
-    except Exception as e:
-        logger.error(f"Error in toggle_wishlist: {str(e)}")
-        return JsonResponse({'status': 'error', 'message': str(e)})
+
+    # 2) Pull product_id from body if not in URL
+    if product_id is None:
+        try:
+            payload = json.loads(request.body)
+            product_id = payload.get('product_id')
+        except ValueError:
+            return JsonResponse({'status': 'error', 'message': 'Invalid JSON'}, status=400)
+    if not product_id:
+        return JsonResponse({'status': 'error', 'message': 'No product_id provided'}, status=400)
+
+    # 3) Lookup objects
+    product = get_object_or_404(Product, id=product_id)
+    customer = get_object_or_404(Customer, id=customer_id)
+
+    # 4) Toggle
+    item = Wishlist.objects.filter(customer=customer, product=product).first()
+    if item:
+        item.delete()
+        added = False
+        msg = f"{product.name} removed from wishlist"
+    else:
+        Wishlist.objects.create(customer=customer, product=product, vendor=product.vendor)
+        added = True
+        msg = f"{product.name} added to wishlist"
+
+    # 5) Return new count
+    count = Wishlist.objects.filter(customer=customer).count()
+    return JsonResponse({
+        'status': 'success',
+        'message': msg,
+        'added': added,
+        'wishlist_count': count
+    })
 
 
 
