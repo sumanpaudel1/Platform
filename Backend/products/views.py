@@ -80,7 +80,7 @@ def vendor_home(request, subdomain):
         new_arrivals = products.order_by('-created_at')[:8]
         
         from ai_features.services import get_recommended_products_for_homepage
-        recommended_products = get_recommended_products_for_homepage(vendor)
+        recommended_products = get_recommended_products_for_homepage(vendor, max_items=8)
         
         stats = Review.objects \
                     .filter(product__vendor=vendor) \

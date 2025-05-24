@@ -136,7 +136,7 @@ def get_recommended_products_for_homepage(vendor, max_items=8):
             recommended = recommender.get_recommended_products(
                 vendor_id=vendor.id,
                 max_items=max_items,
-                threshold=60.0
+                threshold=50.0
             )
             
             if recommended:
