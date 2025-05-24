@@ -41,7 +41,6 @@ from accounts.models import StorePhoto
 from django.views.decorators.cache import cache_page
 
 @cache_page(60 * 15)
-@vendor_login_required
 def vendor_home(request, subdomain):
     try:
         if hasattr(request, 'cleaned_subdomain') and request.cleaned_subdomain:
@@ -53,8 +52,8 @@ def vendor_home(request, subdomain):
             subdomain_obj = get_object_or_404(Subdomain, subdomain=subdomain)
             vendor = subdomain_obj.vendor
             
-        customer = request.customer
-        vendor = request.vendor
+        # customer = request.customer
+        # vendor = request.vendor
         
         customer = None
         if request.session.get('customer_id'):
@@ -392,33 +391,32 @@ def cart_count(request):
 from django.db.models import Sum, F
 
 # Update the cart_view function
+
 def cart_view(request, subdomain):
     subdomain = subdomain.replace('.platform', '')
-    subdomain_obj = get_object_or_404(Subdomain, subdomain=subdomain)
-    vendor = subdomain_obj.vendor
-    
-    try:
-        customer = get_object_or_404(Customer, id=request.session.get('customer_id'))
-        cart_items = Cart.objects.filter(customer=customer, vendor=vendor)
-        
-        # Calculate subtotal using F() expression
-        subtotal = cart_items.aggregate(
-            total=Sum(F('product__price') * F('quantity'))
-        )['total'] or 0
-        
-        context = {
-            'cart_items': cart_items,
-            'subtotal': subtotal,
-            'total': subtotal,  # Add shipping calculation here if needed
-            'vendor': vendor,
-            'customer': customer
-        }
-        
-        return render(request, 'products/cart.html', context)
-    
-    except Customer.DoesNotExist:
+    # redirect guests straight to login
+    if not request.session.get('customer_id'):
         messages.error(request, "Please login to view your cart")
         return redirect('accounts:customer_login', subdomain=subdomain)
+
+    subdomain_obj = get_object_or_404(Subdomain, subdomain=subdomain)
+    vendor = subdomain_obj.vendor
+    # now safely load the Customer
+    customer = get_object_or_404(Customer, id=request.session['customer_id'])
+    cart_items = Cart.objects.filter(customer=customer, vendor=vendor)
+
+    # Calculate subtotal
+    subtotal = cart_items.aggregate(
+        total=Sum(F('product__price') * F('quantity'))
+    )['total'] or 0
+
+    return render(request, 'products/cart.html', {
+        'cart_items': cart_items,
+        'subtotal': subtotal,
+        'total': subtotal,
+        'vendor': vendor,
+        'customer': customer
+    })
 
 
 from django.http import JsonResponse
@@ -570,31 +568,26 @@ def remove_from_cart(request, item_id):
     }, status=400)
 
 
-
-
-
 # wish list implementation
 
 def wishlist_view(request, subdomain):
     subdomain = subdomain.replace('.platform', '')
-    subdomain_obj = get_object_or_404(Subdomain, subdomain=subdomain)
-    vendor = subdomain_obj.vendor
-    
-    try:
-        customer = get_object_or_404(Customer, id=request.session.get('customer_id'))
-        wishlist_items = Wishlist.objects.filter(customer=customer, vendor=vendor)
-        
-        context = {
-            'wishlist_items': wishlist_items,
-            'vendor': vendor,
-            'customer': customer
-        }
-        
-        return render(request, 'products/wishlist.html', context)
-    
-    except Customer.DoesNotExist:
+    # redirect guests straight to login
+    if not request.session.get('customer_id'):
         messages.error(request, "Please login to view your wishlist")
         return redirect('accounts:customer_login', subdomain=subdomain)
+
+    subdomain_obj = get_object_or_404(Subdomain, subdomain=subdomain)
+    vendor = subdomain_obj.vendor
+    # now safely load the Customer
+    customer = get_object_or_404(Customer, id=request.session['customer_id'])
+    wishlist_items = Wishlist.objects.filter(customer=customer, vendor=vendor)
+
+    return render(request, 'products/wishlist.html', {
+        'wishlist_items': wishlist_items,
+        'vendor': vendor,
+        'customer': customer
+    })
 
 
 

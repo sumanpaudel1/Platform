@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Clothy - Vendor Platform</title>
+    <title>PLATFORM - Vendor Platform</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -104,7 +104,7 @@
             <div class="flex justify-between h-16">
                 <div class="flex items-center">
                     <a href="#" class="flex-shrink-0 flex items-center">
-                        <span class="text-2xl font-bold text-blue-600">Clothy</span>
+                        <span class="text-2xl font-bold text-blue-600">PLATFORM</span>
                         <span class="text-sm ml-2 text-gray-500 hidden sm:inline-block">Business Platform</span>
                     </a>
                 </div>
@@ -304,256 +304,103 @@
     </section>
 
     <!-- Pricing Section -->
-    <section id="plans" class="py-16 md:py-24 bg-white">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center" data-aos="fade-up">
-                <h2 class="text-base text-blue-600 font-semibold tracking-wide uppercase">Pricing</h2>
-                <p class="mt-2 text-3xl font-extrabold text-gray-900 sm:text-4xl">Choose Your Plan</p>
-                <p class="mt-4 max-w-2xl text-xl text-gray-500 mx-auto">
-                    Flexible subscription options to support your business growth
-                </p>
-            </div>
-            
-            <!-- Subscription Toggle -->
-            <div class="flex justify-center mt-8">
-                <div class="subscription-toggle p-1 bg-gray-100 rounded-lg inline-flex" data-aos="fade-up">
-                    <button class="px-4 py-2 rounded-md text-sm font-medium subscription-period active" data-period="monthly">Monthly</button>
-                    <button class="px-4 py-2 rounded-md text-sm font-medium subscription-period" data-period="quarterly">Quarterly</button>
-                    <button class="px-4 py-2 rounded-md text-sm font-medium subscription-period" data-period="annual">Annual</button>
-                </div>
-            </div>
-            
-            <div class="mt-12 space-y-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-6 xl:gap-8">
-                <!-- Starter Plan -->
-                <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-6 md:p-8 flex flex-col pricing-card" data-aos="fade-up" data-aos-delay="100">
-                    <div>
-                        <h3 class="text-lg md:text-xl font-semibold text-gray-900">Starter</h3>
-                        <div class="mt-4 subscription-price" data-monthly="Free" data-quarterly="Free" data-annual="Free">
-                            <span class="text-4xl md:text-5xl font-extrabold text-gray-900">Free</span>
-                            <span class="ml-1 text-xl font-medium text-gray-500"></span>
-                        </div>
-                        <p class="mt-4 text-gray-500">Perfect for new businesses getting started with online sales.</p>
-                        
-                        <ul class="mt-6 space-y-3">
-                            <li class="flex">
-                                <svg class="flex-shrink-0 h-5 w-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                                </svg>
-                                <span class="ml-2 text-gray-500">Up to 10 products</span>
-                            </li>
-                            <li class="flex">
-                                <svg class="flex-shrink-0 h-5 w-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                                </svg>
-                                <span class="ml-2 text-gray-500">Basic analytics</span>
-                            </li>
-                            <li class="flex">
-                                <svg class="flex-shrink-0 h-5 w-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                                </svg>
-                                <span class="ml-2 text-gray-500">Custom subdomain</span>
-                            </li>
-                            <li class="flex">
-                                <svg class="flex-shrink-0 h-5 w-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                                </svg>
-                                <span class="ml-2 text-gray-500">8% transaction fee</span>
-                            </li>
-                        </ul>
-                    </div>
-                    
-                    <div class="mt-8 sm:mt-auto">
-                        <a href="{% url 'accounts:register' %}" class="w-full inline-flex justify-center py-2 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-blue-600 bg-blue-100 hover:bg-blue-200 transition-colors">
-                            Start for Free
-                        </a>
-                    </div>
-                </div>
-                
-                <!-- Pro Plan -->
-                <div class="relative bg-white border-2 border-blue-600 rounded-lg shadow-lg p-6 md:p-8 flex flex-col pricing-card pricing-popular" data-aos="fade-up" data-aos-delay="200">
-                    <div class="absolute top-0 right-0 transform translate-x-1/4 -translate-y-1/4">
-                        <span class="bg-blue-600 text-white text-xs px-3 py-1 rounded-full uppercase font-semibold tracking-wide shadow-md">
-                            Popular
-                        </span>
-                    </div>
-                    <div>
-                        <h3 class="text-lg md:text-xl font-semibold text-gray-900">Professional</h3>
-                        <div class="mt-4 subscription-price" data-monthly="$49" data-quarterly="$139" data-annual="$470">
-                            <span class="text-4xl md:text-5xl font-extrabold text-gray-900">$49</span>
-                            <span class="ml-1 text-xl font-medium text-gray-500">/month</span>
-                        </div>
-                        <p class="mt-4 text-gray-500">For growing businesses ready to scale their online presence.</p>
-                        
-                        <ul class="mt-6 space-y-3">
-                            <li class="flex">
-                                <svg class="flex-shrink-0 h-5 w-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                                </svg>
-                                <span class="ml-2 text-gray-500">Up to 500 products</span>
-                            </li>
-                            <li class="flex">
-                                <svg class="flex-shrink-0 h-5 w-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                                </svg>
-                                <span class="ml-2 text-gray-500">Advanced analytics</span>
-                            </li>
-                            <li class="flex">
-                                <svg class="flex-shrink-0 h-5 w-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                                </svg>
-                                <span class="ml-2 text-gray-500">AI recommendations</span>
-                            </li>
-                            <li class="flex">
-                                <svg class="flex-shrink-0 h-5 w-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                                </svg>
-                                <span class="ml-2 text-gray-500">Custom domain</span>
-                            </li>
-                            <li class="flex">
-                                <svg class="flex-shrink-0 h-5 w-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                                </svg>
-                                <span class="ml-2 text-gray-500">3% transaction fee</span>
-                            </li>
-                        </ul>
-                    </div>
-                    
-                    <div class="mt-8 sm:mt-auto">
-                        <button onclick="showPaymentModal('Professional')" class="w-full inline-flex justify-center py-2 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors">
-                            Subscribe Now
-                        </button>
-                    </div>
-                </div>
-                
-                <!-- Enterprise Plan -->
-                <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-6 md:p-8 flex flex-col pricing-card" data-aos="fade-up" data-aos-delay="300">
-                    <div>
-                        <h3 class="text-lg md:text-xl font-semibold text-gray-900">Enterprise</h3>
-                        <div class="mt-4 subscription-price" data-monthly="$199" data-quarterly="$549" data-annual="$1990">
-                            <span class="text-4xl md:text-5xl font-extrabold text-gray-900">$199</span>
-                            <span class="ml-1 text-xl font-medium text-gray-500">/month</span>
-                        </div>
-                        <p class="mt-4 text-gray-500">For established businesses with high volume sales and custom needs.</p>
-                        
-                        <ul class="mt-6 space-y-3">
-                            <li class="flex">
-                                <svg class="flex-shrink-0 h-5 w-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                                </svg>
-                                <span class="ml-2 text-gray-500">Unlimited products</span>
-                            </li>
-                            <li class="flex">
-                                <svg class="flex-shrink-0 h-5 w-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                                </svg>
-                                <span class="ml-2 text-gray-500">Enterprise analytics</span>
-                            </li>
-                            <li class="flex">
-                                <svg class="flex-shrink-0 h-5 w-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                                </svg>
-                                <span class="ml-2 text-gray-500">Advanced AI features</span>
-                            </li>
-                            <li class="flex">
-                                <svg class="flex-shrink-0 h-5 w-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                                </svg>
-                                <span class="ml-2 text-gray-500">Multi-domain support</span>
-                            </li>
-                            <li class="flex">
-                                <svg class="flex-shrink-0 h-5 w-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                                </svg>
-                                <span class="ml-2 text-gray-500">1% transaction fee</span>
-                            </li>
-                        </ul>
-                    </div>
-                    
-                    <div class="mt-8 sm:mt-auto">
-                        <button onclick="showPaymentModal('Enterprise')" class="w-full inline-flex justify-center py-2 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-blue-600 bg-blue-100 hover:bg-blue-200 transition-colors">
-                            Subscribe Now
-                        </button>
-                    </div>
-                </div>
-            </div>
+    <section id="plans" class="py-16 bg-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+        <!-- Header -->
+        <div class="text-center mb-12" data-aos="fade-up">
+        <h2 class="text-base text-blue-600 font-semibold uppercase tracking-wide">Pricing</h2>
+        <p class="mt-2 text-3xl font-extrabold text-gray-900 sm:text-4xl">Choose Your Plan</p>
         </div>
+
+        <!-- Period Toggle -->
+        <div class="flex justify-center mb-12" data-aos="fade-up">
+        <div class="inline-flex bg-gray-100 p-1 rounded-lg">
+            <button class="subscription-period px-4 py-2 text-sm font-medium rounded-md active" data-period="monthly">Monthly</button>
+            <button class="subscription-period px-4 py-2 text-sm font-medium rounded-md"          data-period="quarterly">Quarterly</button>
+            <button class="subscription-period px-4 py-2 text-sm font-medium rounded-md"          data-period="annual">Annual</button>
+        </div>
+        </div>
+
+        <!-- Plan Grids -->
+        <div class="space-y-8">
+        {% for group in plan_groups %}
+            <div class="period-content {% if group.period != 'monthly' %}hidden{% endif %}" data-period="{{ group.period }}">
+            <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+
+                <!-- Free Plan Card -->
+                <div class="border border-gray-200 rounded-lg shadow-sm p-6 flex flex-col hover:shadow-lg transition" data-aos="fade-up">
+                <h3 class="text-xl font-semibold text-gray-900">Free Plan</h3>
+                <p class="mt-4 text-gray-600 flex-1">Get started at no cost with basic features.</p>
+                <div class="mt-4">
+                    <span class="text-4xl font-extrabold text-gray-900">Free</span>
+                </div>
+                <ul class="mt-4 space-y-2 text-gray-600 text-sm flex-1">
+                    <li>Up to 5 products</li>
+                    <li>Community support</li>
+                    <li>Basic analytics</li>
+                </ul>
+                <a href="{% if user.is_authenticated %}{% url 'accounts:vendor_dashboard' %}{% else %}{% url 'accounts:register' %}{% endif %}"
+                    class="mt-6 inline-block text-center bg-gray-200 text-gray-800 py-2 rounded-md font-medium hover:bg-gray-300 transition">
+                    {% if user.is_authenticated %}Go to Dashboard{% else %}Sign Up Free{% endif %}
+                </a>
+                </div>
+
+                <!-- Paid Plans -->
+                {% for plan in group.plans %}
+                <div class="border border-gray-200 rounded-lg shadow-sm p-6 flex flex-col hover:shadow-lg transition" data-aos="fade-up">
+                    <h3 class="text-xl font-semibold text-gray-900">{{ plan.name }}</h3>
+                    <div class="mt-4">
+                    <span class="text-4xl font-extrabold text-gray-900">${{ plan.price }}</span>
+                    <span class="ml-1 text-lg text-gray-500">/{{ group.period|slice:":-2" }}</span>
+                    </div>
+                    <ul class="mt-4 space-y-2 text-gray-600 text-sm flex-1">
+                    <li>Up to {{ plan.max_products }} products</li>
+                    {% if plan.has_analytics %}<li>Advanced analytics</li>{% endif %}
+                    {% if plan.has_ai_recommendations %}<li>AI recommendations</li>{% endif %}
+                    {% if plan.custom_domain %}<li>Custom domain</li>{% endif %}
+                    <li>{{ plan.transaction_fee_percent }}% transaction fee</li>
+                    </ul>
+                    <a href="{% if user.is_authenticated %}
+                                {% url 'accounts:subscription_esewa_payment' plan.id %}?period={{ group.period }}
+                            {% else %}
+                                {% url 'accounts:register' %}
+                            {% endif %}"
+                    class="mt-6 inline-block text-center bg-indigo-600 text-white py-2 rounded-md font-medium hover:bg-indigo-700 transition">
+                    {% if user.is_authenticated %}Subscribe{% else %}Sign Up{% endif %}
+                    </a>
+                </div>
+                {% endfor %}
+
+            </div>
+            </div>
+        {% endfor %}
+        </div>
+    </div>
     </section>
 
     <!-- Testimonials Section -->
     <section id="testimonials" class="py-16 md:py-24 bg-gray-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center" data-aos="fade-up">
-                <h2 class="text-base text-blue-600 font-semibold tracking-wide uppercase">Testimonials</h2>
-                <p class="mt-2 text-3xl font-extrabold text-gray-900 sm:text-4xl">What Our Users Say</p>
-                <p class="mt-4 max-w-2xl text-xl text-gray-500 mx-auto">
-                    Success stories from businesses using our platform
-                </p>
+            <h2 class="text-base text-blue-600 font-semibold tracking-wide uppercase">Testimonials</h2>
+            <p class="mt-2 text-3xl font-extrabold text-gray-900 sm:text-4xl">What Our Users Say</p>
+            <p class="mt-4 max-w-2xl text-xl text-gray-500 mx-auto">
+                Success stories from businesses using our platform
+            </p>
             </div>
-            
-            <div class="mt-12 grid gap-8 md:grid-cols-3">
-                <!-- Testimonial 1 -->
-                <div class="bg-white p-6 rounded-lg shadow-md" data-aos="fade-up" data-aos-delay="100">
-                    <div class="flex items-center mb-4">
-                        <img src="https://randomuser.me/api/portraits/women/32.jpg" alt="Sarah" class="h-12 w-12 rounded-full object-cover">
-                        <div class="ml-4">
-                            <h4 class="font-medium text-lg">Sarah Johnson</h4>
-                            <p class="text-gray-600 text-sm">Fashion Boutique Owner</p>
-                        </div>
-                    </div>
-                    <div class="mb-4">
-                        <div class="flex text-yellow-400">
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                        </div>
-                    </div>
-                    <p class="text-gray-600">"Setting up my online boutique was incredibly easy with Clothy. The AI recommendations have increased my average order value by 28% in just two months!"</p>
-                </div>
-                
-                <!-- Testimonial 2 -->
-                <div class="bg-white p-6 rounded-lg shadow-md" data-aos="fade-up" data-aos-delay="200">
-                    <div class="flex items-center mb-4">
-                        <img src="https://randomuser.me/api/portraits/men/42.jpg" alt="Michael" class="h-12 w-12 rounded-full object-cover">
-                        <div class="ml-4">
-                            <h4 class="font-medium text-lg">Michael Chen</h4>
-                            <p class="text-gray-600 text-sm">Electronics Store Owner</p>
-                        </div>
-                    </div>
-                    <div class="mb-4">
-                        <div class="flex text-yellow-400">
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star-half-alt"></i>
-                        </div>
-                    </div>
-                    <p class="text-gray-600">"The image search feature is a game-changer for my electronics store. Customers can snap a photo of a gadget and find the exact model instantly."</p>
-                </div>
-                
-                <!-- Testimonial 3 -->
-                <div class="bg-white p-6 rounded-lg shadow-md" data-aos="fade-up" data-aos-delay="300">
-                    <div class="flex items-center mb-4">
-                        <img src="https://randomuser.me/api/portraits/women/65.jpg" alt="Priya" class="h-12 w-12 rounded-full object-cover">
-                        <div class="ml-4">
-                            <h4 class="font-medium text-lg">Priya Patel</h4>
-                            <p class="text-gray-600 text-sm">Jewelry Designer</p>
-                        </div>
-                    </div>
-                    <div class="mb-4">
-                        <div class="flex text-yellow-400">
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                        </div>
-                    </div>
-                    <p class="text-gray-600">"The analytics insights have helped me understand which designs are most popular. The eSewa integration made it simple for local customers to pay."</p>
-                </div>
+
+            <!-- About Us Blurb -->
+            <div class="text-center mt-12 mb-8" data-aos="fade-up" data-aos-delay="200">
+            <h3 class="text-2xl font-bold text-gray-800">Who We Are</h3>
+            <p class="mt-4 text-gray-600 max-w-3xl mx-auto">
+                At PLATFORM, we’re on a mission to empower small businesses to shine online.  
+                Our all-in-one platform combines beautiful, branded storefronts with AI-driven tools—  
+                from smart product recommendations to seamless visual search—so you can focus  
+                on what you do best: creating and selling.
+            </p>
             </div>
+
         </div>
     </section>
 
@@ -571,7 +418,7 @@
             <div class="mt-12 max-w-3xl mx-auto">
                 <!-- FAQ Item 1 -->
                 <div class="mb-8" data-aos="fade-up" data-aos-delay="100">
-                    <h3 class="text-xl font-medium text-gray-900">How do I get started with Clothy?</h3>
+                    <h3 class="text-xl font-medium text-gray-900">How do I get started with Platform?</h3>
                     <p class="mt-2 text-gray-600">Simply sign up for a free account, verify your email, and follow our guided setup process. You can have your own online store up and running in as little as 15 minutes.</p>
                 </div>
                 
@@ -601,7 +448,7 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center" data-aos="fade-up">
             <h2 class="text-3xl md:text-4xl font-bold">Ready to Digitize Your Business?</h2>
             <p class="mt-4 text-xl text-blue-100 max-w-2xl mx-auto">
-                Join thousands of successful vendors already growing their business with Clothy.
+                Join thousands of successful vendors already growing their business with Platform.
             </p>
             <div class="mt-8 flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4">
                 <a href="{% url 'accounts:register' %}" class="cta-button inline-flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-lg text-blue-700 bg-white hover:bg-gray-100 md:text-lg shadow-lg">
@@ -621,7 +468,7 @@
                 <!-- Company Info -->
                 <div class="col-span-1 md:col-span-2">
                     <div class="flex items-center">
-                        <span class="text-2xl font-bold text-white">Clothy</span>
+                        <span class="text-2xl font-bold text-white">PLATFORM</span>
                     </div>
                     <p class="mt-4 text-sm">The all-in-one e-commerce platform for small businesses. Sell online with powerful tools, beautiful storefronts, and AI recommendations that boost sales.</p>
                     <div class="mt-6 flex space-x-4">
@@ -662,7 +509,7 @@
             </div>
             
             <div class="mt-12 border-t border-gray-800 pt-8">
-                <p class="text-xs text-gray-400">© 2025 Clothy. All rights reserved.</p>
+                <p class="text-xs text-gray-400">© 2025 PLATFORM. All rights reserved.</p>
             </div>
         </div>
     </footer>
@@ -942,7 +789,16 @@
                 });
             }
         });
-    
+        // Subscription period toggle functionality
+    document.querySelectorAll('.subscription-period').forEach(btn=>{
+        btn.addEventListener('click',()=>{
+        const period = btn.dataset.period;
+        document.querySelectorAll('.subscription-period')
+                .forEach(b=>b.classList.toggle('active', b===btn));
+        document.querySelectorAll('.period-content')
+                .forEach(c=>c.classList.toggle('hidden', c.dataset.period!==period));
+        });
+    });
 
     </script>
 </body>

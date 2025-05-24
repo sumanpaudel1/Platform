@@ -2413,10 +2413,25 @@ def admin_subdomain_requests(request):
 
 
 
-# In accounts/views.py (line 2199)
 def landing_page(request):
-    """Display the landing page for vendors"""
-    return render(request, 'accounts/landingpage.html')
+    # define the three periods
+    period_list = ['monthly','quarterly','annual']
+
+    # load each period’s plans
+    plans = {
+      period: SubscriptionPlan.objects.filter(period=period, is_active=True).order_by('price')
+      for period in period_list
+    }
+
+    # turn into a list of dicts so the template can loop simply
+    plan_groups = [
+      {'period': period, 'plans': plans[period]}
+      for period in period_list
+    ]
+
+    return render(request, 'accounts/landingpage.html', {
+      'plan_groups': plan_groups
+    })
 
 
 # Add CollectionImage to this import statement
