@@ -1603,9 +1603,9 @@ def search_products(request, subdomain):
         # Apply search query
         if query:
             products = products.filter(
-                Q(name__icontains=query) | 
-                Q(description__icontains=query) |
-                Q(category__category_name__icontains=query)
+                Q(name__icontains=query)  
+                # Q(description__icontains=query) |
+                # Q(category__category_name__icontains=query)
             ).distinct()
         
         # Apply category filter
