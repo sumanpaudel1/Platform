@@ -160,9 +160,9 @@
                         <h3 class="font-medium text-gray-900 mb-1 truncate">{{ product.name }}</h3>
                         <div class="flex justify-between items-center">
                             <div class="flex items-baseline">
-                                <span class="text-lg font-bold text-[var(--primary)]">${{ product.price }}</span>
+                                <span class="text-lg font-bold text-[var(--primary)]">Rs{{ product.price }}</span>
                                 {% if product.cut_price %}
-                                <span class="ml-2 text-xs text-gray-500 line-through">${{ product.cut_price }}</span>
+                                <span class="ml-2 text-xs text-gray-500 line-through">Rs{{ product.cut_price }}</span>
                                 {% endif %}
                             </div>
                             

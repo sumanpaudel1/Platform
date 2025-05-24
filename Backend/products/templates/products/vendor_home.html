@@ -205,7 +205,7 @@
                         
                         <div class="p-4">
                             <h3 class="text-sm font-medium text-gray-900 truncate">{{ product.name }}</h3>
-                            <p class="mt-1 text-lg font-semibold text-[var(--primary)]">NPR {{ product.price }}</p>
+                            <p class="mt-1 text-lg font-semibold text-[var(--primary)]">Rs {{ product.price }}</p>
                             {% if product.similarity_score %}
                                 <div class="mt-1 flex items-center">
                                     <span class="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">
@@ -303,11 +303,11 @@
                         <div class="flex justify-between items-center mt-1.5">
                             <div class="flex items-end gap-2">
                                 <span class="text-lg font-bold text-[var(--primary)]">
-                                    ${{ product.price }}
+                                    Rs{{ product.price }}
                                 </span>
                                 {% if product.cut_price %}
                                     <span class="text-sm text-gray-400 line-through">
-                                        ${{ product.cut_price }}
+                                        Rs{{ product.cut_price }}
                                     </span>
                                 {% endif %}
                             </div>
@@ -423,9 +423,9 @@
                         <span class="text-xs text-[var(--accent)] font-medium mb-1 block">New Arrival</span>
                         <h3 class="font-medium mb-2 line-clamp-1">{{ product.name }}</h3>
                         <div class="flex items-end gap-2 mb-3">
-                            <span class="font-bold text-[var(--primary)]">${{ product.price }}</span>
+                            <span class="font-bold text-[var(--primary)]">Rs{{ product.price }}</span>
                             {% if product.cut_price %}
-                                <span class="text-sm text-gray-400 line-through">${{ product.cut_price }}</span>
+                                <span class="text-sm text-gray-400 line-through">Rs{{ product.cut_price }}</span>
                             {% endif %}
                         </div>
                         
@@ -550,9 +550,9 @@
                             
                             <!-- Price -->
                             <div class="flex items-center space-x-2 mt-2">
-                                <span class="text-xl font-bold text-[var(--primary)]">${{ product.price }}</span>
+                                <span class="text-xl font-bold text-[var(--primary)]">Rs{{ product.price }}</span>
                                 {% if product.cut_price %}
-                                    <span class="text-sm text-gray-500 line-through">${{ product.cut_price }}</span>
+                                    <span class="text-sm text-gray-500 line-through">Rs{{ product.cut_price }}</span>
                                 {% endif %}
                             </div>
                             
@@ -747,7 +747,7 @@
                     <i class="fas fa-truck text-[var(--primary)] text-2xl"></i>
                 </div>
                 <h3 class="text-xl font-bold mb-3">Free Fast Shipping</h3>
-                <p class="text-gray-600">Enjoy free shipping on all orders above $50. Quick delivery right to your doorstep.</p>
+                <p class="text-gray-600">Enjoy free shipping on all orders above Rs50. Quick delivery right to your doorstep.</p>
             </div>
             
             <!-- Premium Quality -->

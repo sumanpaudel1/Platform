@@ -42,8 +42,8 @@
                            class="w-full accent-[var(--primary)]"
                            id="priceRange">
                     <div class="flex justify-between text-sm text-gray-600">
-                        <span>$0</span>
-                        <span id="priceValue">${{ selected_price|default:max_price }}</span>
+                        <span>Rs0</span>
+                        <span id="priceValue">Rs{{ selected_price|default:max_price }}</span>
                     </div>
                 </div>
             </div>
@@ -99,9 +99,9 @@
                             <div class="mt-auto">
                                 <div class="flex justify-between items-center">
                                     <div class="flex flex-col">
-                                        <span class="text-lg font-bold text-[var(--primary)]">${{ product.price }}</span>
+                                        <span class="text-lg font-bold text-[var(--primary)]">Rs{{ product.price }}</span>
                                         {% if product.cut_price %}
-                                        <span class="text-sm text-gray-500 line-through">${{ product.cut_price }}</span>
+                                        <span class="text-sm text-gray-500 line-through">Rs{{ product.cut_price }}</span>
                                         {% endif %}
                                     </div>
                                     

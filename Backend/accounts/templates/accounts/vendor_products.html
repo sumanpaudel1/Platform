@@ -31,7 +31,7 @@
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if product.stock > 0 %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
                                 {% if product.stock > 0 %}In Stock ({{ product.stock }}){% else %}Out of Stock{% endif %}
                             </span>
-                            <div class="text-sm text-gray-900">${{ product.price }}</div>
+                            <div class="text-sm text-gray-900">Rs{{ product.price }}</div>
                             <div class="flex items-center space-x-4">
                                 <a href="{% url 'accounts:vendor_product_edit' product.pk %}" class="text-indigo-600 hover:text-indigo-900">Edit</a>
                                 <button onclick="deleteProduct({{ product.pk }})" class="text-red-600 hover:text-red-900">

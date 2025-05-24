@@ -124,40 +124,48 @@
 </div>
 
 <!-- Add Image Search Modal -->
+…  
+<!-- Add Image Search Modal -->
 <div id="imageSearchModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
-    <div class="bg-white rounded-lg p-6 max-w-lg w-full mx-4">
-        <div class="flex justify-between items-center mb-4">
-            <h3 class="text-lg font-semibold">Image Search</h3>
-            <button onclick="closeImageModal()" class="text-gray-500 hover:text-gray-700">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-        
-        <div class="space-y-4">
-            <!-- Image Preview -->
-            <div id="imagePreview" class="hidden">
-                <img src="" alt="Preview" class="w-full h-48 object-contain rounded-lg border">
-                <button onclick="removeImage()" 
-                        class="mt-2 text-red-500 text-sm hover:text-red-700">
-                    Remove Image
-                </button>
-            </div>
-            
-            <!-- Upload Area -->
-            <div id="uploadArea" class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-3"></i>
-                <p class="text-gray-600">Drag and drop an image here or click to upload</p>
-                <p class="text-sm text-gray-500 mt-2">Supported formats: JPG, PNG, JPEG</p>
-            </div>
-            
-            <!-- Search Button -->
-            <button onclick="submitImageSearch()" 
-                    class="w-full bg-[var(--primary)] text-white py-2 rounded-lg hover:bg-opacity-90 transition-colors">
-                Search with Image
-            </button>
-        </div>
+  <div class="bg-white rounded-lg p-6 max-w-lg w-full mx-4 relative">  <!-- make this relative -->
+
+    <!-- NEW: Loading overlay -->
+    <div id="imageSearchLoader"
+         class="absolute inset-0 bg-white bg-opacity-75 z-50 hidden flex items-center justify-center">
+      <i class="fas fa-spinner fa-spin text-4xl text-[var(--primary)]"></i>
     </div>
+
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="text-lg font-semibold">Image Search</h3>
+      <button onclick="closeImageModal()" class="text-gray-500 hover:text-gray-700">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="space-y-4">
+      <!-- Image Preview -->
+      <div id="imagePreview" class="hidden">
+        <img src="" alt="Preview" class="w-full h-48 object-contain rounded-lg border">
+        <button onclick="removeImage()"
+                class="mt-2 text-red-500 text-sm hover:text-red-700">
+          Remove Image
+        </button>
+      </div>
+      <!-- Upload Area -->
+      <div id="uploadArea" class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+        <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-3"></i>
+        <p class="text-gray-600">Drag and drop an image here or click to upload</p>
+        <p class="text-sm text-gray-500 mt-2">Supported formats: JPG, PNG, JPEG</p>
+      </div>
+      <!-- Search Button -->
+      <button onclick="submitImageSearch()"
+              class="w-full bg-[var(--primary)] text-white py-2 rounded-lg hover:bg-opacity-90 transition-colors">
+        Search with Image
+      </button>
+    </div>
+  </div>
 </div>
+
+
 
              <div class="flex items-center">
                 <!-- Add this in the customer_base.html header section -->
@@ -474,6 +482,39 @@
                 });
             }
             
+
+
+{% comment %} function submitImageSearch() {
+    const loader = document.getElementById('imageSearchLoader');
+    loader.classList.remove('hidden');        // ← show spinner
+
+    const formData = new FormData();
+    const imageFile = document.getElementById('imageSearch').files[0];
+    if (!imageFile) return;
+
+    formData.append('image_query', imageFile);
+
+    fetch(`{% url 'products:image_search' subdomain=vendor.subdomain %}`, {
+      method: 'POST',
+      body: formData,
+      headers: { 'X-CSRFToken': getCookie('csrftoken') }
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.status === 'success') {
+        window.location.href = data.redirect_url;
+      } else {
+        showNotification(data.message, 'error');
+      }
+    })
+    .catch(() => {
+      showNotification('Error processing image search', 'error');
+    })
+    .finally(() => {
+      loader.classList.add('hidden');       // ← hide spinner on any outcome
+    });
+  } {% endcomment %}
+
             </script>
 <script>
 // Image search handling
@@ -507,33 +548,39 @@ function resetImageSearch() {
     document.getElementById('imageSearchModal').classList.add('hidden');
 }
 
-function submitImageSearch() {
+
+  function submitImageSearch() {
+    const loader = document.getElementById('imageSearchLoader');
+    loader.classList.remove('hidden');        // ← show spinner
+
     const formData = new FormData();
-    const imageFile = document.getElementById('imageSearch').files[0];
-    
-    if (imageFile) {
-        formData.append('image_query', imageFile);
-        
-        fetch(`{% url 'products:image_search' subdomain=vendor.subdomain %}`, {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-CSRFToken': getCookie('csrftoken')
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                window.location.href = data.redirect_url;
-            } else {
-                showNotification(data.message, 'error');
-            }
-        })
-        .catch(error => {
-            showNotification('Error processing image search', 'error');
-        });
+   const imageFile = document.getElementById('imageSearch').files[0];
+    if (!imageFile) {
+      loader.classList.add('hidden');
+      return;
     }
-}
+
+    formData.append('image_query', imageFile);
+    fetch(`{% url 'products:image_search' subdomain=vendor.subdomain %}`, {
+      method: 'POST',
+      body: formData,
+      headers: { 'X-CSRFToken': getCookie('csrftoken') }
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.status === 'success') {
+        window.location.href = data.redirect_url;
+      } else {
+        showNotification(data.message, 'error');
+      }
+    })
+    .catch(() => {
+      showNotification('Error processing image search', 'error');
+    })
+    .finally(() => {
+      loader.classList.add('hidden');       // ← hide spinner
+    });
+  }
 
 // Add drag and drop support
 const uploadArea = document.getElementById('uploadArea');

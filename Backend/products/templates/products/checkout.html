@@ -106,7 +106,7 @@
                         
                         </p>
                     </div>
-                    <p class="text-sm font-medium">${{ total }}</p>
+                    <p class="text-sm font-medium">Rs{{ total }}</p>
                 </div>
                 {% else %}
                 {% for item in cart_items %}
@@ -121,7 +121,7 @@
                             {% if item.size %}| Size: {{ item.size.size_name }}{% endif %}
                         </p>
                     </div>
-                    <p class="text-sm font-medium">${{ item.total_price }}</p>
+                    <p class="text-sm font-medium">Rs{{ item.total_price }}</p>
                 </div>
                 {% endfor %}
                 {% endif %}
@@ -152,7 +152,7 @@
             <div class="border-t border-gray-200 pt-4 space-y-2">
                 <div class="flex justify-between text-sm">
                     <span class="text-gray-600">Subtotal</span>
-                    <span>${{ subtotal }}</span>
+                    <span>Rs{{ subtotal }}</span>
                 </div>
                 <div class="flex justify-between text-sm">
                     <span class="text-gray-600">Shipping</span>
@@ -161,12 +161,12 @@
                 {% if discount %}
                 <div class="flex justify-between text-sm text-green-600">
                     <span>Discount</span>
-                    <span>-${{ discount }}</span>
+                    <span>-Rs{{ discount }}</span>
                 </div>
                 {% endif %}
                 <div class="flex justify-between text-base font-semibold pt-2">
                     <span>Total</span>
-                    <span class="text-[var(--primary)]">${{ total }}</span>
+                    <span class="text-[var(--primary)]">Rs{{ total }}</span>
                 </div>
             </div>
             
