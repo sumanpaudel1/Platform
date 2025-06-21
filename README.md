@@ -47,7 +47,7 @@ A subscription-based, AI-powered multi-vendor e-commerce solution built using Dj
 | Payment Gateway   | eSewa (Nepal) |
 | Dev Tools         | VS Code, Git, GitHub |
 | Version Control   | GitHub |
-| Deployment        | (add your deployment link here, if available) |
+
 
 ---
 
